@@ -28,7 +28,6 @@ jobs:
         uses: actions/setup-dotnet@v1
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
-        direct
         
 
       - name: 'Resolve Project Dependencies Using Dotnet'
@@ -54,3 +53,4 @@ jobs:
           package: '${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}/output'
 
           
+
