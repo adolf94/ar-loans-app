@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.13.35931.197
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ar.Loans.Api", "Ar.Loans.Api.csproj", "{1DF0E505-1430-4373-99F1-F8599AF00B54}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{1DF0E505-1430-4373-99F1-F8599AF00B54}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1DF0E505-1430-4373-99F1-F8599AF00B54}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1DF0E505-1430-4373-99F1-F8599AF00B54}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1DF0E505-1430-4373-99F1-F8599AF00B54}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {143EE69A-EA1F-4360-87C3-BD49E1686F45}
+	EndGlobalSection
+EndGlobal

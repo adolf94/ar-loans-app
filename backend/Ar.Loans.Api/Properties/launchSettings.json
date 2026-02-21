@@ -1,0 +1,15 @@
+{
+  "profiles": {
+    "Ar.Loans.Api": {
+      "commandName": "Project",
+      "commandLineArgs": "--port 7239"
+    },
+    "Container (Dockerfile)": {
+      "commandName": "Docker",
+      "launchUrl": "{Scheme}://{ServiceHost}:{ServicePort}",
+      "containerRunArguments": "--init",
+      "httpPort": 31447,
+      "useSSL": false
+    }
+  }
+}
