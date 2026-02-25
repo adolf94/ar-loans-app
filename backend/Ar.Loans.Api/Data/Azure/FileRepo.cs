@@ -1,5 +1,6 @@
 ﻿using Ar.Loans.Api.Models;
 using Ar.Loans.Api.Utilities;
+using Azure.Identity;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using System;
@@ -21,7 +22,19 @@ namespace Ar.Loans.Api.Data.Azure
 
 				public async Task<BlobFile> UploadFile(string filePath, string container)
 				{
-						BlobServiceClient blobServiceClient = new BlobServiceClient(_config.AzureStorage);
+						BlobServiceClient blobServiceClient;
+
+                        if (Uri.TryCreate(_config.AzureStorage, UriKind.Absolute, out var uri))
+                        {
+                            // If the config is a URL (e.g., https://mystorage.blob.core.windows.net)
+                            // Use RBAC via DefaultAzureCredential
+                            blobServiceClient = new BlobServiceClient(uri, new DefaultAzureCredential());
+                        }
+                        else
+                        {
+                            // If the config is a full Connection String (DefaultEndpointsProtocol=https...)
+                            blobServiceClient = new BlobServiceClient(_config.AzureStorage);
+                        }
                         Guid id = Guid.CreateVersion7();
                         BlobContainerClient containerClient = blobServiceClient.GetBlobContainerClient(container);
                         await containerClient.CreateIfNotExistsAsync(PublicAccessType.None);
