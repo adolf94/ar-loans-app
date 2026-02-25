@@ -1,5 +1,6 @@
 using Ar.Loans.Api.Data;
 using Ar.Loans.Api.Models;
+using Ar.Loans.Api.Utilities;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
@@ -11,16 +12,20 @@ namespace Ar.Loans.Api.Controllers
     {
         private readonly IEntryRepo _entryRepo;
 				private readonly IDbHelper _db;
+        private readonly CurrentUser _user;
 
-				public EntryController(IEntryRepo entryRepo, IDbHelper db)
+        public EntryController(IEntryRepo entryRepo, IDbHelper db, CurrentUser user)
         {
             _entryRepo = entryRepo;
             _db = db;
+            _user = user;
         }
 
         [Function("GetAllEntries")]
         public async Task<IActionResult> GetAllEntries([HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "entries")] HttpRequest req)
         {
+            if (!_user.IsAuthenticated) return new UnauthorizedResult();
+            if (!_user.IsAuthorized("coop_guarantor,coop_admin")) return new ForbidResult();
             var entries = await _entryRepo.GetAllEntries();
             return new OkObjectResult(entries);
         }
@@ -28,6 +33,8 @@ namespace Ar.Loans.Api.Controllers
         [Function("CreateEntry")]
 				public async Task<IActionResult> CreateEntry([HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "entries")] HttpRequest req)
 				{
+            if (!_user.IsAuthenticated) return new UnauthorizedResult();
+            if (!_user.IsAuthorized("coop_guarantor,coop_admin")) return new ForbidResult();
 
             var dto = await req.ReadFromJsonAsync<Entry>();
             if (dto == null) return new BadRequestResult();

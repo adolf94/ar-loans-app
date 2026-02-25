@@ -1,5 +1,6 @@
 ﻿using Ar.Loans.Api.Data;
 using Ar.Loans.Api.Data.Azure;
+using Ar.Loans.Api.Utilities;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
@@ -16,19 +17,23 @@ namespace Ar.Loans.Api.Controllers
         private readonly AzureFileRepo _azFile;
 				private readonly IFileRepo _files;
 				private readonly IDbHelper _db;
+        private readonly CurrentUser _user;
 
-				public FileController(IAiService ai, AzureFileRepo azFile, IFileRepo files, IDbHelper db)
+        public FileController(IAiService ai, AzureFileRepo azFile, IFileRepo files, IDbHelper db, CurrentUser user)
         {
             _ai = ai;
             _azFile = azFile;
             _files = files;
             _db = db;
+            _user = user;
         }
 
         [Function("IdentifyTransactionInformation")]
         public async Task<IActionResult> IdentifyTransactionInformation(
             [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "files/identify_transaction")] HttpRequest req)
         {
+            if (!_user.IsAuthenticated) return new UnauthorizedResult();
+            if (!_user.IsAuthorized("coop_guarantor,coop_admin")) return new ForbidResult();
             try
             {
                 if (!req.HasFormContentType)

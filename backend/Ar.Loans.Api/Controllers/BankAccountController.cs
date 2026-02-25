@@ -1,5 +1,6 @@
 ﻿using Ar.Loans.Api.Data;
 using Ar.Loans.Api.Models;
+using Ar.Loans.Api.Utilities;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
@@ -15,11 +16,13 @@ namespace Ar.Loans.Api.Controllers
 		{
 				private readonly IBankAccountRepo _repo;
 				private readonly IDbHelper _db;
+        private readonly CurrentUser _user;
 
-				public BankAccountController(IBankAccountRepo repo, IDbHelper db)
+        public BankAccountController(IBankAccountRepo repo, IDbHelper db, CurrentUser user)
 				{
 						_repo = repo;
 						_db = db;
+						_user = user;
 				}
 
 
@@ -27,6 +30,8 @@ namespace Ar.Loans.Api.Controllers
 				[Function("GetByBankAccountId")]
 				public async Task<IActionResult> GetByBankAccountId([HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "bankaccounts")] HttpRequest req)
 				{
+            if (!_user.IsAuthenticated) return new UnauthorizedResult();
+            if (!_user.IsAuthorized("coop_guarantor,coop_admin")) return new ForbidResult();
 						string? accountId = req.Query["accountId"];
 						if (string.IsNullOrEmpty(accountId))
 						{
@@ -45,6 +50,8 @@ namespace Ar.Loans.Api.Controllers
 				[Function("PutBankAccount")]
 				public async Task<IActionResult> PutBankAccount([HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "bankaccounts")] HttpRequest req)
 				{
+            if (!_user.IsAuthenticated) return new UnauthorizedResult();
+            if (!_user.IsAuthorized("coop_guarantor,coop_admin")) return new ForbidResult();
 
 						var dto = await req.ReadFromJsonAsync<UserBankAccount>();
 

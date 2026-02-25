@@ -14,5 +14,13 @@ namespace Ar.Loans.Api.Utilities
 				public string CosmosKey { get; set; } = "";
  				public string AuthUrl { get; set; }
 				public string AzureStorage { get; set; }
+
+				public JwtConfiguration JwtConfig { get; set; } = new();
+		}
+		public class JwtConfiguration
+		{
+				public string Issuer { get; set; }
+				public string Audience {get;set;}
+				public string SecretKey {get; set;}
 		}
 }

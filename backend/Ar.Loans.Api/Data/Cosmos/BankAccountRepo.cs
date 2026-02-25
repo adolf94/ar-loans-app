@@ -28,7 +28,7 @@ namespace Ar.Loans.Api.Data.Cosmos
 						string lastDigits = "";
 						if (match.Success)
 						{
-								lastDigits = match.Value; // Result: "8838"
+								lastDigits = match.Value; 
 						}
 
 						var items = await _context.BankAccounts.Where(e => e.AccountNumber == accountId || e.AccountNumber.EndsWith(lastDigits))
