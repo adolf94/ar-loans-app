@@ -9,9 +9,11 @@ import {
     Menu,
     MenuItem,
     Avatar,
-    Chip
+    Chip,
+    Button
 } from '@mui/material';
 import { Shield, User as UserIcon, Briefcase, ChevronDown } from 'lucide-react';
+import {ArrowDropDown} from "@mui/icons-material"
 import type { UserRole, User } from '../@types/types';
 import { useNavigate, useLocation } from '@tanstack/react-router';
 
@@ -23,12 +25,17 @@ interface LayoutProps {
 
 const Layout: React.FC<LayoutProps> = ({ children, currentUser, onRoleChange }) => {
     const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
+    const [userEl, setUserEl] = React.useState<null | HTMLElement>(null);
     const navigate = useNavigate();
     const location = useLocation();
     const isLoginPage = location.pathname === '/';
 
     const handleOpenMenu = (event: React.MouseEvent<HTMLElement>) => {
         setAnchorEl(event.currentTarget);
+    };
+
+    const handleOpenUserMenu = (event: React.MouseEvent<HTMLElement>) => {
+        setUserEl(event.currentTarget);
     };
 
     const handleCloseMenu = () => {
@@ -53,6 +60,15 @@ const Layout: React.FC<LayoutProps> = ({ children, currentUser, onRoleChange }) 
             case 'Guarantor': return <Briefcase size={18} />;
         }
     };
+    
+    const handleLogout = ()=>{
+        setUserEl(null)
+        sessionStorage.removeItem("access_token")
+        localStorage.removeItem("id_token")
+        localStorage.removeItem("refresh_token")
+        navigate({to:"/"})
+    }
+
 
     const getRoleColor = (role: UserRole) => {
         switch (role) {
@@ -92,11 +108,13 @@ const Layout: React.FC<LayoutProps> = ({ children, currentUser, onRoleChange }) 
                                 icon={getRoleIcon(currentUser.role) as React.ReactElement}
                                 size="small"
                                 variant="outlined"
+                                onClick={handleOpenMenu}
+                                deleteIcon={<ArrowDropDown />}
+                                onDelete={handleOpenMenu}
                                 sx={{ fontWeight: 600 }}
                             />
-
                             <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                                <IconButton onClick={handleOpenMenu} sx={{ p: 0 }}>
+                                <IconButton sx={{ p: 0 }} onClick={handleOpenUserMenu}>
                                     <Avatar sx={{ bgcolor: 'primary.main', width: 32, height: 32, fontSize: '0.875rem' }}>
                                         {currentUser.name.charAt(0)}
                                     </Avatar>
@@ -119,6 +137,15 @@ const Layout: React.FC<LayoutProps> = ({ children, currentUser, onRoleChange }) 
                                     <MenuItem onClick={() => handleRoleSelect('Guarantor')}>
                                         <Briefcase size={16} style={{ marginRight: 8 }} /> Guarantor Perspective
                                     </MenuItem>
+                                </Menu>
+                                <Menu
+                                    anchorEl={userEl}
+                                    open={Boolean(userEl)}
+                                    onClose={()=>setUserEl(null)}>
+                                    <MenuItem onClick={() => handleLogout()}>
+                                        Logout
+                                    </MenuItem>
+
                                 </Menu>
                             </Box>
                         </Box>
