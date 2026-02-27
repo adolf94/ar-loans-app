@@ -7,6 +7,7 @@ jobs:
   build_and_deploy_job:
     runs-on: ubuntu-latest
     name: Build and Deploy Job
+    environment: Default
     permissions:
        id-token: write
        contents: read
@@ -17,6 +18,27 @@ jobs:
           lfs: false
       - name: Install OIDC Client from Core Package
         run: npm install @actions/core@1.6.0 @actions/http-client
+           
+      - name: Install Dependencies
+        run: npm install --legacy-peer-deps
+        working-directory: FinanceUi
+          
+      - name: Build React
+        run: npm run build
+        working-directory: FinanceUi
+  
+      - name: Substitute JSON 
+        uses: restackio/update-json-file-action@2.1
+        with:
+          file: frontend/dist/config.json
+          fields: '{"apiUrl":"${{ vars.API }}", "redirectUri":"${{ vars.REDIRECT_URI }}", "authUrl":"${{ vars.AUTH_API }}"}'
+          
+      - name: Move/Rename config.json to js
+        run: |
+              echo window.webConfig= > config.js
+              cat config.json >> config.js
+        working-directory: frontend/dist
+        
       - name: Get Id Token
         uses: actions/github-script@v6
         id: idtoken
@@ -25,6 +47,7 @@ jobs:
                const coredemo = require('@actions/core')
                return await coredemo.getIDToken()
            result-encoding: string
+
       - name: Build And Deploy
         id: builddeploy
         uses: Azure/static-web-apps-deploy@v1
@@ -33,8 +56,10 @@ jobs:
           action: "upload"
           ###### Repository/Build Configurations - These values can be configured to match your app requirements. ######
           # For more information regarding Static Web App workflow configurations, please visit: https://aka.ms/swaworkflowconfig
-          app_location: "./frontend" # App source code path
+          app_location: "./frontend/dist" # App source code path
           api_location: "" # Api source code path - optional
+          skip_app_build : true,
+          skip_api_build : true,
           output_location: "dist" # Built app content directory - optional
           github_id_token: ${{ steps.idtoken.outputs.result }}
           ###### End of Repository/Build Configurations ######
