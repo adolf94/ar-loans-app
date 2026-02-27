@@ -21,11 +21,11 @@ jobs:
            
       - name: Install Dependencies
         run: npm install --legacy-peer-deps
-        working-directory: FinanceUi
+        working-directory: frontend
           
       - name: Build React
         run: npm run build
-        working-directory: FinanceUi
+        working-directory: frontend
   
       - name: Substitute JSON 
         uses: restackio/update-json-file-action@2.1
