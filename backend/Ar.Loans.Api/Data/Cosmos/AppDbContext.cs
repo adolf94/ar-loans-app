@@ -95,21 +95,11 @@ namespace Ar.Loans.Api.Data.Cosmos
 
 								// var encrypted = Configuration.GetConnectionString("CosmosDb")!;
 								// var connection = AesOperation.DecryptString(passkey, encrypted);
-								if (cosmosEndpoint.Contains("localhost") || cosmosEndpoint.Contains("127.0.0.1"))
-								{
-									// The Emulator requires the well-known Auth Key
-									const string EmulatorKey = "C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==";
-									opt.UseCosmos(cosmosEndpoint, EmulatorKey, db);
-								}
-								else
-								{
-									// Use Managed Identity for Azure (Dev/Staging/Prod)
-									opt.UseCosmos(
-										accountEndpoint: cosmosEndpoint,
-										tokenCredential: new DefaultAzureCredential(),
-										databaseName: db
-									);
-								}
+
+								// The Emulator requires the well-known Auth Key
+								string EmulatorKey = Environment.GetEnvironmentVariable("AppConfig__CosmosKey");
+								opt.UseCosmos(cosmosEndpoint, EmulatorKey, db);
+								
 								
 						});
 
