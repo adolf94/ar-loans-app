@@ -26,7 +26,7 @@ namespace Ar.Loans.Api.Data.Cosmos
 
 						if (string.IsNullOrEmpty(loan.AlternateId))
 						{
-								string loanAltId = $"{loan.Date:yyMMdd}-{loan.Date:MM}H-{loan.Id.ToString()[^4..]}";
+								string loanAltId = $"{loan.Date:yyMMdd}-{loan.Date:dd}-{loan.Id.ToString()[^4..]}";
 								loan.AlternateId = loanAltId;
 						}
 
@@ -187,6 +187,11 @@ namespace Ar.Loans.Api.Data.Cosmos
 						DateTime referenceDateUTC8 = DateTime.UtcNow.AddHours(8);
 						await AccrueInterestInternal(loan, referenceDateUTC8, true);
 
+						if (loan.Balance <= 0)
+						{
+								loan.Status = "Paid";
+						}
+
 						_context.Loans.Update(loan);
 						await _context.SaveChangesAsync();
 				}
@@ -197,6 +202,11 @@ namespace Ar.Loans.Api.Data.Cosmos
 						while (loan.NextInterestDate.AddDays(1).ToDateTime(new TimeOnly(8,0)) <= referenceDateUTC8)
 								
 						{
+								if (loan.Balance <= 0)
+								{
+										loan.Status = "Paid";
+										break;
+								}
 								
 								if (loan.Transactions.Count > 100) break;
 
