@@ -1,4 +1,5 @@
 ﻿using Ar.Loans.Api.Models;
+using Ar.Loans.Api.Utilities;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -12,11 +13,13 @@ namespace Ar.Loans.Api.Data.Cosmos
 		{
 				private readonly AppDbContext _ctx;
 				private readonly IQueryable<User> _q;
+        private readonly AppConfig _config;
 
-				public UserRepo(AppDbContext ctx)
+        public UserRepo(AppDbContext ctx, AppConfig config)
 				{
 						_ctx = ctx;
 						_q = ctx.Users.Where(e => e.PartitionKey == "default");
+						_config = config;
 				}
 
 				public async Task<User?> GetUserById(Guid id)
@@ -78,7 +81,7 @@ namespace Ar.Loans.Api.Data.Cosmos
 				private async Task<User?> GetUserByEmailOrMobile(string email, string mobile)
 				{
 						var client = _ctx.Database.GetCosmosClient();
-						var container = client.GetContainer("FinanceAppLocal", "User");
+						var container = client.GetContainer(_config.UsersDb, "User");
 
 						var query = new Microsoft.Azure.Cosmos.QueryDefinition("SELECT * FROM c WHERE (c.EmailAddress = @email AND @email != '') OR (c.MobileNumber = @mobile AND @mobile != '')")
 								.WithParameter("@email", email ?? "")

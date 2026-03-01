@@ -10,6 +10,7 @@ namespace Ar.Loans.Api.Utilities
 		{
 				public string DatabaseName { get; set; }
 				public string GeminiKey { get; set; }
+				public string UsersDb { get; set; }
 				public string CosmosEndpoint { get; set; }
 				public string CosmosKey { get; set; } = "";
  				public string AuthUrl { get; set; }
