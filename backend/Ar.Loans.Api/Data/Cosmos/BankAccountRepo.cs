@@ -24,7 +24,7 @@ namespace Ar.Loans.Api.Data.Cosmos
 				{
 						char[] targets = { '*', '.' };
 						bool isMasked = accountId.Any(c => targets.Contains(c));
-						var match = Regex.Match(accountId, @"[^*.]+$");
+						var match = Regex.Match(accountId, @"[^* .]+$");
 						string lastDigits = "";
 						if (match.Success)
 						{
