@@ -1,0 +1,32 @@
+{
+		"trailingSlash": "auto",
+		"routes": [
+				{
+						"route": "/images/*",
+						"headers": {
+								"cache-control": "must-revalidate, max-age=15770000"
+						}
+				},
+				{
+						"route": "/api/*",
+						"methods": [ "GET" ],
+						"allowedRoles": [ "registeredusers" ]
+				},
+				{
+						"route": "/api/*",
+						"methods": [ "PUT", "POST", "PATCH", "DELETE" ],
+						"allowedRoles": [ "administrator" ]
+				},
+				{
+						"route": "/api/*",
+						"allowedRoles": [ "authenticated" ]
+				}
+		],
+		"navigationFallback": {
+				"rewrite": "index.html",
+				"exclude": [ "/assets/*", "/config.js","/images/*.{png,jpg,gif}", "/css/*" ]
+		},
+		"mimeTypes": {
+				".json": "text/json"
+		}
+}
