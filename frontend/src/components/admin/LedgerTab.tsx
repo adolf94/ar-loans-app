@@ -13,6 +13,7 @@ import {
 } from '@mui/material';
 import { useEntries } from '../../repositories/entry';
 import { useAccounts } from '../../repositories/account';
+import dayjs from 'dayjs';
 
 interface LedgerTabProps {
     ledger?: any[]; // Keep for backward compatibility but not used
@@ -38,6 +39,7 @@ const LedgerTab: React.FC<LedgerTabProps> = () => {
             <Table stickyHeader size={isMobile ? 'small' : 'medium'}>
                 <TableHead>
                     <TableRow>
+                        <TableCell sx={{ fontWeight: 700 }}>Date</TableCell>
                         <TableCell sx={{ fontWeight: 700, minWidth: isMobile ? 150 : 250 }}>Description</TableCell>
                         {!isMobile && <TableCell sx={{ fontWeight: 700, minWidth: 150 }}>Credit Account</TableCell>}
                         {!isMobile && <TableCell sx={{ fontWeight: 700, minWidth: 150 }}>Debit Account</TableCell>}
@@ -49,6 +51,9 @@ const LedgerTab: React.FC<LedgerTabProps> = () => {
                     {entries.length > 0 ? (
                         entries.map((entry) => (
                             <TableRow key={entry.id} hover>
+                                <TableCell>
+                                    <Typography variant="body2">{dayjs(entry.date).format("MMM DD")}</Typography>
+                                </TableCell>
                                 <TableCell>
                                     <Typography variant="body2">{entry.description}</Typography>
                                 </TableCell>

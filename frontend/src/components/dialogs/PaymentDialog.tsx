@@ -80,7 +80,7 @@ const PaymentDialog: React.FC<PaymentDialogProps> = ({
                     destinationAcctId: acct?.accountId || "",
                     amount: data.amount || prev.amount,
                     date: dayjs(data.datetime).format("YYYY-MM-DD") || prev.date,
-                    fileId: data.fileId || null
+                    fileId: data.fileId || ""
                 }));
 
             }
@@ -183,7 +183,7 @@ const PaymentDialog: React.FC<PaymentDialogProps> = ({
                 <Button
                     onClick={handleAdd}
                     variant="contained"
-                    disabled={!newPayment.loanId || newPayment.amount <= 0}
+                    disabled={!newPayment.loanId || newPayment.amount == 0}
                 >
                     Record Payment
                 </Button>

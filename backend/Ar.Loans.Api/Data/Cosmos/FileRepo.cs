@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace Ar.Loans.Api.Data.Cosmos
 {
-		public class FileRepo
+		public class FileRepo : IFileRepo
 		{
 				private readonly AppDbContext _context;
 

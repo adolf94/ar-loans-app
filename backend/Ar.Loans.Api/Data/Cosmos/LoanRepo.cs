@@ -23,11 +23,16 @@ namespace Ar.Loans.Api.Data.Cosmos
 				public async Task<Loan> CreateLoan(Loan loan)
 				{
 
-						string loanAltId = $"{loan.Date:yyMMdd}-{loan.Principal}-{loan.Id.ToString()[^4..]}";
 
-						loan.AlternateId = loanAltId;
+						if (string.IsNullOrEmpty(loan.AlternateId))
+						{
+								string loanAltId = $"{loan.Date:yyMMdd}-{loan.Date:MM}H-{loan.Id.ToString()[^4..]}";
+								loan.AlternateId = loanAltId;
+						}
+
+
 						// 1. Initial Principal Disbursement
-						var principalEntryId = Guid.NewGuid();
+						var principalEntryId =  Guid.CreateVersion7();
 						var principalEntry = new Entry
 						{
 								Id = principalEntryId,
@@ -35,6 +40,8 @@ namespace Ar.Loans.Api.Data.Cosmos
 								DebitId = AccountConstants.LoanReceivables,
 								CreditId = loan.SourceAcct,
 								Amount = loan.Principal,
+								Date = loan.Date,
+								FileId = loan.FileId,
 								AddedBy = Guid.Empty
 						};
 
@@ -71,9 +78,10 @@ namespace Ar.Loans.Api.Data.Cosmos
 
 				public async Task<List<Loan>> GetLoansPendingInterest(DateTime referenceDateUTC8)
 				{
+						var refDate = DateOnly.FromDateTime(referenceDateUTC8);
 						// Checks if the NextInterestDate + 1 day has passed
 						return await _context.Loans
-								.Where(l => l.Status == "Active" && l.NextInterestDate.AddDays(1).ToDateTime(new TimeOnly(8,0)) <= referenceDateUTC8)
+								.Where(l => l.Status == "Active" && l.NextInterestDate.AddDays(1) <= refDate)
 								.ToListAsync();
 				}
 
@@ -144,14 +152,16 @@ namespace Ar.Loans.Api.Data.Cosmos
 						}
 
 						// 2. Record the Payment
-						var paymentEntryId = Guid.NewGuid();
+						var paymentEntryId = Guid.CreateVersion7();
 						var paymentEntry = new Entry
 						{
 								Id = paymentEntryId,
 								Description = $"Loan Payment ({loan.AlternateId}) - {client.Name}",
 								DebitId = payment.DestinationAcctId, // The account where money goes
 								CreditId = AccountConstants.LoanReceivables,
+								Date = payment.Date,
 								Amount = payment.Amount,
+								FileId = payment.FileId,
 								AddedBy = Guid.Empty
 						};
 
@@ -196,7 +206,7 @@ namespace Ar.Loans.Api.Data.Cosmos
 
 								if (monthlyInterest <= 0) break;
 
-								var entryId = Guid.NewGuid();
+								var entryId = Guid.CreateVersion7(); 
 								var startDate = loan.NextInterestDate;
 								var endDate = startDate.AddMonths(1);
 
@@ -207,6 +217,7 @@ namespace Ar.Loans.Api.Data.Cosmos
 										DebitId = AccountConstants.LoanReceivables,
 										CreditId = AccountConstants.InterestIncome,
 										Amount = monthlyInterest,
+										Date =startDate,
 										AddedBy = Guid.Empty
 								};
 

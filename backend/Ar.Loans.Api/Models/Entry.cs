@@ -15,6 +15,7 @@ namespace Ar.Loans.Api.Models
 				public Guid CreditId { get; set; }
 				public decimal Amount { get; set; }
 				public Guid AddedBy { get; set; }
+				public string? FileId { get; set; } = null;
 				public string PartitionKey { get; set; } = "default";
 		}
 }

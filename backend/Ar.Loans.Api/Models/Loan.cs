@@ -5,7 +5,7 @@ namespace Ar.Loans.Api.Models
 		public class Loan
 		{
 				[JsonPropertyName("id")]
-				public Guid Id { get; set; }
+				public Guid Id { get; set; } = Guid.CreateVersion7();
 
 				[JsonPropertyName("alternateId")]
 				public string AlternateId { get; set; } = "";

@@ -28,6 +28,9 @@ namespace Ar.Loans.Api.Models
 				[JsonPropertyName("description")]
 				public string Description { get; set; } = "";
 
+				[JsonPropertyName("fileId")]
+				public string? FileId { get; set; } = null;
+
 				[JsonPropertyName("destinationAcctId")]
 				public Guid DestinationAcctId { get; set; }
 

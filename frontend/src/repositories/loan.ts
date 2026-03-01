@@ -2,6 +2,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../services/api';
 import type { Loan, LoanStatus } from '../@types/types';
 import api from '../services/api';
+import { ACCOUNT } from './account';
+import { ENTRY } from './entry';
 
 export const createLoan = async (loan: Loan): Promise<Loan> => {
     const response = await apiClient.post<Loan>('/loans', loan);
@@ -83,6 +85,8 @@ export const useCreateLoan = () => {
         onSuccess: () => {
             // Invalidate all loan queries (including filtered ones)
             queryClient.invalidateQueries({ queryKey: ['loans'] });
+            queryClient.invalidateQueries({queryKey:[ENTRY]})
+            queryClient.invalidateQueries({ queryKey: [ACCOUNT] });
         },
     });
 };

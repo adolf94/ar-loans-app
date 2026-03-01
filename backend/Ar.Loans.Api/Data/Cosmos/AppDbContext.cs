@@ -116,6 +116,7 @@ namespace Ar.Loans.Api.Data.Cosmos
 						services.AddScoped<IDbHelper, DbHelper>();
 						services.AddScoped<IUserRepo, UserRepo>();
 						services.AddScoped<IBankAccountRepo, BankAccountRepo>();
+						services.AddScoped<IFileRepo, FileRepo>();
 						services.AddScoped<ILoanRepo, LoanRepo>();
 						services.AddScoped<IAccountRepo, AccountRepo>();
 						services.AddScoped<IEntryRepo, EntryRepo>();

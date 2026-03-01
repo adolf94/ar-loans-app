@@ -7,6 +7,7 @@ export interface Account {
     section: string;
     balance: number;
 }
+export const ACCOUNT = "accounts"
 
 export const getAccounts = async (): Promise<Account[]> => {
     const response = await apiClient.get<Account[]>('/accounts');
@@ -15,7 +16,7 @@ export const getAccounts = async (): Promise<Account[]> => {
 
 export const useAccounts = () => {
     return useQuery({
-        queryKey: ['accounts'],
+        queryKey: [ACCOUNT],
         queryFn: getAccounts,
     });
 };

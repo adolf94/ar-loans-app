@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../services/api';
 import api from '../services/api';
+import { ACCOUNT } from './account';
 
 export interface Entry {
     id: string;
@@ -11,6 +12,8 @@ export interface Entry {
     addedBy?: string;
 }
 
+export const ENTRY = "entries"
+
 export const getEntries = async (): Promise<Entry[]> => {
     const response = await apiClient.get<Entry[]>('/entries');
     return response.data;
@@ -18,7 +21,7 @@ export const getEntries = async (): Promise<Entry[]> => {
 
 export const useEntries = () => {
     return useQuery({
-        queryKey: ['entries'],
+        queryKey: [ENTRY],
         queryFn: getEntries,
     });
 };
@@ -29,7 +32,12 @@ export const useCreateEntry = ()=>{
     return useMutation({
         mutationFn : (data: Entry)=>api.post<Entry>("/entries",data )
             .then(e=>e.data),
-            onSuccess:()=>queryClient.invalidateQueries({queryKey:["entries"]})
+            onSuccess:()=>{
+                    queryClient.invalidateQueries({queryKey:[ENTRY]})
+            
+                    queryClient.invalidateQueries({ queryKey: [ACCOUNT] });
+            
+            }
     })
 
 }

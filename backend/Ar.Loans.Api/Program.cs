@@ -3,6 +3,7 @@ using Ar.Loans.Api.Data;
 using Ar.Loans.Api.Data.Azure;
 using Ar.Loans.Api.Data.Cosmos;
 using Ar.Loans.Api.Data.GoogleAi;
+using Ar.Loans.Api.Middlewares;
 using Ar.Loans.Api.Utilities;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Azure.Functions.Worker;
@@ -14,7 +15,7 @@ using Microsoft.IdentityModel.Tokens;
 
 var builder = FunctionsApplication.CreateBuilder(args);
 
-builder.ConfigureFunctionsWebApplication();
+var webapp = builder.ConfigureFunctionsWebApplication();
 
 var config = builder.Configuration;
 
@@ -55,5 +56,6 @@ builder.Services.AddCosmosDbContext(config);
 builder.Services.AddSingleton<IAiService, AiService>();
 builder.Services.AddSingleton<AzureFileRepo>();
 
+webapp.UseMiddleware<AppMiddleware>();
 
 builder.Build().Run();

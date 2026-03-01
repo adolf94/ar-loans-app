@@ -40,15 +40,15 @@ namespace Ar.Loans.Api.Data.Cosmos
 
 						User? user = null;
 
-						if(item.MobileNumber != "" || item.EmailAddress != "")
+						if(!string.IsNullOrEmpty(item.MobileNumber) || !string.IsNullOrEmpty(item.EmailAddress))
 						{
-								user = await _q.Where(e=>(item.EmailAddress != "" && e.EmailAddress == item.EmailAddress) || (item.MobileNumber != "" && e.MobileNumber == item.MobileNumber)).FirstOrDefaultAsync();
+								user = await _q.Where(e=>(!string.IsNullOrEmpty(item.EmailAddress) && e.EmailAddress == item.EmailAddress) || (item.MobileNumber != "" && e.MobileNumber == item.MobileNumber)).FirstOrDefaultAsync();
 								
 								if(user != null)
 								{
 										user.Accounts = item.Accounts
-										.UnionBy(user.Accounts, a => a.AccountNumber)
-										.ToList();
+														.UnionBy(user.Accounts, a => a.AccountNumber)
+														.ToList();
 										_ctx.Update(user);
 										return user;
 								}
@@ -78,7 +78,7 @@ namespace Ar.Loans.Api.Data.Cosmos
 				private async Task<User?> GetUserByEmailOrMobile(string email, string mobile)
 				{
 						var client = _ctx.Database.GetCosmosClient();
-						var container = client.GetContainer("FinanceApp", "User");
+						var container = client.GetContainer("FinanceAppLocal", "User");
 
 						var query = new Microsoft.Azure.Cosmos.QueryDefinition("SELECT * FROM c WHERE (c.EmailAddress = @email AND @email != '') OR (c.MobileNumber = @mobile AND @mobile != '')")
 								.WithParameter("@email", email ?? "")
