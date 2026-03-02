@@ -44,34 +44,34 @@ export const useLoansFiltered = (status?: LoanStatus) => {
     });
 };
 
-export const useGuaranteedLoans = (guid:string)=>{
+export const useGuaranteedLoans = (guid: string) => {
     const queryClient = useQueryClient()
     return useQuery({
-        queryKey:['loans', {guarantorId:guid}],
+        queryKey: ['loans', { guarantorId: guid }],
         queryFn: async () => {
 
             const loans = await queryClient.getQueryData<Loan[]>(["loans"])
-            if(!!loans){
-                return loans.filter(loan => loan.guarantorId === guid) 
+            if (!!loans) {
+                return loans.filter(loan => loan.guarantorId === guid)
             }
             return await api.get(`/guarantor/${guid}/loans`)
-                .then(e=>e.data)
+                .then(e => e.data)
         },
     });
 }
 
-export const useUserLoans = (guid:string)=>{
+export const useUserLoans = (guid: string) => {
     const queryClient = useQueryClient()
-    const {data = []} = useQuery({
-        queryKey:['loans', {clientId:guid}],
+    const { data = [] } = useQuery({
+        queryKey: ['loans', { clientId: guid }],
         queryFn: async () => {
 
             const loans = await queryClient.getQueryData<Loan[]>(["loans"])
-            if(!!loans){
-                return loans.filter(loan => loan.clientId === guid) 
+            if (!!loans) {
+                return loans.filter(loan => loan.clientId === guid)
             }
             return await api.get(`/user/${guid}/loans`)
-                .then(e=>e.data)
+                .then(e => e.data)
         },
     });
     return data
@@ -85,7 +85,21 @@ export const useCreateLoan = () => {
         onSuccess: () => {
             // Invalidate all loan queries (including filtered ones)
             queryClient.invalidateQueries({ queryKey: ['loans'] });
-            queryClient.invalidateQueries({queryKey:[ENTRY]})
+            queryClient.invalidateQueries({ queryKey: [ENTRY] })
+            queryClient.invalidateQueries({ queryKey: [ACCOUNT] });
+        },
+    });
+};
+
+export const useDeleteLoan = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: async (id: string) => {
+            await apiClient.delete(`/loans/${id}`);
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['loans'] });
+            queryClient.invalidateQueries({ queryKey: [ENTRY] });
             queryClient.invalidateQueries({ queryKey: [ACCOUNT] });
         },
     });

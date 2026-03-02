@@ -46,5 +46,22 @@ namespace Ar.Loans.Api.Controllers
 						return new OkObjectResult(dto);
 				}
 
+        [Function("DeleteEntry")]
+        public async Task<IActionResult> DeleteEntry([HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "entries/{id}")] HttpRequest req)
+        {
+            if (!_user.IsAuthenticated) return new UnauthorizedResult();
+            if (!_user.IsAuthorized("coop_admin")) return new ForbidResult();
+
+            var idItem = req.RouteValues["id"]!.ToString();
+            if (!Guid.TryParse(idItem, out var entryId))
+            {
+                return new BadRequestResult();
+            }
+
+            await _entryRepo.DeleteEntry(entryId);
+            await _db.SaveChangesAsync();
+            return new OkResult();
+        }
+
 		}
 }

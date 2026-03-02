@@ -45,5 +45,40 @@ namespace Ar.Loans.Api.Data.Cosmos
 						account.Balance += delta;
 						_context.Accounts.Update(account);
 				}
+
+				public async Task DeleteEntry(Guid id)
+				{
+						var entry = await _context.Entries.FindAsync(id);
+						if (entry == null) return;
+
+						// 1. Revert Account Balances
+						await AdjustAccountBalance(entry.DebitId, entry.Amount, true, false);
+						await AdjustAccountBalance(entry.CreditId, entry.Amount, false, false);
+
+						// 2. If it's a loan entry, update the loan balance and remove from transactions list
+						if (entry.LoanId.HasValue)
+						{
+								var loan = await _context.Loans.FindAsync(entry.LoanId.Value);
+								if (loan != null)
+								{
+										var tx = loan.Transactions.FirstOrDefault(t => t.LedgerId == id);
+										if (tx != null)
+										{
+												if (tx.Type == "interest")
+												{
+														loan.Balance -= tx.Amount;
+												}
+												else if (tx.Type == "payment")
+												{
+														loan.Balance += tx.Amount;
+												}
+												loan.Transactions.Remove(tx);
+										}
+										_context.Loans.Update(loan);
+								}
+						}
+
+						_context.Entries.Remove(entry);
+				}
 		}
 }

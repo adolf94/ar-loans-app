@@ -9,7 +9,9 @@ export interface Entry {
     debitId: string;
     creditId: string;
     amount: number;
+    date: string;
     addedBy?: string;
+    loanId?: string;
 }
 
 export const ENTRY = "entries"
@@ -26,18 +28,37 @@ export const useEntries = () => {
     });
 };
 
+export const useLoanEntries = (loanId: string) => {
+    const { data: entries = [] } = useEntries();
+    return entries.filter(e => e.loanId === loanId);
+};
 
-export const useCreateEntry = ()=>{
+
+export const useCreateEntry = () => {
     let queryClient = useQueryClient()
     return useMutation({
-        mutationFn : (data: Entry)=>api.post<Entry>("/entries",data )
-            .then(e=>e.data),
-            onSuccess:()=>{
-                    queryClient.invalidateQueries({queryKey:[ENTRY]})
-            
-                    queryClient.invalidateQueries({ queryKey: [ACCOUNT] });
-            
-            }
+        mutationFn: (data: Entry) => api.post<Entry>("/entries", data)
+            .then(e => e.data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: [ENTRY] })
+
+            queryClient.invalidateQueries({ queryKey: [ACCOUNT] });
+
+        }
     })
 
 }
+
+export const useDeleteEntry = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: async (id: string) => {
+            await apiClient.delete(`/entries/${id}`);
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: [ENTRY] });
+            queryClient.invalidateQueries({ queryKey: ['loans'] });
+            queryClient.invalidateQueries({ queryKey: [ACCOUNT] });
+        },
+    });
+};

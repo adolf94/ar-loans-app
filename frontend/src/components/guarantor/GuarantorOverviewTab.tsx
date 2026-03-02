@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
     Typography,
     Grid,
@@ -21,11 +21,12 @@ import {
     AlertTriangle,
     CheckCircle2,
     Activity,
-    ArrowRight,
     HelpCircle
 } from 'lucide-react';
 import type { Loan } from '../../@types/types';
 import GuarantorLoansRow from './GuarantorLoansRow';
+import LoanManageDialog from '../dialogs/LoanManageDialog';
+import { useGetUser } from '../../repositories/user';
 
 interface GuarantorOverviewTabProps {
     myExposure: {
@@ -38,6 +39,17 @@ interface GuarantorOverviewTabProps {
 }
 
 const GuarantorOverviewTab: React.FC<GuarantorOverviewTabProps> = ({ myExposure, guaranteedLoans }) => {
+    const [selectedLoan, setSelectedLoan] = useState<Loan | null>(null);
+    const [openDialog, setOpenDialog] = useState(false);
+
+    // We might want to pass the user context if needed, but for now we'll fetch client user when selected
+    const selectedUser = useGetUser(selectedLoan?.clientId || "");
+
+    const handleOpenDialog = (loan: Loan) => {
+        setSelectedLoan(loan);
+        setOpenDialog(true);
+    };
+
     return (
         <Box sx={{ p: 3 }}>
             <Grid container spacing={3} sx={{ mb: 4 }}>
@@ -125,11 +137,16 @@ const GuarantorOverviewTab: React.FC<GuarantorOverviewTabProps> = ({ myExposure,
                         </TableRow>
                     </TableHead>
                     <TableBody>
-                        {guaranteedLoans.map((loan) => <GuarantorLoansRow loan={loan} />)}
+                        {guaranteedLoans.map((loan) => (
+                            <GuarantorLoansRow
+                                key={loan.id}
+                                loan={loan}
+                                onSelect={() => handleOpenDialog(loan)}
+                            />
+                        ))}
                     </TableBody>
                 </Table>
             </TableContainer>
-
             <Box sx={{ mt: 4, p: 3, borderRadius: 3, border: '1px dashed', borderColor: 'divider', bgcolor: 'grey.50' }}>
                 <Stack direction="row" spacing={2} alignItems="center">
                     <AlertTriangle color="#f59e0b" />
@@ -138,6 +155,14 @@ const GuarantorOverviewTab: React.FC<GuarantorOverviewTabProps> = ({ myExposure,
                     </Typography>
                 </Stack>
             </Box>
+
+            <LoanManageDialog
+                open={openDialog}
+                onClose={() => setOpenDialog(false)}
+                loan={selectedLoan}
+                user={selectedUser}
+                readOnly={true}
+            />
         </Box>
     );
 };

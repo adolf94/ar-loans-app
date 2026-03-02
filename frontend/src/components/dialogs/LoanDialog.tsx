@@ -27,6 +27,7 @@ import { v7 as uuidv7 } from 'uuid';
 import { useCreateLoan } from '../../repositories/loan';
 import { useAccounts, type Account } from '../../repositories/account';
 import { useUsers } from '../../repositories/user';
+import { validateEntryDate } from '../../logic/dateValidation';
 
 interface LoanDialogProps {
     onAddLoan: (loan: Loan) => void;
@@ -38,7 +39,7 @@ interface LoanDialogProps {
 const LoanDialog: React.FC<LoanDialogProps> = ({ onAddLoan, fixedGuarantorId, children }) => {
     const [newLoan, setNewLoan] = useState({
         id: uuidv7(),
-        alternateId:"",
+        alternateId: "",
         clientId: '',
         principal: 0,
         interestRate: 10,
@@ -60,7 +61,7 @@ const LoanDialog: React.FC<LoanDialogProps> = ({ onAddLoan, fixedGuarantorId, ch
     const handleClose = () => {
         setNewLoan({
             id: uuidv7(),
-            alternateId:"",
+            alternateId: "",
             clientId: '',
             principal: 0,
             interestRate: 10,
@@ -73,6 +74,10 @@ const LoanDialog: React.FC<LoanDialogProps> = ({ onAddLoan, fixedGuarantorId, ch
     };
 
     const handleAdd = async () => {
+        if (!validateEntryDate(newLoan.date)) {
+            return;
+        }
+
         const loan: Loan = {
             clientId: newLoan.clientId,
             principal: newLoan.principal,
@@ -144,7 +149,7 @@ const LoanDialog: React.FC<LoanDialogProps> = ({ onAddLoan, fixedGuarantorId, ch
 
                 setNewLoan(prev => ({
                     ...prev,
-                    alternateId: `${data.reference.slice(-6)}-${dayjs(data.datetime).format("MM")}-${newLoan.id.slice(-4)}`,
+                    alternateId: `${data.reference.slice(-6)}-${dayjs(data.datetime).format("DD")}-${newLoan.id.slice(-4)}`,
                     clientId: acct?.userId || '',
                     principal: data.amount || prev.principal,
                     sourceAcct: recipient?.accountId || prev.sourceAcct,
@@ -249,7 +254,7 @@ const LoanDialog: React.FC<LoanDialogProps> = ({ onAddLoan, fixedGuarantorId, ch
                             disabled={!!fixedGuarantorId}
                         >
                             <MenuItem value="">None</MenuItem>
-                            {users.filter(u =>[ 'Guarantor', "Admin"].indexOf( u.role) > -1).map(u => (
+                            {users.filter(u => ['Guarantor', "Admin"].indexOf(u.role) > -1).map(u => (
                                 <MenuItem key={u.id} value={u.id}>{u.name}</MenuItem>
                             ))}
                         </Select>

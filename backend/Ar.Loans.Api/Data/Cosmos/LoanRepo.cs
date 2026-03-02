@@ -1,5 +1,6 @@
 ﻿using Ar.Loans.Api.Data;
 using Ar.Loans.Api.Models;
+using Ar.Loans.Api.Utilities;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -13,16 +14,18 @@ namespace Ar.Loans.Api.Data.Cosmos
 		{
 				private readonly AppDbContext _context;
 				private readonly IEntryRepo _entry;
+				private readonly CurrentUser _user;
 
-				public LoanRepo(AppDbContext context, IEntryRepo entry)
+				public LoanRepo(AppDbContext context, IEntryRepo entry, CurrentUser user)
 				{
 						_context = context;
 						_entry = entry;
+						_user = user;
 				}
 
 				public async Task<Loan> CreateLoan(Loan loan)
 				{
-
+						var client = await _context.Users.FirstOrDefaultAsync(l => l.Id == loan.ClientId);
 
 						if (string.IsNullOrEmpty(loan.AlternateId))
 						{
@@ -36,13 +39,14 @@ namespace Ar.Loans.Api.Data.Cosmos
 						var principalEntry = new Entry
 						{
 								Id = principalEntryId,
-								Description = $"Loan Principal Disbursement ({loan.AlternateId})",
+								Description = $"Loan Principal Disbursement ({loan.AlternateId}) - {client!.Name}",
 								DebitId = AccountConstants.LoanReceivables,
 								CreditId = loan.SourceAcct,
 								Amount = loan.Principal,
 								Date = loan.Date,
 								FileId = loan.FileId,
-								AddedBy = Guid.Empty
+								AddedBy = _user.UserId,
+								LoanId = loan.Id,
 						};
 
 						loan.Transactions.Add(new LoanLedger
@@ -156,13 +160,14 @@ namespace Ar.Loans.Api.Data.Cosmos
 						var paymentEntry = new Entry
 						{
 								Id = paymentEntryId,
-								Description = $"Loan Payment ({loan.AlternateId}) - {client.Name}",
+								Description = $"Loan Payment ({loan.AlternateId}) - {client!.Name}",
 								DebitId = payment.DestinationAcctId, // The account where money goes
 								CreditId = AccountConstants.LoanReceivables,
 								Date = payment.Date,
 								Amount = payment.Amount,
+								LoanId = loan.Id,
 								FileId = payment.FileId,
-								AddedBy = Guid.Empty
+								AddedBy = _user.UserId,
 						};
 
 						loan.Transactions.Add(new LoanLedger
@@ -196,9 +201,36 @@ namespace Ar.Loans.Api.Data.Cosmos
 						await _context.SaveChangesAsync();
 				}
 
+				public async Task DeleteLoan(Guid id)
+				{
+						var loan = await _context.Loans.FindAsync(id);
+						if (loan == null) return;
+
+						// Find all related entries
+						//var entries = await _context.Entries.Where(e => e.LoanId == id).ToListAsync();
+
+						var entries = loan.Transactions;
+
+						foreach (var item in entries)
+						{
+								// Revert Account Balances
+								var entry = await _context.Entries.Where(e => e.Id == item.LedgerId).FirstOrDefaultAsync();
+								await _entry.AdjustAccountBalance(entry.DebitId, entry.Amount, true, false);
+								await _entry.AdjustAccountBalance(entry.CreditId, entry.Amount, false, false);
+
+								_context.Entries.Remove(entry);
+						}
+
+						_context.Loans.Remove(loan);
+						await _context.SaveChangesAsync();
+				}
+
 				private async Task AccrueInterestInternal(Loan loan, DateTime referenceDateUTC8, bool saveEntries)
 				{
 						// Accrue for every date where NextInterestDate + 1 day buffer has passed
+
+
+						var client = await _context.Users.FirstOrDefaultAsync(l => l.Id == loan.ClientId);
 						while (loan.NextInterestDate.AddDays(1).ToDateTime(new TimeOnly(8,0)) <= referenceDateUTC8)
 								
 						{
@@ -223,12 +255,13 @@ namespace Ar.Loans.Api.Data.Cosmos
 								var entry = new Entry
 								{
 										Id = entryId,
-										Description = $"Interest Accrual ({loan.AlternateId}) - {startDate:yyyy-MM-dd}",
+										Description = $"Interest Accrual ({loan.AlternateId}) - {client!.Name} ",
 										DebitId = AccountConstants.LoanReceivables,
 										CreditId = AccountConstants.InterestIncome,
 										Amount = monthlyInterest,
+										LoanId = loan.Id,
 										Date =startDate,
-										AddedBy = Guid.Empty
+										AddedBy = _user.UserId
 								};
 
 								loan.Transactions.Add(new LoanLedger

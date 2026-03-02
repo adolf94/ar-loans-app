@@ -20,6 +20,15 @@ export interface User {
 
 export type LoanStatus = 'Pending' | 'Active' | 'Paid' | 'Defaulted' | 'Archived';
 
+export interface LoanLedger {
+    ledgerId: string;
+    altKey: string;
+    type: string;
+    amount: number;
+    dateStart: string;
+    endDate: string;
+}
+
 export interface Loan {
     id: string;
     alternateId: string;
@@ -32,6 +41,7 @@ export interface Loan {
     status: LoanStatus;
     date: string;
     sourceAcct?: string;
+    transactions: LoanLedger[];
 }
 
 export type TransactionType = 'Disbursement' | 'Payment' | 'Interest';
@@ -41,7 +51,7 @@ export interface Transaction {
     loanId: string;
     amount: number;
     type: TransactionType;
-    
+
     date: string;
     description: string;
 }
@@ -76,8 +86,8 @@ export interface Payment {
     id: string,
     loanId: string,
     amount: number,
-    destinationAcctId:string,
-    userId:string,
+    destinationAcctId: string,
+    userId: string,
     date: string,
     description: string
 } 

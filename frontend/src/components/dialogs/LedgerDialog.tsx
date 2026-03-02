@@ -16,32 +16,33 @@ import {
 import type { GeneralLedgerEntry } from '../../@types/types';
 import { useAccounts, type Account } from '../../repositories/account';
 import dayjs from 'dayjs';
-import {v7 as uuidv7} from 'uuid'
+import { v7 as uuidv7 } from 'uuid'
 import { useCreateEntry, type Entry } from '../../repositories/entry';
 import { identifyTransaction } from '../../repositories/file';
 import { getBankAccountByAccountId } from '../../repositories/bankAccount';
 import { Camera, Sparkles } from 'lucide-react';
+import { validateEntryDate } from '../../logic/dateValidation';
 interface LedgerDialogProps {
     onAddLedger: (entry: Entry) => void;
     currentLedgerCount: number;
-        children?: React.ReactNode;
+    children?: React.ReactNode;
 }
 
-const empty_record = ()=>( {
-        id:  uuidv7(),
-        date: dayjs().format("YYYY-MM-DD"),
-        description: "",
-        fileId:"",
-        amount: 0,
-        debitId:"",
-        creditId:""
-    })
+const empty_record = () => ({
+    id: uuidv7(),
+    date: dayjs().format("YYYY-MM-DD"),
+    description: "",
+    fileId: "",
+    amount: 0,
+    debitId: "",
+    creditId: ""
+})
 
-const LedgerDialog: React.FC<LedgerDialogProps> = ({  onAddLedger, currentLedgerCount, children }) => {
+const LedgerDialog: React.FC<LedgerDialogProps> = ({ onAddLedger, currentLedgerCount, children }) => {
     const [newLedger, setNewLedger] = useState(empty_record());
-    const [open,setOpen]= useState(false)
-    const [isScanning,setIsScanning]= useState(false)
-    const [imgData,setImgData]= useState(null)
+    const [open, setOpen] = useState(false)
+    const [isScanning, setIsScanning] = useState(false)
+    const [imgData, setImgData] = useState(null)
     const { data: accounts = [] } = useAccounts();
     const createEntry = useCreateEntry()
     const handleClose = () => {
@@ -50,6 +51,10 @@ const LedgerDialog: React.FC<LedgerDialogProps> = ({  onAddLedger, currentLedger
     };
 
     const handleAdd = async () => {
+        if (!validateEntryDate(newLedger.date)) {
+            return;
+        }
+
         const ledgerEntry: Entry = {
             ...newLedger,
         };
@@ -90,13 +95,13 @@ const LedgerDialog: React.FC<LedgerDialogProps> = ({  onAddLedger, currentLedger
                 //         return null;
                 //     });
 
-                setNewLedger((prev)=>({
+                setNewLedger((prev) => ({
                     ...prev,
-                    date:dayjs(data.datetime).format("YYYY-MM-DD") || prev.date,
+                    date: dayjs(data.datetime).format("YYYY-MM-DD") || prev.date,
                     creditId: sender?.accountId || "",
                     debitId: recipient?.accountId || "",
                     amount: data?.amount,
-                    fileId:data.fileId
+                    fileId: data.fileId
                 }))
                 // setNewPayment(prev => ({
                 //     ...prev,
@@ -120,7 +125,7 @@ const LedgerDialog: React.FC<LedgerDialogProps> = ({  onAddLedger, currentLedger
 
 
     return <>
-            {React.cloneElement(children, {onClick: ()=>setOpen(true)})}
+        {React.cloneElement(children, { onClick: () => setOpen(true) })}
         <Dialog open={open} onClose={handleClose}>
             <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 Ledger Entry
@@ -170,7 +175,7 @@ const LedgerDialog: React.FC<LedgerDialogProps> = ({  onAddLedger, currentLedger
                         value={newLedger.amount}
                         onChange={(e) => setNewLedger({ ...newLedger, amount: Number(e.target.value) })}
                     />
-                    
+
                     <FormControl fullWidth>
                         <InputLabel>From(Credit):</InputLabel>
                         <Select
@@ -208,7 +213,7 @@ const LedgerDialog: React.FC<LedgerDialogProps> = ({  onAddLedger, currentLedger
                 </Button>
             </DialogActions>
         </Dialog>
-        </>
+    </>
 };
 
 export default LedgerDialog;

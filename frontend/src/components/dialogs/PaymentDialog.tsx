@@ -26,19 +26,28 @@ import { getBankAccountByAccountId } from '../../repositories/bankAccount';
 import dayjs from 'dayjs';
 import { useCreatePayment } from '../../repositories/payment';
 import { useUsers } from '../../repositories/user';
+import { validateEntryDate } from '../../logic/dateValidation';
 
 interface PaymentDialogProps {
     onAddPayment: (payment: Payment) => void;
     children?: React.ReactNode;
+    initialLoanId?: string;
+    initialUserId?: string;
 }
 
 const empty_payment = () => ({ loanId: "", amount: 0, date: new Date().toISOString().split('T')[0], destinationAcctId: "", description: "", userId: "", id: uuidv7() })
 
 const PaymentDialog: React.FC<PaymentDialogProps> = ({
     onAddPayment,
-    children
+    children,
+    initialLoanId,
+    initialUserId
 }) => {
-    const [newPayment, setNewPayment] = useState<Payment>(empty_payment());
+    const [newPayment, setNewPayment] = useState<Payment>({
+        ...empty_payment(),
+        loanId: initialLoanId || "",
+        userId: initialUserId || ""
+    });
     const [isScanning, setIsScanning] = useState(false);
     const [open, setOpen] = useState(false)
     const [imgData, setImgData] = useState<IdentifiedTransaction | null>(null);
@@ -75,7 +84,7 @@ const PaymentDialog: React.FC<PaymentDialogProps> = ({
                 //         return null;
                 //     });
 
-                setNewPayment(prev => ({
+                setNewPayment((prev: Payment) => ({
                     ...prev,
                     destinationAcctId: acct?.accountId || "",
                     amount: data.amount || prev.amount,
@@ -99,16 +108,21 @@ const PaymentDialog: React.FC<PaymentDialogProps> = ({
     };
 
     const handleAdd = async () => {
+        if (!validateEntryDate(newPayment.date)) {
+            return;
+        }
+
         const payment: Payment = {
             ...newPayment,
         };
         let data = await createPayment.mutateAsync(payment)
         onAddPayment(payment);
+        setOpen(false);
         setNewPayment(empty_payment());
     };
 
     return <>
-        {React.cloneElement(children, { onClick: () => setOpen(true) })}
+        {React.cloneElement(children as React.ReactElement<any>, { onClick: () => setOpen(true) })}
         <Dialog open={open} onClose={handleClose}>
             <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 Record Loan Payment

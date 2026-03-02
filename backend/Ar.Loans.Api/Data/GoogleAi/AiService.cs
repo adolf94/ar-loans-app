@@ -26,41 +26,53 @@ namespace Ar.Loans.Api.Data.GoogleAi
 
 				public async Task<Models.FileData>  IdentifyTransactionData(string filePath)
 				{
+
+					string fileName = Path.GetFileName(filePath);
             string prompt = @"
-							### **Task: Transaction Image to JSON Extraction**
+							# ROLE
+							You are a precise financial data extraction assistant specialized in processing digital transaction receipts.
 
-						Extract all transaction details from the provided image. Output the data **strictly** in the following JSON format. Do not add any text before or after the JSON block.
+							# TASK
+							Analyze the provided screenshot and extract transaction details into a structured JSON format. 
 
-						#### **Extraction Logic & Constraints:**
-						1. **Missing Data:** If a field is not visible in the screenshot, leave the string empty (`""""`) or the decimal as `0.00`.
-						2. **Transaction Type Logic:** - If transferring to another bank: Use `transfer_via_instapay`.
-								- If paying a merchant or biller: Use `pay_merchant` or `bills_pay`.
-								- Otherwise, select from: `transfer`, `transfer_via_instapay`, `transfer_via_pesonet`.
-						3. **DateTime Conversion:** - Convert to `YYYY-MM-DDTHH:mm:ssZ` in UTC. 
-								- *Calculation:* If the screenshot is in Philippine Time (GMT+8), subtract 8 hours to reach UTC.
-						4. **Description Constraint:** Create a summary including the recipient's name. This field **must be at least 60 characters long**.
-						5. **Data Types:** Ensure `amount` and `transactionFee` are decimal numbers (not strings).
+							# EXTRACTION RULES
+							1. **Logic Step**: Identify the App (GoTyme, GCash, Maya, etc.) first.
+							2. **Missing Data**: If a field is not visible, leave it as """" (or 0.00). 
+							3. **Date & Time Extraction (Strict Priority)**:
+							- **Priority 1 (Receipt Text)**: Use the date/time explicitly labeled in the receipt.
+							- **Priority 2 (GoTyme Logic)**: If Ref starts with ITR/UTO, extract date from digits 4-9 (YYMMDD).
+							- **Priority 3 (Filename)**: Look for date patterns (YYYYMMDD or YYYY-MM-DD) in the provided `sourceFilename`.
+							- **Priority 4 (System Clock)**: Look at the phone's status bar clock at the top of the image.
+							4. **Timezone**: Convert to UTC ""YYYY-MM-DDTHH:mm:ssZ"". Assume GMT+8 (PHT) for conversion.
+							5. **Transaction Types**: Use: [""transfer"", ""transfer_via_instapay"", ""transfer_via_pesonet"", ""pay_merchant"", ""bills_pay""].
+							6. **Description**: Concise summary (min 60 characters) including recipient and app name.
 
-						#### **Required JSON Schema:**
-						{
-							""transactionType"": """",
-							""app"": """",
-							""description"": """",
-							""sourceFilename"": """",
-							""reference"": """",
-							""datetime"": """",
-							""senderAcct"": """",
-							""senderBank"": """",
-							""senderName"": """",
-							""recipientAcct"": """",
-							""recipientBank"": """",
-							""recipientName"": """",
-							""amount"": 0.00,
-							""transactionFee"": 0.00
-						}
+							# JSON SCHEMA
+							{
+							""transactionType"": ""string"",
+							""app"": ""string"",
+							""description"": ""string"",
+							""sourceFilename"": ""string"",
+							""reference"": ""string"",
+							""datetime"": ""string (ISO 8601 UTC)"",
+							""senderAcct"": ""string"",
+							""senderBank"": ""string"",
+							""senderName"": ""string"",
+							""recipientAccount"": ""string"",
+							""recipientBank"": ""string"",
+							""recipientName"": ""string"",
+							""amount"": decimal,
+							""transactionFee"": decimal
+							}
+
+							# INPUT
+
+							Filename: {fileName}
+
 						";
 
 						// 2. Build the request with the image content
+						prompt = prompt.Replace("{fileName}", fileName);
 
 						byte[] bytes = System.IO.File.ReadAllBytes(filePath);
 

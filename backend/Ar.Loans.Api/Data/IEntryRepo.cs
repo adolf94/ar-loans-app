@@ -9,6 +9,7 @@ namespace Ar.Loans.Api.Data
         Task<List<Entry>> GetAllEntries();
 				Task AdjustAccountBalance(Guid accountId, decimal amount, bool isDebit, bool isAdding);
 				Task CreateEntry(Entry entry);
+				Task DeleteEntry(Guid id);
 
 
 		}
