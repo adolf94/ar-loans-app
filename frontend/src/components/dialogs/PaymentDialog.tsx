@@ -26,7 +26,7 @@ import { getBankAccountByAccountId } from '../../repositories/bankAccount';
 import dayjs from 'dayjs';
 import { useCreatePayment } from '../../repositories/payment';
 import { useUsers } from '../../repositories/user';
-import { validateEntryDate } from '../../logic/dateValidation';
+import { useDateValidation } from '../../logic/dateValidation';
 
 interface PaymentDialogProps {
     onAddPayment: (payment: Payment) => void;
@@ -56,6 +56,7 @@ const PaymentDialog: React.FC<PaymentDialogProps> = ({
     const { data: users = [] } = useUsers()
     const { data: accounts = [] } = useAccounts();
     const createPayment = useCreatePayment()
+    const validateDate = useDateValidation();
     const assetAccounts = accounts.filter((a: Account) => a.section === 'Assets');
 
 
@@ -108,7 +109,7 @@ const PaymentDialog: React.FC<PaymentDialogProps> = ({
     };
 
     const handleAdd = async () => {
-        if (!validateEntryDate(newPayment.date)) {
+        if (!(await validateDate(newPayment.date))) {
             return;
         }
 

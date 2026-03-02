@@ -25,6 +25,7 @@ import type { Loan, User } from '../../@types/types';
 import dayjs from 'dayjs';
 import { useDeleteLoan } from '../../repositories/loan';
 import PaymentDialog from './PaymentDialog';
+import { useConfirm } from 'material-ui-confirm';
 
 interface LoanManageDialogProps {
     open: boolean;
@@ -42,13 +43,26 @@ const LoanManageDialog: React.FC<LoanManageDialogProps> = ({
     readOnly = false
 }) => {
     const deleteLoan = useDeleteLoan();
+    const confirm = useConfirm();
 
     if (!loan) return null;
 
     const handleDeleteLoan = async () => {
-        if (window.confirm('WARNING: Are you sure you want to PERMANENTLY DELETE this loan and ALL associated transactions? This action will revert all financial effects and cannot be undone.')) {
-            await deleteLoan.mutateAsync(loan.id);
-            onClose();
+        try {
+            var response = await confirm({
+                title: 'Confirm Loan Deletion',
+                description: 'WARNING: Are you sure you want to PERMANENTLY DELETE this loan and ALL associated transactions? This action will revert all financial effects and cannot be undone.',
+                confirmationText: 'Permanently Delete',
+                cancellationText: 'Cancel',
+                confirmationButtonProps: { color: 'error', variant: 'contained' },
+            });
+
+            if(response.confirmed){
+                await deleteLoan.mutateAsync(loan.id);
+                onClose();
+            }
+        } catch (e) {
+            // Cancelled
         }
     };
 

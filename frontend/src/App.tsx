@@ -9,36 +9,37 @@ import { GoogleOAuthProvider } from '@react-oauth/google';
 import { BackdropLoaderProvider } from './components/BackdropLoader';
 import LoginPrompt from './components/login/LoginPrompt';
 import { getTokenViaRefreshToken } from './services/api';
-import {jwtDecode} from 'jwt-decode'
+import { jwtDecode } from 'jwt-decode'
+import { ConfirmProvider } from 'material-ui-confirm';
 
 const queryClient = new QueryClient({
   defaultOptions: {
-    queries:{
-      staleTime: 60*15*1000,
-      gcTime: 60*15*1000
+    queries: {
+      staleTime: 60 * 15 * 1000,
+      gcTime: 60 * 15 * 1000
     }
   }
 });
 
 function App() {
-  const [userInfo,setUserInfo] = useState(defaultUserInfo)
-  const [init,setInit] = useState(false)
-  const hasRole = (roleAny : string[])=>{
-    return userInfo.role.some(e=>roleAny.indexOf(e) > -1)
+  const [userInfo, setUserInfo] = useState(defaultUserInfo)
+  const [init, setInit] = useState(false)
+  const hasRole = (roleAny: string[]) => {
+    return userInfo.role.some(e => roleAny.indexOf(e) > -1)
   }
 
-  useEffect(()=>{
+  useEffect(() => {
     const token = localStorage.getItem("id_token");
 
     if (!token) {
       setInit(true)
       return
-    
+
     }
 
     try {
       const decoded = jwtDecode<any>(token);
-      
+
       // Check if token is expired
       const currentTime = Date.now() / 1000;
       if (decoded.exp < currentTime) {
@@ -54,16 +55,21 @@ function App() {
       setInit(true)
       return null;
     }
-  },[])
+  }, [])
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider theme={theme}>
         <CssBaseline />
         <BackdropLoaderProvider>
           <GoogleOAuthProvider clientId={window.webConfig.clientId}>
-            <UserInfoContext.Provider value={{userInfo,setUserInfo}}>
-              {init && <RouterProvider router={router} context={{auth: {user : userInfo, hasRole}}} />}
-              <LoginPrompt />
+            <UserInfoContext.Provider value={{ userInfo, setUserInfo }}>
+              <ConfirmProvider defaultOptions={{
+                confirmationButtonProps: { variant: 'contained' },
+                cancellationButtonProps: { variant: 'outlined' },
+              }}>
+                {init && <RouterProvider router={router} context={{ auth: { user: userInfo, hasRole } }} />}
+                <LoginPrompt />
+              </ConfirmProvider>
             </UserInfoContext.Provider>
           </GoogleOAuthProvider>
         </BackdropLoaderProvider>

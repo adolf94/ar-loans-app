@@ -21,7 +21,7 @@ import { useCreateEntry, type Entry } from '../../repositories/entry';
 import { identifyTransaction } from '../../repositories/file';
 import { getBankAccountByAccountId } from '../../repositories/bankAccount';
 import { Camera, Sparkles } from 'lucide-react';
-import { validateEntryDate } from '../../logic/dateValidation';
+import { useDateValidation } from '../../logic/dateValidation';
 interface LedgerDialogProps {
     onAddLedger: (entry: Entry) => void;
     currentLedgerCount: number;
@@ -45,13 +45,14 @@ const LedgerDialog: React.FC<LedgerDialogProps> = ({ onAddLedger, currentLedgerC
     const [imgData, setImgData] = useState(null)
     const { data: accounts = [] } = useAccounts();
     const createEntry = useCreateEntry()
+    const validateDate = useDateValidation();
     const handleClose = () => {
         setNewLedger(empty_record());
         setOpen(false);
     };
 
     const handleAdd = async () => {
-        if (!validateEntryDate(newLedger.date)) {
+        if (!(await validateDate(newLedger.date))) {
             return;
         }
 

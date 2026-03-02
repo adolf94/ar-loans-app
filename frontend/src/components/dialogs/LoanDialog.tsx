@@ -27,7 +27,7 @@ import { v7 as uuidv7 } from 'uuid';
 import { useCreateLoan } from '../../repositories/loan';
 import { useAccounts, type Account } from '../../repositories/account';
 import { useUsers } from '../../repositories/user';
-import { validateEntryDate } from '../../logic/dateValidation';
+import { useDateValidation } from '../../logic/dateValidation';
 
 interface LoanDialogProps {
     onAddLoan: (loan: Loan) => void;
@@ -57,6 +57,7 @@ const LoanDialog: React.FC<LoanDialogProps> = ({ onAddLoan, fixedGuarantorId, ch
     const createLoan = useCreateLoan()
     const { data: accounts = [] } = useAccounts();
     const { data: users = [] } = useUsers();
+    const validateDate = useDateValidation();
     const assetAccounts = accounts.filter((a: Account) => a.section === 'Assets');
     const handleClose = () => {
         setNewLoan({
@@ -74,7 +75,7 @@ const LoanDialog: React.FC<LoanDialogProps> = ({ onAddLoan, fixedGuarantorId, ch
     };
 
     const handleAdd = async () => {
-        if (!validateEntryDate(newLoan.date)) {
+        if (!(await validateDate(newLoan.date))) {
             return;
         }
 
