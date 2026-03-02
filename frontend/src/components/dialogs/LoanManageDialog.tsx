@@ -57,7 +57,7 @@ const LoanManageDialog: React.FC<LoanManageDialogProps> = ({
                 confirmationButtonProps: { color: 'error', variant: 'contained' },
             });
 
-            if(response.confirmed){
+            if(!response.confirmed){
                 await deleteLoan.mutateAsync(loan.id);
                 onClose();
             }

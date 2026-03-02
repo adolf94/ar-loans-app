@@ -32,7 +32,7 @@ export const useDateValidation = () => {
                     cancellationText: 'Go Back',
                     confirmationButtonProps: { color: 'warning', variant: 'contained' },
                 });
-                if(response.confirmed){
+                if(!response.confirmed){
                     return false;
                 }
                 return true;
