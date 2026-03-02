@@ -58,7 +58,7 @@ namespace Ar.Loans.Api.Data.GoogleAi
 							""senderAcct"": ""string"",
 							""senderBank"": ""string"",
 							""senderName"": ""string"",
-							""recipientAccount"": ""string"",
+							""recipientAcct"": ""string"",
 							""recipientBank"": ""string"",
 							""recipientName"": ""string"",
 							""amount"": decimal,
