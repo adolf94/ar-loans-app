@@ -9,6 +9,7 @@ namespace Ar.Loans.Api.Data
 		public interface IFileRepo
 		{
 				public Task SaveFileRecord(Models.BlobFile file);
+				public Task<Models.BlobFile?> GetFileRecord(Guid id);
 
 		}
 }

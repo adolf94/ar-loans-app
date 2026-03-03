@@ -20,7 +20,7 @@ namespace Ar.Loans.Api.Data.Azure
 						_config = config;
 				}
 
-				public async Task<BlobFile> UploadFile(string filePath, string container)
+				public async Task<BlobFile> UploadFile(string filePath, string container, string contentType)
 				{
 						BlobServiceClient blobServiceClient;
 
@@ -43,11 +43,16 @@ namespace Ar.Loans.Api.Data.Azure
 
                         // 3. Get a reference to the specific blob (file) name
                         BlobClient blobClient = containerClient.GetBlobClient(id + fileType);
+												var blobHttpHeader = new BlobHttpHeaders
+												{
+														ContentType = contentType,
+														// Use "application/pdf" for PDFs, etc.
+														
+												};
 
-
-                        // 4. Upload the file
-                        using FileStream uploadFileStream = File.OpenRead(filePath);
-                        await blobClient.UploadAsync(uploadFileStream, overwrite: true);
+						// 4. Upload the file
+												using FileStream uploadFileStream = File.OpenRead(filePath);
+                        await blobClient.UploadAsync(uploadFileStream,  blobHttpHeader);
                         uploadFileStream.Close();
 
                         return new BlobFile
@@ -58,6 +63,26 @@ namespace Ar.Loans.Api.Data.Azure
                             Container = container
                         };
 
+				}
+
+				public async Task<(Stream stream, string contentType)> GetFileStream(string fileKey, string container)
+				{
+						BlobServiceClient blobServiceClient;
+
+						if (Uri.TryCreate(_config.AzureStorage, UriKind.Absolute, out var uri))
+						{
+								blobServiceClient = new BlobServiceClient(uri, new DefaultAzureCredential());
+						}
+						else
+						{
+								blobServiceClient = new BlobServiceClient(_config.AzureStorage);
+						}
+
+						BlobContainerClient containerClient = blobServiceClient.GetBlobContainerClient(container);
+						BlobClient blobClient = containerClient.GetBlobClient(fileKey);
+
+						BlobDownloadInfo download = await blobClient.DownloadAsync();
+						return (download.Content, download.ContentType);
 				}
 		}
 }

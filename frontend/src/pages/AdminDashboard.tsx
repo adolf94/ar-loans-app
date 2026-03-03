@@ -101,7 +101,7 @@ const AdminDashboard: React.FC = () => {
         return {
             totalAssets : assets,
             receivables,
-            income: income
+            income: -income
         }
     },[accounts])
 

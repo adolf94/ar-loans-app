@@ -60,7 +60,7 @@ namespace Ar.Loans.Api.Controllers
         [Function("GetLoansAsClient")]
 				public async Task<IActionResult> GetLoansAsClient([HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "user/{userId}/loans")] HttpRequest req)
 				{
-            if (!_user.IsAuthenticated) return new UnauthorizedResult();
+                        if (!_user.IsAuthenticated) return new UnauthorizedResult();
 						var userIdItem = req.RouteValues["userId"]!.ToString();
 						Guid userId;
 						if (!Guid.TryParse(userIdItem, out userId))

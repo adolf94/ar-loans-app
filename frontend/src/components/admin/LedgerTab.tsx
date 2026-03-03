@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useMemo, type JSX } from 'react';
 import {
     Table,
     TableBody,
@@ -9,30 +9,148 @@ import {
     Typography,
     useMediaQuery,
     useTheme,
-    Stack
+    Stack,
+    IconButton,
+    Tooltip,
+    Dialog,
+    DialogTitle,
+    DialogContent,
+    Box,
+    CircularProgress
 } from '@mui/material';
-import { useEntries } from '../../repositories/entry';
+import { Image as ImageIcon, X } from 'lucide-react';
+import { useEntries, type Entry } from '../../repositories/entry';
 import { useAccounts } from '../../repositories/account';
 import dayjs from 'dayjs';
+import ImageViewerDialog from '../dialogs/ImageViewerDialog';
+
+// Image viewer dialog component
 
 interface LedgerTabProps {
     ledger?: any[]; // Keep for backward compatibility but not used
 }
 
+const LedgerRow = (props: { entry: Entry }) => {
+    let entry = props.entry;
+    const { data: accounts = [] } = useAccounts();
+    const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+    const [imageOpen, setImageOpen] = useState(false);
+
+    const hasFile = !!entry.fileId && entry.fileId !== '';
+
+    const credit = useMemo(() => {
+        let item = accounts.find(e => e.id == entry.creditId);
+
+        return {
+            ...item,
+            color: !item ? "info.main" : ["Asset", "Income"].indexOf(item?.section) > -1 ? "success.main"
+                : "error.main"
+        };
+
+    }, [entry]);
+
+    const debit = useMemo(() => {
+        let item = accounts.find(e => e.id == entry.debitId);
+
+        return {
+            ...item,
+            color: !item ? "info.main" : ["Asset", "Income"].indexOf(item?.section) > -1 ? "error.main" : "success.main"
+        };
+    }, [entry]);
+
+    return <>
+        <TableRow key={entry.id} hover>
+            <TableCell>
+                <Typography variant="body2">{dayjs(entry.date).format("MMM DD")}</Typography>
+            </TableCell>
+            <TableCell>
+                <Stack direction="row" alignItems="center" spacing={0.5}>
+                    <Typography variant="body2">{entry.description}</Typography>
+                    {hasFile && (
+                        <Tooltip title="View screenshot">
+                            <ImageViewerDialog fileId={entry.fileId}>
+                                <IconButton
+                                    size="small"
+                                    onClick={() => setImageOpen(true)}
+                                    sx={{ opacity: 0.7, '&:hover': { opacity: 1 } }}
+                                >
+                                    <ImageIcon size={16} />
+                                </IconButton>
+                            </ImageViewerDialog>
+                        </Tooltip>
+                    )}
+                </Stack>
+            </TableCell>
+            {!isMobile ? (
+                <>
+                    <TableCell>
+                        <Typography
+                            variant="body2"
+                            sx={{
+                                color: credit.color,
+                                fontWeight: 600
+                            }}
+                        >
+                            {credit.name}
+                        </Typography>
+                    </TableCell>
+                    <TableCell>
+                        <Typography
+                            variant="body2"
+                            sx={{
+                                color: debit.color,
+                                fontWeight: 600
+                            }}
+                        >
+                            {debit.name}
+                        </Typography>
+                    </TableCell>
+                </>
+            ) : (
+                <TableCell>
+                    <Stack spacing={0.5}>
+                        <Typography
+                            variant="caption"
+                            sx={{
+                                color: credit.color,
+                                fontWeight: 600
+                            }}
+                        >
+                            CR: {credit.name}
+                        </Typography>
+                        <Typography
+                            variant="caption"
+                            sx={{
+                                color: debit.color,
+                                fontWeight: 600
+                            }}
+                        >
+                            DR: {debit.name}
+                        </Typography>
+                    </Stack>
+                </TableCell>
+            )}
+            <TableCell align="right">
+                <Typography
+                    variant="body2"
+                    sx={{ fontWeight: 600 }}
+                >
+                    P {entry.amount.toLocaleString()}
+                </Typography>
+            </TableCell>
+        </TableRow>
+    </>;
+};
+
+
 const LedgerTab: React.FC<LedgerTabProps> = () => {
     const { data: entries = [] } = useEntries();
-    const { data: accounts = [] } = useAccounts();
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
     // Create a map for quick account lookup
-    const accountMap = React.useMemo(() => {
-        const map = new Map();
-        accounts.forEach(account => {
-            map.set(account.id, account.name);
-        });
-        return map;
-    }, [accounts]);
+
 
     return (
         <TableContainer sx={{ maxHeight: 'calc(100vh - 400px)', overflowX: 'auto' }}>
@@ -49,73 +167,7 @@ const LedgerTab: React.FC<LedgerTabProps> = () => {
                 </TableHead>
                 <TableBody>
                     {entries.length > 0 ? (
-                        entries.map((entry) => (
-                            <TableRow key={entry.id} hover>
-                                <TableCell>
-                                    <Typography variant="body2">{dayjs(entry.date).format("MMM DD")}</Typography>
-                                </TableCell>
-                                <TableCell>
-                                    <Typography variant="body2">{entry.description}</Typography>
-                                </TableCell>
-                                {!isMobile ? (
-                                    <>
-                                        <TableCell>
-                                            <Typography
-                                                variant="body2"
-                                                sx={{
-                                                    color: 'success.main',
-                                                    fontWeight: 600
-                                                }}
-                                            >
-                                                {accountMap.get(entry.creditId) || entry.creditId}
-                                            </Typography>
-                                        </TableCell>
-                                        <TableCell>
-                                            <Typography
-                                                variant="body2"
-                                                sx={{
-                                                    color: 'error.main',
-                                                    fontWeight: 600
-                                                }}
-                                            >
-                                                {accountMap.get(entry.debitId) || entry.debitId}
-                                            </Typography>
-                                        </TableCell>
-                                    </>
-                                ) : (
-                                    <TableCell>
-                                        <Stack spacing={0.5}>
-                                            <Typography
-                                                variant="caption"
-                                                sx={{
-                                                    color: 'success.main',
-                                                    fontWeight: 600
-                                                }}
-                                            >
-                                                CR: {accountMap.get(entry.creditId) || entry.creditId}
-                                            </Typography>
-                                            <Typography
-                                                variant="caption"
-                                                sx={{
-                                                    color: 'error.main',
-                                                    fontWeight: 600
-                                                }}
-                                            >
-                                                DR: {accountMap.get(entry.debitId) || entry.debitId}
-                                            </Typography>
-                                        </Stack>
-                                    </TableCell>
-                                )}
-                                <TableCell align="right">
-                                    <Typography
-                                        variant="body2"
-                                        sx={{ fontWeight: 600 }}
-                                    >
-                                        P {entry.amount.toLocaleString()}
-                                    </Typography>
-                                </TableCell>
-                            </TableRow>
-                        ))
+                        entries.map((entry) => <LedgerRow entry={entry} key={entry.id} />)
                     ) : (
                         <TableRow>
                             <TableCell colSpan={isMobile ? 3 : 4} align="center" sx={{ py: 4, color: 'text.secondary' }}>

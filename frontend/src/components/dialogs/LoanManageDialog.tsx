@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
     Dialog,
     DialogTitle,
@@ -20,12 +20,14 @@ import {
     Tooltip,
     Divider
 } from '@mui/material';
-import { Trash2, Receipt, ArrowUpDown, Calendar, User as UserIcon, Wallet } from 'lucide-react';
+import { Trash2, Receipt, ArrowUpDown, Calendar, User as UserIcon, Wallet, Image as ImageIcon } from 'lucide-react';
 import type { Loan, User } from '../../@types/types';
 import dayjs from 'dayjs';
 import { useDeleteLoan } from '../../repositories/loan';
 import PaymentDialog from './PaymentDialog';
 import { useConfirm } from 'material-ui-confirm';
+import { useDeleteEntry, useEntries } from '../../repositories/entry';
+import ImageViewerDialog from './ImageViewerDialog';
 
 interface LoanManageDialogProps {
     open: boolean;
@@ -43,7 +45,18 @@ const LoanManageDialog: React.FC<LoanManageDialogProps> = ({
     readOnly = false
 }) => {
     const deleteLoan = useDeleteLoan();
+    const deleteEntry = useDeleteEntry();
     const confirm = useConfirm();
+    const { data: entries = [] } = useEntries();
+
+    // Build a map from entry ID to fileId for quick lookup
+    const entryFileMap = useMemo(() => {
+        const map = new Map<string, string>();
+        entries.forEach(e => {
+            if (e.fileId) map.set(e.id, e.fileId);
+        });
+        return map;
+    }, [entries]);
 
     if (!loan) return null;
 
@@ -57,7 +70,7 @@ const LoanManageDialog: React.FC<LoanManageDialogProps> = ({
                 confirmationButtonProps: { color: 'error', variant: 'contained' },
             });
 
-            if(!response.confirmed){
+            if (response.confirmed) {
                 await deleteLoan.mutateAsync(loan.id);
                 onClose();
             }
@@ -65,6 +78,23 @@ const LoanManageDialog: React.FC<LoanManageDialogProps> = ({
             // Cancelled
         }
     };
+
+    const handleDeleteEntry = async (entryId: string) => {
+        var response = await confirm({
+            title: 'Confirm Loan Deletion',
+            description: 'WARNING: Are you sure you want to PERMANENTLY DELETE this entry ? This action cannot be undone.',
+            confirmationText: 'Permanently Delete',
+            cancellationText: 'Cancel',
+            confirmationButtonProps: { color: 'error', variant: 'contained' },
+        });
+
+        if (response.confirmed) {
+            await deleteEntry.mutateAsync(entryId);
+            onClose();
+        }
+    }
+
+
 
     return (
         <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
@@ -140,23 +170,40 @@ const LoanManageDialog: React.FC<LoanManageDialogProps> = ({
                             </TableHead>
                             <TableBody>
                                 {loan.transactions && loan.transactions.length > 0 ? (
-                                    [...loan.transactions].sort((a, b) => dayjs(b.dateStart).valueOf() - dayjs(a.dateStart).valueOf()).map((tx) => (
-                                        <TableRow key={tx.ledgerId} hover>
-                                            <TableCell>{dayjs(tx.dateStart).format('MMM DD, YYYY')}</TableCell>
-                                            <TableCell>
-                                                <Chip
-                                                    label={tx.type}
-                                                    size="small"
-                                                    variant="outlined"
-                                                    color={tx.type === 'payment' ? 'success' : tx.type === 'interest' ? 'warning' : 'primary'}
-                                                    sx={{ textTransform: 'capitalize', height: 20, fontSize: '0.65rem' }}
-                                                />
-                                            </TableCell>
-                                            <TableCell align="right" sx={{ fontWeight: 600 }}>
-                                                {tx.type === 'payment' ? '-' : '+'} P {tx.amount.toLocaleString()}
-                                            </TableCell>
-                                        </TableRow>
-                                    ))
+                                    [...loan.transactions].sort((a, b) => dayjs(b.dateStart).valueOf() - dayjs(a.dateStart).valueOf()).map((tx) => {
+                                        const txFileId = entryFileMap.get(tx.ledgerId);
+                                        return (
+                                            <TableRow key={tx.ledgerId} hover>
+                                                <TableCell>{dayjs(tx.dateStart).format('MMM DD, YYYY')}</TableCell>
+                                                <TableCell>
+                                                    <Stack direction="row" alignItems="center" spacing={0.5}>
+                                                        <Chip
+                                                            label={tx.type}
+                                                            size="small"
+                                                            variant="outlined"
+                                                            onDelete={(tx.type == "payment" && !readOnly) ? () => {
+                                                                handleDeleteEntry(tx.ledgerId)
+                                                            } : undefined}
+                                                            color={tx.type === 'payment' ? 'success' : tx.type === 'interest' ? 'warning' : 'primary'}
+                                                            sx={{ textTransform: 'capitalize', height: 20, fontSize: '0.65rem' }}
+                                                        />
+                                                        {txFileId && (
+                                                            <ImageViewerDialog fileId={txFileId}>
+                                                                <Tooltip title="View screenshot">
+                                                                    <IconButton size="small" sx={{ opacity: 0.6, '&:hover': { opacity: 1 } }}>
+                                                                        <ImageIcon size={14} />
+                                                                    </IconButton>
+                                                                </Tooltip>
+                                                            </ImageViewerDialog>
+                                                        )}
+                                                    </Stack>
+                                                </TableCell>
+                                                <TableCell align="right" sx={{ fontWeight: 600 }}>
+                                                    {tx.type === 'payment' ? '-' : '+'} P {tx.amount.toLocaleString()}
+                                                </TableCell>
+                                            </TableRow>
+                                        );
+                                    })
                                 ) : (
                                     <TableRow>
                                         <TableCell colSpan={3} align="center" sx={{ py: 3 }}>
@@ -173,7 +220,7 @@ const LoanManageDialog: React.FC<LoanManageDialogProps> = ({
             </DialogContent>
             <DialogActions sx={{ px: 3, pb: 2 }}>
                 <Button onClick={onClose} variant="outlined">Close</Button>
-                {loan.status === 'Active' && !readOnly && (
+                {loan.status === 'Active' && (
                     <PaymentDialog onAddPayment={() => { }} initialLoanId={loan.id} initialUserId={loan.clientId}>
                         <Button variant="contained" startIcon={<Receipt size={18} />}>
                             Pay Now

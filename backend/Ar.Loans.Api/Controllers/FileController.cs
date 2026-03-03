@@ -46,7 +46,7 @@ namespace Ar.Loans.Api.Controllers
                 {
                     return new BadRequestObjectResult("No file uploaded.");
                 }
-
+                
                 // Save file temporarily
                 var tempPath = Path.Combine(Path.GetTempPath(), file.FileName);
                 
@@ -55,7 +55,7 @@ namespace Ar.Loans.Api.Controllers
                     await file.CopyToAsync(stream);
                 }
 
-                var fileRecord = await _azFile.UploadFile(tempPath, "loan-files");
+                var fileRecord = await _azFile.UploadFile(tempPath, "loan-files", file.ContentType);
 
 
 
@@ -80,6 +80,38 @@ namespace Ar.Loans.Api.Controllers
                         File.Delete(tempPath);
                     }
                 }
+            }
+            catch (Exception ex)
+            {
+                return new BadRequestObjectResult(new { error = ex.Message });
+            }
+        }
+
+        [Function("GetFile")]
+        public async Task<IActionResult> GetFile(
+            [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "files/{id}")] HttpRequest req)
+        {
+            if (!_user.IsAuthenticated) return new UnauthorizedResult();
+
+            var idStr = req.RouteValues["id"]?.ToString();
+            if (!Guid.TryParse(idStr, out var fileId))
+            {
+                return new BadRequestObjectResult("Invalid file ID.");
+            }
+
+            var fileRecord = await _files.GetFileRecord(fileId);
+            if (fileRecord == null)
+            {
+                return new NotFoundObjectResult("File not found.");
+            }
+
+            try
+            {
+                var (stream, contentType) = await _azFile.GetFileStream(fileRecord.FileKey, fileRecord.Container);
+                return new FileStreamResult(stream, contentType ?? "application/octet-stream")
+                {
+                    FileDownloadName = fileRecord.OriginalFileName
+                };
             }
             catch (Exception ex)
             {

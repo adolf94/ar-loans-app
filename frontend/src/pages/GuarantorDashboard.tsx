@@ -46,7 +46,7 @@ const GuarantorDashboard: React.FC = () => {
         <Box>
             <Typography variant="h4" gutterBottom sx={{ fontWeight: 700 }}>Guarantor Portal</Typography>
             <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
-                Underwriting Summary for James. You are providing guarantees for {guaranteedLoans.length} active agreements.
+                Underwriting Summary for {userInfo.unique_name}. You are providing guarantees for {guaranteedLoans.length} active agreements.
             </Typography>
 
             <Paper sx={{ width: '100%', borderRadius: 3, mb: 4 }}>

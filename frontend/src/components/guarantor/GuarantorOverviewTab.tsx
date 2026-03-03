@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
     Typography,
     Grid,
@@ -14,19 +14,28 @@ import {
     TableHead,
     TableRow,
     Chip,
-    Tooltip
+    Tooltip,
+    useTheme,
+    useMediaQuery,
+    FormControlLabel,
+    Switch
 } from '@mui/material';
 import {
     ShieldCheck,
     AlertTriangle,
     CheckCircle2,
     Activity,
-    HelpCircle
+    HelpCircle,
+    Landmark
 } from 'lucide-react';
 import type { Loan } from '../../@types/types';
 import GuarantorLoansRow from './GuarantorLoansRow';
 import LoanManageDialog from '../dialogs/LoanManageDialog';
 import { useGetUser } from '../../repositories/user';
+import useUserInfo from '../useUserInfo';
+import { useGetUserAccounts } from '../../repositories/bankAccount';
+import { useAccounts } from '../../repositories/account';
+import numeral from 'numeral';
 
 interface GuarantorOverviewTabProps {
     myExposure: {
@@ -41,38 +50,70 @@ interface GuarantorOverviewTabProps {
 const GuarantorOverviewTab: React.FC<GuarantorOverviewTabProps> = ({ myExposure, guaranteedLoans }) => {
     const [selectedLoan, setSelectedLoan] = useState<Loan | null>(null);
     const [openDialog, setOpenDialog] = useState(false);
+    const [showClosed, setShowClosed] = useState(false);
+
+    const filteredLoans = showClosed ? guaranteedLoans : guaranteedLoans.filter(l => l.status !== 'Paid');
+
+    const { userInfo } = useUserInfo()
 
     // We might want to pass the user context if needed, but for now we'll fetch client user when selected
     const selectedUser = useGetUser(selectedLoan?.clientId || "");
-
+    const banks = useGetUserAccounts(userInfo.userId)
+    const { data: accounts = [] } = useAccounts();
     const handleOpenDialog = (loan: Loan) => {
         setSelectedLoan(loan);
         setOpenDialog(true);
     };
 
+    const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+
+    const onHand = useMemo(() => {
+        const accountIds = banks.map(e => e.accountId || "")
+        return accounts.reduce((p, c) => {
+            if (accountIds.indexOf(c.id) > -1) return p + c.balance
+            return p
+        }, 0)
+    }, [banks, accounts])
+
+    const balance = useMemo(() => {
+        return guaranteedLoans.reduce((p, c) => {
+            return p + c.balance
+        }, 0)
+    }, [guaranteedLoans])
+
+
+    const completed = useMemo(() => {
+        return guaranteedLoans.filter(e => e.status.toLowerCase() == "paid").length
+    }, [guaranteedLoans])
+
+
+
     return (
         <Box sx={{ p: 3 }}>
             <Grid container spacing={3} sx={{ mb: 4 }}>
+
+
                 <Grid size={{ xs: 12, md: 4 }}>
-                    <Card sx={{ height: '100%', bgcolor: 'secondary.50', border: '1px solid', borderColor: 'secondary.100' }}>
+                    <Card sx={{ height: '100%', border: '1px solid', borderColor: 'error.100' }}>
                         <CardContent>
                             <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 2 }}>
-                                <Avatar sx={{ bgcolor: 'secondary.main' }}><ShieldCheck size={20} /></Avatar>
+                                <Avatar sx={{ bgcolor: 'primary.main' }}><Landmark size={20} /></Avatar>
+
                             </Stack>
                             <Stack direction="row" spacing={0.5} alignItems="center">
-                                <Typography variant="body2" color="secondary.main" fontWeight={700}>Contingent Liabilities</Typography>
-                                <Tooltip title="Potential liabilities that depend on a future event (like a borrower defaulting). This is the total value you have guaranteed.">
+                                <Typography variant="body2" color="primary.main" fontWeight={700}>Cash on hand</Typography>
+                                <Tooltip title="The total amount that you have on your account of behalf of the coop.">
                                     <Box sx={{ display: 'flex' }}>
-                                        <HelpCircle size={14} color="#6366f1" style={{ cursor: 'help' }} />
+                                        <HelpCircle size={14} color="#ef4444" style={{ cursor: 'help' }} />
                                     </Box>
                                 </Tooltip>
                             </Stack>
-                            <Typography variant="h4" fontWeight={800}>${myExposure.totalOriginalRisk.toLocaleString()}</Typography>
-                            <Typography variant="caption" color="text.secondary">Total original principal guaranteed</Typography>
+                            <Typography variant="h4" fontWeight={800}>${numeral(onHand).format("0,0")}</Typography>
+                            <Typography variant="caption" color="text.secondary">The total amount that you have on your account of behalf of the coop.</Typography>
                         </CardContent>
                     </Card>
                 </Grid>
-
                 <Grid size={{ xs: 12, md: 4 }}>
                     <Card sx={{ height: '100%', border: '1px solid', borderColor: 'error.100' }}>
                         <CardContent>
@@ -94,7 +135,7 @@ const GuarantorOverviewTab: React.FC<GuarantorOverviewTabProps> = ({ myExposure,
                                     </Box>
                                 </Tooltip>
                             </Stack>
-                            <Typography variant="h4" fontWeight={800}>${myExposure.currentExposure.toLocaleString()}</Typography>
+                            <Typography variant="h4" fontWeight={800}>${numeral(balance).format("0,0")}</Typography>
                             <Typography variant="caption" color="text.secondary">Current risk after borrower repayments</Typography>
                         </CardContent>
                     </Card>
@@ -107,37 +148,62 @@ const GuarantorOverviewTab: React.FC<GuarantorOverviewTabProps> = ({ myExposure,
                                 <Avatar sx={{ bgcolor: 'success.main' }}><CheckCircle2 size={20} /></Avatar>
                             </Stack>
                             <Typography variant="body2" color="success.main" fontWeight={700}>Agreements Cleared</Typography>
-                            <Typography variant="h4" fontWeight={800}>{myExposure.clearedAgreements}</Typography>
+                            <Typography variant="h4" fontWeight={800}>{completed}</Typography>
                             <Typography variant="caption" color="text.secondary">Number of loans fully repaid</Typography>
                         </CardContent>
                     </Card>
                 </Grid>
             </Grid>
 
-            <Typography variant="h5" gutterBottom sx={{ fontWeight: 700, mt: 4 }}>Guarantee Portfolio</Typography>
+            <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mt: 4, mb: 1 }}>
+                <Typography variant="h5" sx={{ fontWeight: 700 }}>Guarantee Portfolio</Typography>
+                <FormControlLabel
+                    control={
+                        <Switch
+                            size="small"
+                            checked={showClosed}
+                            onChange={(e) => setShowClosed(e.target.checked)}
+                        />
+                    }
+                    label={
+                        <Typography variant="caption" color="text.secondary">
+                            Show paid ({guaranteedLoans.filter(l => l.status === 'Paid').length})
+                        </Typography>
+                    }
+                />
+            </Stack>
             <TableContainer sx={{ borderRadius: 3, border: '1px solid', borderColor: 'divider' }}>
-                <Table>
+                <Table size={isMobile ? 'small' : 'medium'}>
                     <TableHead>
                         <TableRow>
-                            <TableCell sx={{ fontWeight: 700 }}>Loan Reference</TableCell>
-                            <TableCell sx={{ fontWeight: 700 }}>Borrower</TableCell>
-                            <TableCell sx={{ fontWeight: 700 }}>Original Risk</TableCell>
-                            <TableCell sx={{ fontWeight: 700 }}>
-                                <Stack direction="row" spacing={0.5} alignItems="center">
-                                    Remaining Exposure
-                                    <Tooltip title="Current risk remaining on this specific agreement">
-                                        <Box sx={{ display: 'flex' }}>
-                                            <HelpCircle size={14} style={{ cursor: 'help', opacity: 0.6 }} />
-                                        </Box>
-                                    </Tooltip>
-                                </Stack>
-                            </TableCell>
-                            <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
-                            <TableCell align="right" sx={{ fontWeight: 700 }}>Details</TableCell>
+                            {isMobile ? (
+                                <>
+                                    <TableCell sx={{ fontWeight: 700 }}>Borrower</TableCell>
+                                    <TableCell align="right" sx={{ fontWeight: 700 }}>Balance</TableCell>
+                                </>
+                            ) : (
+                                <>
+                                    <TableCell sx={{ fontWeight: 700 }}>Loan Reference</TableCell>
+                                    <TableCell sx={{ fontWeight: 700 }}>Borrower</TableCell>
+                                    <TableCell sx={{ fontWeight: 700 }}>Original Risk</TableCell>
+                                    <TableCell sx={{ fontWeight: 700 }}>
+                                        <Stack direction="row" spacing={0.5} alignItems="center">
+                                            Remaining Exposure
+                                            <Tooltip title="Current risk remaining on this specific agreement">
+                                                <Box sx={{ display: 'flex' }}>
+                                                    <HelpCircle size={14} style={{ cursor: 'help', opacity: 0.6 }} />
+                                                </Box>
+                                            </Tooltip>
+                                        </Stack>
+                                    </TableCell>
+                                    <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
+                                    <TableCell align="right" sx={{ fontWeight: 700 }}>Details</TableCell>
+                                </>
+                            )}
                         </TableRow>
                     </TableHead>
                     <TableBody>
-                        {guaranteedLoans.map((loan) => (
+                        {filteredLoans.map((loan) => (
                             <GuarantorLoansRow
                                 key={loan.id}
                                 loan={loan}

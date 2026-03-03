@@ -21,5 +21,10 @@ namespace Ar.Loans.Api.Data.Cosmos
 						await _context.Files.AddAsync(file);
 				}
 
+				public async Task<Models.BlobFile?> GetFileRecord(Guid id)
+				{
+						return await _context.Files.FindAsync(id);
+				}
+
 		}
 }

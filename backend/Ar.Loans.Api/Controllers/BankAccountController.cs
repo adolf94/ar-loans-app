@@ -30,8 +30,8 @@ namespace Ar.Loans.Api.Controllers
 				[Function("GetByBankAccountId")]
 				public async Task<IActionResult> GetByBankAccountId([HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "bankaccounts")] HttpRequest req)
 				{
-            if (!_user.IsAuthenticated) return new UnauthorizedResult();
-            if (!_user.IsAuthorized("coop_guarantor,coop_admin")) return new ForbidResult();
+						if (!_user.IsAuthenticated) return new UnauthorizedResult();
+						if (!_user.IsAuthorized("coop_guarantor,coop_admin")) return new ForbidResult();
 						string? accountId = req.Query["accountId"];
 						if (string.IsNullOrEmpty(accountId))
 						{
@@ -50,16 +50,16 @@ namespace Ar.Loans.Api.Controllers
 				[Function("PutBankAccount")]
 				public async Task<IActionResult> PutBankAccount([HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "bankaccounts")] HttpRequest req)
 				{
-            if (!_user.IsAuthenticated) return new UnauthorizedResult();
-            if (!_user.IsAuthorized("coop_guarantor,coop_admin")) return new ForbidResult();
+						if (!_user.IsAuthenticated) return new UnauthorizedResult();
+						if (!_user.IsAuthorized("coop_guarantor,coop_admin")) return new ForbidResult();
 
 						var dto = await req.ReadFromJsonAsync<UserBankAccount>();
 
-						var item =await _repo.GetByExactAccountId(dto!.AccountNumber);
+						var item = await _repo.GetByExactAccountId(dto!.AccountNumber);
 
-						if(item == null)
+						if (item == null)
 						{
-							 await	_repo.CreateBankAccount(dto);
+								await _repo.CreateBankAccount(dto);
 						}
 						else
 						{
@@ -70,6 +70,21 @@ namespace Ar.Loans.Api.Controllers
 
 
 						return new OkObjectResult(dto);
+				}
+
+				[Function("GetAccountsById")]
+				public async Task<IActionResult> GetAccountsById([HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "user/{id}/bankaccounts")] HttpRequest req)
+				{
+						if (!_user.IsAuthenticated) return new UnauthorizedResult();
+						if (!_user.IsAuthorized("coop_guarantor,coop_admin")) return new ForbidResult();
+						if(!Guid.TryParse(req.RouteValues["id"]!.ToString(), out var id))
+						{
+								return new BadRequestResult();
+						}
+
+						var items = await _repo.GetByUserId(id);
+
+						return new OkObjectResult(items);
 				}
 		}
 }

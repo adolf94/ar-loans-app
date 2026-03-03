@@ -12,6 +12,7 @@ export interface Entry {
     date: string;
     addedBy?: string;
     loanId?: string;
+    fileId?: string;
 }
 
 export const ENTRY = "entries"
@@ -53,7 +54,8 @@ export const useDeleteEntry = () => {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: async (id: string) => {
-            await apiClient.delete(`/entries/${id}`);
+            await apiClient.delete(`/entries/${id}`)
+                .then(e => e.data);
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: [ENTRY] });

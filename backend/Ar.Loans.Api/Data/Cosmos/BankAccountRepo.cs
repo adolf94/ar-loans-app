@@ -1,6 +1,7 @@
 ﻿using Ar.Loans.Api.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Identity.Client;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -60,6 +61,13 @@ namespace Ar.Loans.Api.Data.Cosmos
 
 						var item = await _context.BankAccounts.AddAsync(acct);
 
+				}
+
+				public async Task<UserBankAccount[]> GetByUserId(Guid UserId)
+				{
+						var items = await _context.BankAccounts.Where(e => e.UserId == UserId)
+								.ToArrayAsync();
+						return items;
 				}
 		}
 }

@@ -74,6 +74,10 @@ namespace Ar.Loans.Api.Data.Cosmos
 												}
 												loan.Transactions.Remove(tx);
 										}
+										if(loan.Balance > 0)
+										{
+												loan.Status = "Active";
+										}
 										_context.Loans.Update(loan);
 								}
 						}
