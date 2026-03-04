@@ -6,7 +6,9 @@ import {
     Tabs,
     Tab,
     Stack,
-    Button
+    Button,
+    Fab,
+    Tooltip
 } from '@mui/material';
 import GuarantorOverviewTab from '../components/guarantor/GuarantorOverviewTab';
 import LedgerTab from '../components/admin/LedgerTab';
@@ -26,10 +28,12 @@ import LedgerDialog from '../components/dialogs/LedgerDialog';
 import PaymentDialog from '../components/dialogs/PaymentDialog';
 import LoanDialog from '../components/dialogs/LoanDialog';
 import useUserInfo from '../components/useUserInfo';
+import { useIsMobile } from '../theme';
 
 const GuarantorDashboard: React.FC = () => {
     const [tabValue, setTabValue] = useState(0);
     const { userInfo } = useUserInfo();
+    const isMobile = useIsMobile()
 
     // Assume logged-in guarantor is James (ID: 3)
     const myExposure = useMemo(() =>
@@ -77,14 +81,13 @@ const GuarantorDashboard: React.FC = () => {
                     }}>
                         {tabValue === 0 && (<>
                             <LoanDialog
-                                onAddLoan={() => { }}
                                 currentLoansCount={0}
                                 fixedGuarantorId={userInfo.userId}
+                                onAddLoan={()=>{}}
                             >
                                 <Button startIcon={<FilePlus size={18} />}>New Loan</Button>
                             </LoanDialog>
                             <PaymentDialog
-                                onAddPayment={() => { }}
                                 loans={guaranteedLoans}
                                 currentTransactionsCount={0}>
                                 <Button startIcon={<Wallet size={18} />} >Record Payment</Button>
@@ -94,8 +97,8 @@ const GuarantorDashboard: React.FC = () => {
                         {tabValue === 2 && (
                             <Stack direction="row" spacing={1}>
                                 <LedgerDialog
-                                    onAddLedger={(data) => { }}
                                     currentLedgerCount={0}
+                                    onAddLedger={()=>{}}
                                 >
                                     <Button startIcon={<Plus size={18} />} >Manual Entry</Button>
                                 </LedgerDialog>
@@ -104,7 +107,7 @@ const GuarantorDashboard: React.FC = () => {
                     </Box>
                 </Box>
                 {tabValue === 0 && (
-                    <GuarantorOverviewTab myExposure={myExposure} guaranteedLoans={guaranteedLoans} />
+                    <GuarantorOverviewTab myExposure={myExposure}/>
                 )}
 
                 {tabValue === 1 && (
@@ -114,6 +117,71 @@ const GuarantorDashboard: React.FC = () => {
                 {tabValue === 2 && (
                     <BalanceSheetTab balanceSheet={balanceSheet} />
                 )}
+
+                
+                {isMobile && (
+                    <>
+                        {tabValue === 0 && (
+                        <Stack
+                            spacing={1}
+                            sx={{
+                                position: 'fixed',
+                                bottom: 16,
+                                right: 16,
+                                zIndex: 1000,
+                                textAlign: "center"
+                            }}
+                        >
+                            <PaymentDialog onAddPayment={()=>{}}>
+                                <Tooltip title="Record Payment" placement='left' >
+                                    <Fab
+                                        color="secondary"
+                                        aria-label="record payment"
+                                        size="medium"
+                                    >
+                                        <Wallet size={20} />
+                                    </Fab>
+                                </Tooltip>
+                            </PaymentDialog>
+                            <LoanDialog  onAddLoan={()=>{}} currentLoansCount={0} fixedGuarantorId={userInfo.userId}>
+                                <Tooltip title="Issue Loan" placement='left' >
+
+                                    <Fab
+                                        color="primary"
+                                        aria-label="new loan"
+                                        size="large"
+                                    >
+                                        <FilePlus size={24} />
+
+                                    </Fab>
+                                </Tooltip>
+                            </LoanDialog>
+                        </Stack>
+                        )}
+                        {tabValue === 2 && (
+                            <Stack
+                                spacing={1}
+                                sx={{
+                                    position: 'fixed',
+                                    bottom: 16,
+                                    right: 16,
+                                    zIndex: 1000
+                                }}
+                            >
+                                <LedgerDialog currentLedgerCount={0} onAddLedger={()=>{}}>
+                                    <Fab
+                                        color="secondary"
+                                        aria-label="manual entry"
+                                        size="medium"
+                                    >
+                                        <Plus size={20} />
+                                    </Fab>
+                                </LedgerDialog>
+                            </Stack>
+                        )}
+                    </>
+                )}
+    
             </Paper>
         </Box>
     );

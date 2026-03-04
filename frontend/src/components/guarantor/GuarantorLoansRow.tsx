@@ -4,6 +4,7 @@ import { ArrowRight } from "lucide-react"
 import numeral from "numeral"
 import { useGetUser } from "../../repositories/user"
 import type { Loan } from "../../@types/types"
+import dayjs from 'dayjs';
 
 interface GuarantorLoansRowProps {
     loan: Loan;
@@ -22,6 +23,9 @@ const GuarantorLoansRow: React.FC<GuarantorLoansRowProps> = ({ loan, onSelect })
                 <Stack spacing={0.25}>
                     <Typography variant="body2" fontWeight={600}>{user?.name || loan?.clientId}</Typography>
                     <Typography variant="caption" color="text.secondary">{loan.alternateId}</Typography>
+                    <Typography variant="caption" color="text.secondary">
+                        {dayjs(loan.date).format("MMM DD")}
+                    </Typography>
                 </Stack>
             </TableCell>
             <TableCell>

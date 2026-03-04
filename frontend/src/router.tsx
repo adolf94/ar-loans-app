@@ -19,16 +19,10 @@ import { getTokenViaRefreshToken } from './services/api';
 const Root = () => {
     const [currentUser, setCurrentUser] = useState<User>(mockUsers[0]);
 
-    const handleRoleChange = (role: UserRole) => {
-        const userWithRole = mockUsers.find(u => u.role === role) || mockUsers[0];
-        setCurrentUser({ ...userWithRole, role });
-    };
-
-
     
 
     return (
-        <Layout currentUser={currentUser} onRoleChange={handleRoleChange}>
+        <Layout currentUser={currentUser}>
             <Outlet />
         </Layout>
     );

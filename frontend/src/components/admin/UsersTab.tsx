@@ -25,7 +25,7 @@ const UsersTab: React.FC<UsersTabProps> = ({  onEditUser }) => {
     const {data : users = []} = useUsers()
 
     return (
-        <TableContainer sx={{ maxHeight: 'calc(100vh - 400px)', overflowX: 'auto' }}>
+            <TableContainer sx={{ maxHeight: 'calc(100vh - 300px)', overflowX: 'auto' }}>
             <Table stickyHeader size={isMobile ? 'small' : 'medium'}>
                 <TableHead>
                     <TableRow>

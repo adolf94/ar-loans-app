@@ -36,6 +36,7 @@ import useUserInfo from '../useUserInfo';
 import { useGetUserAccounts } from '../../repositories/bankAccount';
 import { useAccounts } from '../../repositories/account';
 import numeral from 'numeral';
+import { useIsMobile } from '../../theme';
 
 interface GuarantorOverviewTabProps {
     myExposure: {
@@ -47,12 +48,19 @@ interface GuarantorOverviewTabProps {
     guaranteedLoans: Loan[];
 }
 
-const GuarantorOverviewTab: React.FC<GuarantorOverviewTabProps> = ({ myExposure, guaranteedLoans }) => {
+const GuarantorOverviewTab: React.FC<GuarantorOverviewTabProps> = ({ myExposure, guaranteedLoans = [] }) => {
     const [selectedLoan, setSelectedLoan] = useState<Loan | null>(null);
     const [openDialog, setOpenDialog] = useState(false);
     const [showClosed, setShowClosed] = useState(false);
+    const isMobile = useIsMobile();
 
-    const filteredLoans = showClosed ? guaranteedLoans : guaranteedLoans.filter(l => l.status !== 'Paid');
+
+
+    const filteredLoans = useMemo(() => {
+        let sorted = guaranteedLoans.sort((a, b) => a.date < b.date ? 1 : a.date > b.date ? -1 : a.id > b.id ? 1 : 0)
+        return showClosed ? sorted : sorted.filter(l => l.status !== 'Paid');
+    }, [guaranteedLoans, showClosed])
+
 
     const { userInfo } = useUserInfo()
 
@@ -65,8 +73,6 @@ const GuarantorOverviewTab: React.FC<GuarantorOverviewTabProps> = ({ myExposure,
         setOpenDialog(true);
     };
 
-    const theme = useTheme();
-    const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
     const onHand = useMemo(() => {
         const accountIds = banks.map(e => e.accountId || "")
@@ -90,66 +96,108 @@ const GuarantorOverviewTab: React.FC<GuarantorOverviewTabProps> = ({ myExposure,
 
 
     return (
-        <Box sx={{ p: 3 }}>
-            <Grid container spacing={3} sx={{ mb: 4 }}>
+        <Box sx={{ p: { xs: 1.5, sm: 3 } }}>
+            <Grid container spacing={{ xs: 1.5, sm: 3 }} sx={{ mb: { xs: 2, sm: 4 } }}>
 
-
-                <Grid size={{ xs: 12, md: 4 }}>
-                    <Card sx={{ height: '100%', border: '1px solid', borderColor: 'error.100' }}>
-                        <CardContent>
-                            <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 2 }}>
-                                <Avatar sx={{ bgcolor: 'primary.main' }}><Landmark size={20} /></Avatar>
-
-                            </Stack>
-                            <Stack direction="row" spacing={0.5} alignItems="center">
-                                <Typography variant="body2" color="primary.main" fontWeight={700}>Cash on hand</Typography>
-                                <Tooltip title="The total amount that you have on your account of behalf of the coop.">
-                                    <Box sx={{ display: 'flex' }}>
-                                        <HelpCircle size={14} color="#ef4444" style={{ cursor: 'help' }} />
-                                    </Box>
-                                </Tooltip>
-                            </Stack>
-                            <Typography variant="h4" fontWeight={800}>${numeral(onHand).format("0,0")}</Typography>
-                            <Typography variant="caption" color="text.secondary">The total amount that you have on your account of behalf of the coop.</Typography>
+                {/* Card 1: Cash on Hand */}
+                <Grid size={{ xs: 6, md: 4 }}>
+                    <Card sx={{ height: '100%' }} >
+                        <CardContent sx={{ p: { xs: 1.5, sm: 2, md: 3 }, '&:last-child': { pb: { xs: 1.5, sm: 2, md: 3 } } }}>
+                            {/* Desktop layout */}
+                            <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
+                                <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 2 }}>
+                                    <Avatar sx={{ bgcolor: 'primary.main' }}><Landmark size={20} /></Avatar>
+                                </Stack>
+                                <Stack direction="row" spacing={0.5} alignItems="center">
+                                    <Typography variant="body2" color="primary.main" fontWeight={700}>Cash on hand</Typography>
+                                    <Tooltip title="The total amount that you have on your account of behalf of the coop.">
+                                        <Box sx={{ display: 'flex' }}>
+                                            <HelpCircle size={14} color="#2563eb" style={{ cursor: 'help' }} />
+                                        </Box>
+                                    </Tooltip>
+                                </Stack>
+                                <Typography variant="h4" fontWeight={800}>${numeral(onHand).format("0,0")}</Typography>
+                                <Typography variant="caption" color="text.secondary">Amount held on behalf of the coop</Typography>
+                            </Box>
+                            {/* Mobile layout */}
+                            <Box sx={{ display: { xs: 'block', sm: 'none' } }}>
+                                <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
+                                    <Avatar sx={{ bgcolor: 'primary.main', width: 28, height: 28 }}><Landmark size={14} /></Avatar>
+                                    <Typography variant="caption" color="primary.main" fontWeight={700} sx={{ lineHeight: 1.2 }}>Cash on hand</Typography>
+                                </Stack>
+                                <Typography variant="h6" fontWeight={800} sx={{ fontSize: '1.1rem', pl: 0.5 }}>${numeral(onHand).format("0,0")}</Typography>
+                            </Box>
                         </CardContent>
                     </Card>
                 </Grid>
-                <Grid size={{ xs: 12, md: 4 }}>
-                    <Card sx={{ height: '100%', border: '1px solid', borderColor: 'error.100' }}>
-                        <CardContent>
-                            <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 2 }}>
-                                <Avatar sx={{ bgcolor: 'error.main' }}><Activity size={20} /></Avatar>
+
+                {/* Card 2: Remaining Exposure */}
+                <Grid size={{ xs: 6, md: 4 }}>
+                    <Card sx={{ height: '100%'}}>
+                        <CardContent sx={{ p: { xs: 1.5, sm: 2, md: 3 }, '&:last-child': { pb: { xs: 1.5, sm: 2, md: 3 } } }}>
+                            {/* Desktop layout */}
+                            <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
+                                <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 2 }}>
+                                    <Avatar sx={{ bgcolor: 'error.main' }}><Activity size={20} /></Avatar>
+                                    <Chip
+                                        label={`${myExposure.riskExposureRate.toFixed(1)}%`}
+                                        size="small"
+                                        color="error"
+                                        variant="outlined"
+                                        sx={{ fontWeight: 700 }}
+                                    />
+                                </Stack>
+                                <Stack direction="row" spacing={0.5} alignItems="center">
+                                    <Typography variant="body2" color="error.main" fontWeight={700}>Remaining Exposure</Typography>
+                                    <Tooltip title="The actual amount you are still liable for if the borrower defaults, after accounting for their repayments.">
+                                        <Box sx={{ display: 'flex' }}>
+                                            <HelpCircle size={14} color="#ef4444" style={{ cursor: 'help' }} />
+                                        </Box>
+                                    </Tooltip>
+                                </Stack>
+                                <Typography variant="h4" fontWeight={800}>${numeral(balance).format("0,0")}</Typography>
+                                <Typography variant="caption" color="text.secondary">Current risk after borrower repayments</Typography>
+                            </Box>
+                            {/* Mobile layout */}
+                            <Box sx={{ display: { xs: 'block', sm: 'none' } }}>
+                                <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
+                                    <Avatar sx={{ bgcolor: 'error.main', width: 28, height: 28 }}><Activity size={14} /></Avatar>
+                                    <Typography variant="caption" color="error.main" fontWeight={700} sx={{ lineHeight: 1.2 }}>Exposure</Typography>
+                                </Stack>
+                                <Typography variant="h6" fontWeight={800} sx={{ fontSize: '1.1rem', pl: 0.5 }}>${numeral(balance).format("0,0")}</Typography>
                                 <Chip
-                                    label={`${myExposure.riskExposureRate.toFixed(1)}% Rate`}
+                                    label={`${myExposure.riskExposureRate.toFixed(1)}%`}
                                     size="small"
                                     color="error"
                                     variant="outlined"
-                                    sx={{ fontWeight: 700 }}
+                                    sx={{ fontWeight: 600, height: 18, fontSize: '0.6rem', mt: 0.5, ml: 0.5 }}
                                 />
-                            </Stack>
-                            <Stack direction="row" spacing={0.5} alignItems="center">
-                                <Typography variant="body2" color="error.main" fontWeight={700}>Remaining Exposure</Typography>
-                                <Tooltip title="The actual amount you are still liable for if the borrower defaults, after accounting for their repayments.">
-                                    <Box sx={{ display: 'flex' }}>
-                                        <HelpCircle size={14} color="#ef4444" style={{ cursor: 'help' }} />
-                                    </Box>
-                                </Tooltip>
-                            </Stack>
-                            <Typography variant="h4" fontWeight={800}>${numeral(balance).format("0,0")}</Typography>
-                            <Typography variant="caption" color="text.secondary">Current risk after borrower repayments</Typography>
+                            </Box>
                         </CardContent>
                     </Card>
                 </Grid>
 
-                <Grid size={{ xs: 12, md: 4 }}>
-                    <Card sx={{ height: '100%', border: '1px solid', borderColor: 'success.100' }}>
-                        <CardContent>
-                            <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 2 }}>
-                                <Avatar sx={{ bgcolor: 'success.main' }}><CheckCircle2 size={20} /></Avatar>
-                            </Stack>
-                            <Typography variant="body2" color="success.main" fontWeight={700}>Agreements Cleared</Typography>
-                            <Typography variant="h4" fontWeight={800}>{completed}</Typography>
-                            <Typography variant="caption" color="text.secondary">Number of loans fully repaid</Typography>
+                {/* Card 3: Agreements Cleared */}
+                <Grid size={{ xs: 6, md: 4 }}>
+                    <Card sx={{ height: '100%'}}>
+                        <CardContent sx={{ p: { xs: 1.5, sm: 2, md: 3 }, '&:last-child': { pb: { xs: 1.5, sm: 2, md: 3 } } }}>
+                            {/* Desktop layout */}
+                            <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
+                                <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 2 }}>
+                                    <Avatar sx={{ bgcolor: 'success.main' }}><CheckCircle2 size={20} /></Avatar>
+                                </Stack>
+                                <Typography variant="body2" color="success.main" fontWeight={700}>Agreements Cleared</Typography>
+                                <Typography variant="h4" fontWeight={800}>{completed}</Typography>
+                                <Typography variant="caption" color="text.secondary">Number of loans fully repaid</Typography>
+                            </Box>
+                            {/* Mobile layout */}
+                            <Box sx={{ display: { xs: 'block', sm: 'none' } }}>
+                                <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
+                                    <Avatar sx={{ bgcolor: 'success.main', width: 28, height: 28 }}><CheckCircle2 size={14} /></Avatar>
+                                    <Typography variant="caption" color="success.main" fontWeight={700} sx={{ lineHeight: 1.2 }}>Cleared</Typography>
+                                </Stack>
+                                <Typography variant="h6" fontWeight={800} sx={{ fontSize: '1.1rem', pl: 0.5 }}>{completed}</Typography>
+                            </Box>
                         </CardContent>
                     </Card>
                 </Grid>

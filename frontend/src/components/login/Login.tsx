@@ -33,6 +33,9 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
                 // setBackdropLoading(false)
                 let id = atob(e.data.id_token.split(".")[1])
+                let user = JSON.parse(id)
+                user.roles = Array.isArray(user.roles) ? user.roles : [user.roles]
+
                 setUserInfo({
                     ...JSON.parse(id),
                     isAuthenticated: true                    

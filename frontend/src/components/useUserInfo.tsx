@@ -11,7 +11,7 @@ export const defaultUserInfo = {
 export const UserInfoContext = React.createContext({
     userInfo: defaultUserInfo,
     setUserInfo: (data) => { },
-    hasRole : (data : string[])=>{}
+    hasRole : (data : string[])=>true
 })
 
 

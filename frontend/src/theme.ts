@@ -1,4 +1,5 @@
-import { createTheme } from '@mui/material/styles';
+import { useMediaQuery } from '@mui/material';
+import { createTheme, useTheme } from '@mui/material/styles';
 
 const theme = createTheme({
     palette: {
@@ -58,5 +59,13 @@ const theme = createTheme({
         },
     },
 });
+
+
+export const useIsMobile = ()=>{
+    
+    const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+    return isMobile
+}
 
 export default theme;

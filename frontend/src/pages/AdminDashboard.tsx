@@ -13,7 +13,8 @@ import {
     Avatar,
     Fab,
     useMediaQuery,
-    useTheme
+    useTheme,
+    Tooltip
 } from '@mui/material';
 import PortfolioTab from '../components/admin/PortfolioTab';
 import UsersTab from '../components/admin/UsersTab';
@@ -48,10 +49,11 @@ import { calculateBalanceSheet } from '../logic/accounting';
 import { analyzePortfolio } from '../services/aiService';
 import { useUsers, useCreateUser, useUpdateUser } from '../repositories/user';
 import { useCreateLoan } from '../repositories/loan';
-import type { Loan, Transaction, GeneralLedgerEntry, User } from '../@types/types';
+import type { Loan, Transaction, GeneralLedgerEntry, User, Payment } from '../@types/types';
 import { Users } from 'lucide-react';
 import { useAccounts } from '../repositories/account';
 import { accountIds } from '../components/accountConstants';
+import { useIsMobile } from '../theme';
 
 interface TabPanelProps {
     children?: React.ReactNode;
@@ -71,11 +73,12 @@ function TabPanel(props: TabPanelProps) {
 const AdminDashboard: React.FC = () => {
     const [tabValue, setTabValue] = useState(0);
     const [loans, setLoans] = useState<Loan[]>(mockLoans);
-    const [transactions, setTransactions] = useState<Transaction[]>(mockTransactions);
+    const [transactions, setTransactions] = useState<Payment[]>([]);
     const [ledger, setLedger] = useState<GeneralLedgerEntry[]>(mockLedger);
     const [editingUserId, setEditingUserId] = useState<string | null>(null);
-    const theme = useTheme();
-    const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+
+    const isMobile = useIsMobile()
+
 
     // AI Analysis State
     const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
@@ -86,24 +89,21 @@ const AdminDashboard: React.FC = () => {
     const updateUserMutation = useUpdateUser();
 
     // Dialog States
-    const [openLoanDialog, setOpenLoanDialog] = useState(false);
-    const [openPaymentDialog, setOpenPaymentDialog] = useState(false);
-    const [openLedgerDialog, setOpenLedgerDialog] = useState(false);
 
-    const {data: accounts = []} = useAccounts()
+    const { data: accounts = [] } = useAccounts()
 
 
-    const summary = useMemo(()=>{
-        let assets = accounts.filter(e=>e.section=="Assets").reduce((p,c)=> p + c.balance, 0)
-        let receivables = (accounts.find(e=>e.id == accountIds.receivables))?.balance || 0
-        let income = accounts.filter(e=>e.section=="Income").reduce((p,c)=> p + c.balance, 0)
+    const summary = useMemo(() => {
+        let assets = accounts.filter(e => e.section == "Assets").reduce((p, c) => p + c.balance, 0)
+        let receivables = (accounts.find(e => e.id == accountIds.receivables))?.balance || 0
+        let income = accounts.filter(e => e.section == "Income").reduce((p, c) => p + c.balance, 0)
 
         return {
-            totalAssets : assets,
+            totalAssets: assets,
             receivables,
             income: -income
         }
-    },[accounts])
+    }, [accounts])
 
 
     const editingUser = useMemo(() =>
@@ -174,7 +174,7 @@ const AdminDashboard: React.FC = () => {
         setOpenLoanDialog(false);
     };
 
-    const handleAddPayment = (payment: Transaction) => {
+    const handleAddPayment = (payment: Payment) => {
         setTransactions([...transactions, payment]);
 
         // Add to ledger
@@ -227,21 +227,36 @@ const AdminDashboard: React.FC = () => {
                 </Stack>
             </Stack>
 
-            <Grid container spacing={3} sx={{ mb: 4 }}>
+            <Grid container spacing={{ xs: 1.5, sm: 3 }} sx={{ mb: 4 }}>
                 {[
-                    { label: 'Loan Receivables', value: summary.receivables, icon: <DollarSign />, color: 'primary.main' },
-                    // { label: 'Interest Receivables', value: balanceSheet.interestReceivables, icon: <TrendingUp size={20} />, color: 'success.main' },
-                    { label: 'Liquid Asset', value: summary.totalAssets - summary.receivables, icon: <Landmark />, color: 'info.main' },
-                    { label: 'Net Revenue', value: summary.income  , icon: <CreditCard />, color: 'secondary.main' },
+                    { label: 'Loan Receivables', value: summary.receivables, icon: <DollarSign size={isMobile ? 16 : 24} />, color: 'primary.main' },
+                    { label: 'Liquid Asset', value: summary.totalAssets - summary.receivables, icon: <Landmark size={isMobile ? 16 : 24} />, color: 'info.main' },
+                    { label: 'Net Revenue', value: summary.income, icon: <CreditCard size={isMobile ? 16 : 24} />, color: 'secondary.main' },
                 ].map((item, idx) => (
-                    <Grid size={{ xs: 12, sm: 6, md: 4 }} key={idx}>
-                        <Card sx={{ height: '100%', position: 'relative', overflow: 'hidden' }}>
-                            <CardContent>
-                                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-                                    <Avatar sx={{ bgcolor: `${item.color}15`, color: item.color }}>{item.icon}</Avatar>
+                    <Grid size={{ xs: 6, sm: 6, md: 4 }} key={idx}>
+                        <Card sx={{
+                            height: '100%',
+                            position: 'relative',
+                            overflow: 'hidden',
+                            borderRadius: { xs: 2, sm: 3 },
+                        }}>
+                            <CardContent sx={{ p: { xs: 1.5, sm: 2, md: 3 }, '&:last-child': { pb: { xs: 1.5, sm: 2, md: 3 } } }}>
+                                {/* Desktop: stacked layout */}
+                                <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
+                                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+                                        <Avatar sx={{ bgcolor: `${item.color}15`, color: item.color }}>{item.icon}</Avatar>
+                                    </Box>
+                                    <Typography variant="body2" color="text.secondary" fontWeight={500}>{item.label}</Typography>
+                                    <Typography variant="h5" fontWeight={700}>${item.value.toLocaleString()}</Typography>
                                 </Box>
-                                <Typography variant="body2" color="text.secondary" fontWeight={500}>{item.label}</Typography>
-                                <Typography variant="h5" fontWeight={700}>${item.value.toLocaleString()}</Typography>
+                                {/* Mobile: compact layout */}
+                                <Box sx={{ display: { xs: 'block', sm: 'none' } }}>
+                                    <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
+                                        <Avatar sx={{ bgcolor: `${item.color}15`, color: item.color, width: 28, height: 28 }}>{item.icon}</Avatar>
+                                        <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ lineHeight: 1.2 }}>{item.label}</Typography>
+                                    </Stack>
+                                    <Typography variant="h6" fontWeight={700} sx={{ fontSize: '1.1rem', pl: 0.5 }}>${item.value.toLocaleString()}</Typography>
+                                </Box>
                             </CardContent>
                         </Card>
                     </Grid>
@@ -303,18 +318,18 @@ const AdminDashboard: React.FC = () => {
                         )}
                         {tabValue === 2 && (
                             <Stack direction="row" spacing={1}>
-                                <PaymentDialog 
+                                <PaymentDialog
                                     onAddPayment={handleAddPayment}
                                     loans={loans}
                                     currentTransactionsCount={transactions.length}>
                                     <Button startIcon={<Wallet size={18} />} >Record Payment</Button>
                                 </PaymentDialog>
-                            <LedgerDialog
-                                onAddLedger={handleAddLedger}
-                                currentLedgerCount={ledger.length}
-                            >
-                                <Button startIcon={<Plus size={18} />} >Manual Entry</Button>
-                            </LedgerDialog>
+                                <LedgerDialog
+                                    onAddLedger={handleAddLedger}
+                                    currentLedgerCount={ledger.length}
+                                >
+                                    <Button startIcon={<Plus size={18} />} >Manual Entry</Button>
+                                </LedgerDialog>
                             </Stack>
                         )}
                     </Box>
@@ -325,7 +340,7 @@ const AdminDashboard: React.FC = () => {
                 </TabPanel>
 
                 <TabPanel value={tabValue} index={1}>
-                    <UsersTab  onEditUser={handleEditUser} />
+                    <UsersTab onEditUser={handleEditUser} />
                 </TabPanel>
 
                 <TabPanel value={tabValue} index={2}>
@@ -341,19 +356,41 @@ const AdminDashboard: React.FC = () => {
             {isMobile && (
                 <>
                     {tabValue === 0 && (
-                        <Fab
-                            color="primary"
-                            aria-label="new loan"
-                            onClick={() => setOpenLoanDialog(true)}
+                        <Stack
+                            spacing={1}
                             sx={{
                                 position: 'fixed',
                                 bottom: 16,
                                 right: 16,
-                                zIndex: 1000
+                                zIndex: 1000,
+                                textAlign: "center"
                             }}
                         >
-                            <FilePlus size={24} />
-                        </Fab>
+                            <PaymentDialog onAddPayment={handleAddPayment}>
+                                <Tooltip title="Record Payment" placement='left' >
+                                    <Fab
+                                        color="secondary"
+                                        aria-label="record payment"
+                                        size="medium"
+                                    >
+                                        <Wallet size={20} />
+                                    </Fab>
+                                </Tooltip>
+                            </PaymentDialog>
+                            <LoanDialog onAddLoan={handleAddLoan} currentLoansCount={0} >
+                                <Tooltip title="Issue Loan" placement='left' >
+
+                                    <Fab
+                                        color="primary"
+                                        aria-label="new loan"
+                                        size="large"
+                                    >
+                                        <FilePlus size={24} />
+
+                                    </Fab>
+                                </Tooltip>
+                            </LoanDialog>
+                        </Stack>
                     )}
                     {tabValue === 2 && (
                         <Stack
@@ -365,22 +402,15 @@ const AdminDashboard: React.FC = () => {
                                 zIndex: 1000
                             }}
                         >
-                            <Fab
-                                color="primary"
-                                aria-label="record payment"
-                                onClick={() => setOpenPaymentDialog(true)}
-                                size="medium"
-                            >
-                                <Wallet size={20} />
-                            </Fab>
-                            <Fab
-                                color="secondary"
-                                aria-label="manual entry"
-                                onClick={() => setOpenLedgerDialog(true)}
-                                size="medium"
-                            >
-                                <Plus size={20} />
-                            </Fab>
+                            <LedgerDialog currentLedgerCount={0} onAddLedger={handleAddLedger}>
+                                <Fab
+                                    color="secondary"
+                                    aria-label="manual entry"
+                                    size="medium"
+                                >
+                                    <Plus size={20} />
+                                </Fab>
+                            </LedgerDialog>
                         </Stack>
                     )}
                 </>

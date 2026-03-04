@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
     Table,
     TableBody,
@@ -36,7 +36,19 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({ }) => {
     const [isManageOpen, setIsManageOpen] = useState(false);
     const [showClosed, setShowClosed] = useState(false);
 
-    const filteredLoans = showClosed ? loans : loans.filter(l => l.status !== 'Paid');
+
+    
+
+    const filteredLoans = useMemo(()=>{
+        let sorted = loans.sort((a,b)=> a.date < b.date ? 1: a.date > b.date ? -1 : a.id > b.id ? 1:0  )
+        return showClosed ? sorted : sorted.filter(l => l.status !== 'Paid');
+    },[loans, showClosed])
+    
+    
+    
+
+    
+
 
     const handleManage = (loan: Loan) => {
         setSelectedLoan(loan);
@@ -61,7 +73,7 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({ }) => {
                     }
                 />
             </Box>
-            <TableContainer sx={{ maxHeight: 'calc(100vh - 400px)', overflowX: 'auto' }}>
+                    <TableContainer sx={{ maxHeight: 'calc(100vh - 300px)', overflowX: 'auto' }}>
                 <Table stickyHeader size={isMobile ? 'small' : 'medium'}>
                     <TableHead>
                         <TableRow>
@@ -73,8 +85,8 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({ }) => {
                                 </>
                             ) : (
                                 <>
-                                    <TableCell sx={{ fontWeight: 700, minWidth: 100 }}>Date</TableCell>
                                     <TableCell sx={{ fontWeight: 700, minWidth: 100 }}>Loan ID</TableCell>
+                                    <TableCell sx={{ fontWeight: 700, minWidth: 100 }}>Date</TableCell>
                                     <TableCell sx={{ fontWeight: 700, minWidth: 150 }}>Client</TableCell>
                                     <TableCell sx={{ fontWeight: 700, minWidth: 100 }}>Principal</TableCell>
                                     <TableCell sx={{ fontWeight: 700, minWidth: 100 }}>Balance</TableCell>

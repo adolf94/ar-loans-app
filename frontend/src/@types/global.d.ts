@@ -5,10 +5,14 @@ declare global {
         webConfig: {
             apiUrl: string;
             authUrl: string;
+            adminRole: string;
+            guarantorRole: string;
         };
     }
     const webConfig: {
         apiUrl: string;
         authUrl: string;
+        adminRole: string;
+        guarantorRole: string;
     };
 }

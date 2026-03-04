@@ -117,14 +117,14 @@ const PaymentDialog: React.FC<PaymentDialogProps> = ({
             ...newPayment,
         };
         let data = await createPayment.mutateAsync(payment)
-        onAddPayment(payment);
+        onAddPayment(data);
         setOpen(false);
         setNewPayment(empty_payment());
     };
 
     return <>
         {React.cloneElement(children as React.ReactElement<any>, { onClick: () => setOpen(true) })}
-        <Dialog open={open} onClose={handleClose}>
+        { open  && <Dialog open={open} onClose={handleClose}>
             <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 Record Loan Payment
                 <Box>
@@ -203,7 +203,7 @@ const PaymentDialog: React.FC<PaymentDialogProps> = ({
                     Record Payment
                 </Button>
             </DialogActions>
-        </Dialog>
+        </Dialog>}
     </>
 };
 

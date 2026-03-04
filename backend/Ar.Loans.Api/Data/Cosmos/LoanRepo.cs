@@ -82,10 +82,10 @@ namespace Ar.Loans.Api.Data.Cosmos
 
 				public async Task<List<Loan>> GetLoansPendingInterest(DateTime referenceDateUTC8)
 				{
-						var refDate = DateOnly.FromDateTime(referenceDateUTC8);
+						var refDate = DateOnly.FromDateTime(referenceDateUTC8).AddDays(-1);
 						// Checks if the NextInterestDate + 1 day has passed
 						return await _context.Loans
-								.Where(l => l.Status == "Active" && l.NextInterestDate.AddDays(1) <= refDate)
+								.Where(l => l.Status == "Active" && l.NextInterestDate <= refDate)
 								.ToListAsync();
 				}
 

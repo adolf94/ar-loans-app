@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
     AppBar,
     Toolbar,
@@ -16,18 +16,20 @@ import { Shield, User as UserIcon, Briefcase, ChevronDown } from 'lucide-react';
 import {ArrowDropDown} from "@mui/icons-material"
 import type { UserRole, User } from '../@types/types';
 import { useNavigate, useLocation } from '@tanstack/react-router';
+import useUserInfo from './useUserInfo';
 
 interface LayoutProps {
     children: React.ReactNode;
     currentUser: User;
-    onRoleChange: (role: UserRole) => void;
 }
 
-const Layout: React.FC<LayoutProps> = ({ children, currentUser, onRoleChange }) => {
+const Layout: React.FC<LayoutProps> = ({ children, currentUser }) => {
     const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
     const [userEl, setUserEl] = React.useState<null | HTMLElement>(null);
+    const [role, setRole] = React.useState<UserRole>("Client");
     const navigate = useNavigate();
     const location = useLocation();
+    const {userInfo, hasRole} = useUserInfo()
     const isLoginPage = location.pathname === '/';
 
     const handleOpenMenu = (event: React.MouseEvent<HTMLElement>) => {
@@ -42,8 +44,14 @@ const Layout: React.FC<LayoutProps> = ({ children, currentUser, onRoleChange }) 
         setAnchorEl(null);
     };
 
+    useEffect(()=>{ 
+        if(location.href.toLowerCase().startsWith("/admin")) setRole("Admin")
+        if(location.href.toLowerCase().startsWith("/client")) setRole("Client")
+        if(location.href.toLowerCase().startsWith("/guarantor")) setRole("Guarantor")
+    },[location])
+
+
     const handleRoleSelect = (role: UserRole) => {
-        onRoleChange(role);
         handleCloseMenu();
 
         switch (role) {
@@ -103,9 +111,9 @@ const Layout: React.FC<LayoutProps> = ({ children, currentUser, onRoleChange }) 
 
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                             <Chip
-                                label={currentUser.role}
-                                color={getRoleColor(currentUser.role)}
-                                icon={getRoleIcon(currentUser.role) as React.ReactElement}
+                                label={role}
+                                color={getRoleColor(role)}
+                                icon={getRoleIcon(role) as React.ReactElement}
                                 size="small"
                                 variant="outlined"
                                 onClick={handleOpenMenu}
@@ -123,20 +131,22 @@ const Layout: React.FC<LayoutProps> = ({ children, currentUser, onRoleChange }) 
                                 <Menu
                                     anchorEl={anchorEl}
                                     open={Boolean(anchorEl)}
+                                    
                                     onClose={handleCloseMenu}
                                     PaperProps={{
                                         sx: { mt: 1, minWidth: 180, borderRadius: 2 }
                                     }}
                                 >
-                                    <MenuItem onClick={() => handleRoleSelect('Admin')}>
-                                        <Shield size={16} style={{ marginRight: 8 }} /> Admin Perspective
-                                    </MenuItem>
+                                    {hasRole([window.webConfig.adminRole]) && <MenuItem onClick={() => handleRoleSelect('Admin')}>
+                                        <Shield size={16} style={{ marginRight: 8 }} /> Admin 
+                                    </MenuItem>}
+                                    
                                     <MenuItem onClick={() => handleRoleSelect('Client')}>
-                                        <UserIcon size={16} style={{ marginRight: 8 }} /> Borrower Perspective
+                                        <UserIcon size={16} style={{ marginRight: 8 }} /> Borrower 
                                     </MenuItem>
-                                    <MenuItem onClick={() => handleRoleSelect('Guarantor')}>
-                                        <Briefcase size={16} style={{ marginRight: 8 }} /> Guarantor Perspective
-                                    </MenuItem>
+                                    {hasRole([window.webConfig.guarantorRole]) && <MenuItem onClick={() => handleRoleSelect('Guarantor')}>
+                                        <Briefcase size={16} style={{ marginRight: 8 }} /> Guarantor 
+                                    </MenuItem>}
                                 </Menu>
                                 <Menu
                                     anchorEl={userEl}

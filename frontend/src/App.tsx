@@ -62,7 +62,7 @@ function App() {
         <CssBaseline />
         <BackdropLoaderProvider>
           <GoogleOAuthProvider clientId={window.webConfig.clientId}>
-            <UserInfoContext.Provider value={{ userInfo, setUserInfo }}>
+            <UserInfoContext.Provider value={{ userInfo, setUserInfo,hasRole }}>
               <ConfirmProvider defaultOptions={{
                 confirmationButtonProps: { variant: 'contained' },
                 cancellationButtonProps: { variant: 'outlined' },
