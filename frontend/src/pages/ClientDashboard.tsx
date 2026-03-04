@@ -35,7 +35,7 @@ const ClientDashboard: React.FC = () => {
     const {userInfo} = useUserInfo()
     // In a real app, we would filter by currentUser.id
     // For this demo, we assume the logged-in client is Maria (ID: 2)
-    const myLoans = useUserLoans("019ca9f7-b13c-719b-b08d-ebad38e8107a");
+    const myLoans = useUserLoans(userInfo.userId);
 
     const loanDetails = useMemo(() => {
         return myLoans.map(loan => {
