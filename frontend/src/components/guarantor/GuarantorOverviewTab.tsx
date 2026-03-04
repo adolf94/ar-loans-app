@@ -37,6 +37,7 @@ import { useGetUserAccounts } from '../../repositories/bankAccount';
 import { useAccounts } from '../../repositories/account';
 import numeral from 'numeral';
 import { useIsMobile } from '../../theme';
+import { useGuaranteedLoans } from '../../repositories/loan';
 
 interface GuarantorOverviewTabProps {
     myExposure: {
@@ -48,11 +49,13 @@ interface GuarantorOverviewTabProps {
     guaranteedLoans: Loan[];
 }
 
-const GuarantorOverviewTab: React.FC<GuarantorOverviewTabProps> = ({ myExposure, guaranteedLoans = [] }) => {
+const GuarantorOverviewTab: React.FC<GuarantorOverviewTabProps> = ({ myExposure }) => {
     const [selectedLoan, setSelectedLoan] = useState<Loan | null>(null);
     const [openDialog, setOpenDialog] = useState(false);
     const [showClosed, setShowClosed] = useState(false);
     const isMobile = useIsMobile();
+    const {userInfo} = useUserInfo()
+    const { data: guaranteedLoans = [] } = useGuaranteedLoans(userInfo.userId)
 
 
 
@@ -62,7 +65,6 @@ const GuarantorOverviewTab: React.FC<GuarantorOverviewTabProps> = ({ myExposure,
     }, [guaranteedLoans, showClosed])
 
 
-    const { userInfo } = useUserInfo()
 
     // We might want to pass the user context if needed, but for now we'll fetch client user when selected
     const selectedUser = useGetUser(selectedLoan?.clientId || "");

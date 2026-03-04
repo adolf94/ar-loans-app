@@ -84,7 +84,7 @@ namespace Ar.Loans.Api.Data.Cosmos
 				{
 						var refDate = DateOnly.FromDateTime(referenceDateUTC8).AddDays(-1);
 						// Checks if the NextInterestDate + 1 day has passed
-						return await _context.Loans
+						 return await _context.Loans
 								.Where(l => l.Status == "Active" && l.NextInterestDate <= refDate)
 								.ToListAsync();
 				}

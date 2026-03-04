@@ -42,6 +42,7 @@ namespace Ar.Loans.Api.Controllers
 				}
 
 
+
 				[Function(nameof(GetAllUsers))]
 				public async Task<IActionResult> GetAllUsers([HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "users")] HttpRequest req)
 				{

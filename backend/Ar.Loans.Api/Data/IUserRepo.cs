@@ -14,6 +14,7 @@ namespace Ar.Loans.Api.Data
 				public Task<User> CreateUser(User item);
 				public Task<User?> GetUser(Guid id);
 
+				public Task<User?> TestCreateUser(User item);
 
 		}
 }

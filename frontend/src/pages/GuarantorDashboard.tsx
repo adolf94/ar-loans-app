@@ -40,7 +40,7 @@ const GuarantorDashboard: React.FC = () => {
         calculateGuarantorExposure('3', mockLoans, mockTransactions),
         []);
 
-    const { data: guaranteedLoans = [] } = useGuaranteedLoans("019c6742-3ed8-717a-8014-9eb17060bb3c")
+    const { data: guaranteedLoans = [] } = useGuaranteedLoans(userInfo.userId)
     const balanceSheet = useMemo(() =>
         calculateBalanceSheet(mockLoans, mockTransactions, mockAccounts, mockLedger),
         []

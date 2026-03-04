@@ -94,7 +94,13 @@ namespace Ar.Loans.Api.Data.GoogleAi
 								contents: content,
 								config: new GenerateContentConfig
 								{
-										ResponseMimeType = "application/json" // Force JSON output
+										ResponseMimeType = "application/json",
+										ThinkingConfig = new ThinkingConfig
+										{
+												IncludeThoughts = false, // Set to true if you want to see the "chain of thought" in the response
+												ThinkingLevel = ThinkingLevel.Low
+										}
+										// Force JSON output
 								}
 						);
 

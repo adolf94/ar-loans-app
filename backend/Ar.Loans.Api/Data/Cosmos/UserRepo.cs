@@ -108,5 +108,43 @@ namespace Ar.Loans.Api.Data.Cosmos
 						return null;
 				}
 
+				public async Task<User?> TestCreateUser(User item)
+				{
+						User? user = null;
+
+						if (!string.IsNullOrEmpty(item.MobileNumber) || !string.IsNullOrEmpty(item.EmailAddress))
+						{
+								user = await _q.Where(e => (!string.IsNullOrEmpty(item.EmailAddress) && e.EmailAddress == item.EmailAddress) || (item.MobileNumber != "" && e.MobileNumber == item.MobileNumber)).FirstOrDefaultAsync();
+
+								if (user != null)
+								{
+										user.Accounts = item.Accounts
+														.UnionBy(user.Accounts, a => a.AccountNumber)
+														.ToList();
+										//_ctx.Update(user);
+										return user;
+								}
+						}
+
+
+
+
+						if (user == null)
+						{
+								var existingUser = await GetUserByEmailOrMobile(item.EmailAddress, item.MobileNumber);
+
+								if (existingUser != null)
+								{
+										item.Id = existingUser.Id;
+										item.Name = existingUser.Name ?? item.Name;
+										item.EmailAddress = existingUser.EmailAddress ?? item.EmailAddress;
+										item.MobileNumber = existingUser.MobileNumber ?? item.MobileNumber;
+								}
+						}
+
+
+						//await _ctx.Users.AddAsync(item);
+						return item;
+				}
 		}
 }
