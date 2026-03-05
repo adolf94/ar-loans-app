@@ -12,9 +12,11 @@ import { Sparkles } from 'lucide-react';
 import { GoogleLogin, useGoogleLogin, type CredentialResponse } from '@react-oauth/google';
 import axios from 'axios';
 import useUserInfo from '../useUserInfo';
+import type { User } from '../../@types/types';
 
 interface LoginProps {
-    onLogin: (data: any) => void;
+    onLogin: (data: any, user : User) => void;
+
 }
 
 
@@ -35,13 +37,13 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                 let id = atob(e.data.id_token.split(".")[1])
                 let user = JSON.parse(id)
                 user.roles = Array.isArray(user.roles) ? user.roles : [user.roles]
-
+                
                 setUserInfo({
                     ...JSON.parse(id),
                     isAuthenticated: true                    
                 })
 
-                return onLogin(e.data)
+                return onLogin(e.data, user)
             })
     }
 

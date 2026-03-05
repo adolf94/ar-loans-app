@@ -47,7 +47,7 @@ const LoanDialog: React.FC<LoanDialogProps> = ({ onAddLoan, fixedGuarantorId, ch
         clientId: '',
         principal: 0,
         interestRate: 10,
-        termMonths: 12,
+        termMonths: 0,
         guarantorId: fixedGuarantorId || '',
         date: dayjs().format('YYYY-MM-DD'),
         sourceAcct: '',
@@ -55,7 +55,7 @@ const LoanDialog: React.FC<LoanDialogProps> = ({ onAddLoan, fixedGuarantorId, ch
         gracePeriodDays: 0,
         gracePeriodInterest: 0,
         latePaymentPenalty: 0,
-        interestRuleId: '',
+        interestRuleId: window.webConfig.defaultLoanTemplate,
         interestBase: 'principal' as 'principal' | 'balance'
     });
     const theme = useTheme()

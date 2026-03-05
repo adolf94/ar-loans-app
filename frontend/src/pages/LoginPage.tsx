@@ -10,11 +10,6 @@ import {
     Dialog,
     Modal
 } from '@mui/material';
-import { Sparkles } from 'lucide-react';
-import { GoogleLogin, useGoogleLogin, type CredentialResponse } from '@react-oauth/google';
-import useUserInfo from '../components/useUserInfo';
-import api from '../services/api';
-import axios from 'axios';
 import Login from '../components/login/Login';
 import { useNavigate } from '@tanstack/react-router';
 
@@ -26,6 +21,19 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
     const theme = useTheme();
     const navigate = useNavigate()
     
+    const handlePostLogin = (token, user)=>{
+        const config = window.webConfig
+        if(user.role.indexOf(config.adminRole) > 0){
+           return navigate({to: "/admin"})
+        }
+        if(user.role.indexOf(config.guarantorRole) > 0){
+           return navigate({to: "/guarantor"})
+        }
+           return navigate({to: "/client"})
+    }
+
+
+
     
      return <Box
                 sx={{
@@ -36,7 +44,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
                     background: `radial-gradient(circle at 50% 50%, ${theme.palette.primary.light}05 0%, ${theme.palette.background.default} 100%)`,
                 }}
             >
-        <Login onLogin={()=>navigate({to: "/client"})} />
+        <Login onLogin={handlePostLogin} />
     </Box>
        
 };

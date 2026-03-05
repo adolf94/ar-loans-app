@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../services/api';
-import { InterestRule } from '../@types/types';
+import type { InterestRule } from '../@types/types';
 
 const fetchRules = async (): Promise<InterestRule[]> => {
     const { data } = await apiClient.get('/InterestRules');
