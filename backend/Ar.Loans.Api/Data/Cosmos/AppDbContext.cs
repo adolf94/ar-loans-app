@@ -31,6 +31,7 @@ namespace Ar.Loans.Api.Data.Cosmos
 				public DbSet<Entry> Entries { get; set; }
 				public DbSet<UserBankAccount> BankAccounts { get; set; }
 				public DbSet<BlobFile> Files { get; set; }
+				public DbSet<InterestRule> InterestRules { get; set; }
 
 
 				protected override void OnModelCreating(ModelBuilder builder)
@@ -68,6 +69,10 @@ namespace Ar.Loans.Api.Data.Cosmos
 								new Account { Id = AccountConstants.Unionbank, Name = AccountConstants.GetName(AccountConstants.Unionbank), Section = "Liabilities", PartitionKey = "default", Balance = 0 }
 						);
 
+						builder.Entity<InterestRule>().HasData(
+								new InterestRule { Id = new Guid("019cbbab-e1dd-7e68-b501-f2962425d11d"), Name = "Default", InterestPerMonth = 10, GracePeriodDays = 0, GracePeriodInterest = 0, LatePaymentPenalty = 0, DefaultTerms = 0, InterestBase = "principal", PartitionKey = "default" }
+						);
+
 						builder.Entity<Entry>()
 								.ToContainer("Entries")
 								.HasPartitionKey(e => e.PartitionKey)
@@ -78,6 +83,10 @@ namespace Ar.Loans.Api.Data.Cosmos
 								.HasKey(c => c.Id);
 						builder.Entity<UserBankAccount>()
 								.ToContainer("BankAccounts")
+								.HasPartitionKey(e => e.PartitionKey)
+								.HasKey(c => c.Id);
+						builder.Entity<InterestRule>()
+								.ToContainer("InterestRules")
 								.HasPartitionKey(e => e.PartitionKey)
 								.HasKey(c => c.Id);
 
@@ -110,6 +119,7 @@ namespace Ar.Loans.Api.Data.Cosmos
 						services.AddScoped<ILoanRepo, LoanRepo>();
 						services.AddScoped<IAccountRepo, AccountRepo>();
 						services.AddScoped<IEntryRepo, EntryRepo>();
+						services.AddScoped<IInterestRuleRepo, InterestRuleRepo>();
 						return services;
 				}
 		}

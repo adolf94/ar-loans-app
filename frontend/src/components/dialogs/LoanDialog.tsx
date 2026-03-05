@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, type SetStateAction } from 'react';
 import dayjs from 'dayjs';
 import {
     Dialog,
@@ -16,9 +16,12 @@ import {
     IconButton,
     Tooltip,
     useMediaQuery,
-    useTheme
+    useTheme,
+    Collapse,
+    Typography,
+    FormHelperText
 } from '@mui/material';
-import { Camera, Sparkles, UserPlus } from 'lucide-react';
+import { Camera, Sparkles, UserPlus, ChevronDown, ChevronRight } from 'lucide-react';
 import type { User, Loan, UserAccount } from '../../@types/types';
 import { identifyTransaction, type IdentifiedTransaction } from '../../repositories/file';
 import UserDialog from './UserDialog';
@@ -27,6 +30,7 @@ import { v7 as uuidv7 } from 'uuid';
 import { useCreateLoan } from '../../repositories/loan';
 import { useAccounts, type Account } from '../../repositories/account';
 import { useUsers } from '../../repositories/user';
+import { useGetInterestRules } from '../../repositories/interestRule';
 import { useDateValidation } from '../../logic/dateValidation';
 
 interface LoanDialogProps {
@@ -46,10 +50,17 @@ const LoanDialog: React.FC<LoanDialogProps> = ({ onAddLoan, fixedGuarantorId, ch
         termMonths: 12,
         guarantorId: fixedGuarantorId || '',
         date: dayjs().format('YYYY-MM-DD'),
-        sourceAcct: ''
+        sourceAcct: '',
+        fileId: '',
+        gracePeriodDays: 0,
+        gracePeriodInterest: 0,
+        latePaymentPenalty: 0,
+        interestRuleId: '',
+        interestBase: 'principal' as 'principal' | 'balance'
     });
     const theme = useTheme()
     const [open, setOpen] = useState(false)
+    const [showAdvanced, setShowAdvanced] = useState(false);
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
     const [imgData, setImgData] = useState<IdentifiedTransaction | null>(null);
     const [found, setFound] = useState(false);
@@ -57,6 +68,7 @@ const LoanDialog: React.FC<LoanDialogProps> = ({ onAddLoan, fixedGuarantorId, ch
     const createLoan = useCreateLoan()
     const { data: accounts = [] } = useAccounts();
     const { data: users = [] } = useUsers();
+    const { data: rules = [] } = useGetInterestRules();
     const validateDate = useDateValidation();
     const assetAccounts = accounts.filter((a: Account) => a.section === 'Assets');
     const handleClose = () => {
@@ -69,10 +81,48 @@ const LoanDialog: React.FC<LoanDialogProps> = ({ onAddLoan, fixedGuarantorId, ch
             termMonths: 12,
             guarantorId: fixedGuarantorId || '',
             date: dayjs().format('YYYY-MM-DD'),
-            sourceAcct: ''
+            sourceAcct: '',
+            fileId: '',
+            gracePeriodDays: 0,
+            gracePeriodInterest: 0,
+            latePaymentPenalty: 0,
+            interestRuleId: window.webConfig.defaultLoanTemplate,
+            interestBase: 'principal' as 'principal' | 'balance'
         });
         setOpen(false);
     };
+
+
+
+
+    const handleSelectUser = (selectedUserId: string, otherUpdates: any = {}) => {
+        const selectedUser = users.find(u => u.id === selectedUserId);
+        let updates: any = { clientId: selectedUserId };
+
+        const selectDefaultId = selectedUser?.defaultInterestRuleId || window.webConfig.defaultLoanTemplate
+
+        const rule = rules.find(r => r.id === selectDefaultId);
+        if (rule) {
+            updates.interestRuleId = rule.id;
+            updates.interestRate = rule.interestPerMonth;
+            updates.termMonths = rule.defaultTerms;
+            updates.gracePeriodDays = rule.gracePeriodDays;
+            updates.gracePeriodInterest = rule.gracePeriodInterest;
+            updates.latePaymentPenalty = rule.latePaymentPenalty;
+            updates.interestBase = rule.interestBase;
+        }
+
+        if (typeof otherUpdates === 'function') {
+            setNewLoan(prev => {
+                let newValue = otherUpdates(prev)
+                return { ...newValue, ...updates }
+            });
+        } else {
+            setNewLoan(prev => ({ ...prev, ...updates, ...otherUpdates }));
+        }
+
+    };
+
 
     const handleAdd = async () => {
         if (!(await validateDate(newLoan.date))) {
@@ -80,8 +130,10 @@ const LoanDialog: React.FC<LoanDialogProps> = ({ onAddLoan, fixedGuarantorId, ch
         }
 
         const loan: Loan = {
+            id: newLoan.id,
             clientId: newLoan.clientId,
             principal: newLoan.principal,
+            balance: newLoan.principal,
             interestRate: newLoan.interestRate,
             termMonths: newLoan.termMonths,
             alternateId: newLoan.alternateId,
@@ -89,7 +141,12 @@ const LoanDialog: React.FC<LoanDialogProps> = ({ onAddLoan, fixedGuarantorId, ch
             status: 'Active',
             guarantorId: newLoan.guarantorId || undefined,
             sourceAcct: newLoan.sourceAcct,
-            fileId: newLoan.fileId
+            fileId: newLoan.fileId,
+            gracePeriodDays: newLoan.gracePeriodDays,
+            gracePeriodInterest: newLoan.gracePeriodInterest,
+            latePaymentPenalty: newLoan.latePaymentPenalty,
+            interestBase: newLoan.interestBase,
+            transactions: []
         };
         if (!found && !!imgData) {
             var userAcct: UserAccount = {
@@ -104,6 +161,7 @@ const LoanDialog: React.FC<LoanDialogProps> = ({ onAddLoan, fixedGuarantorId, ch
         handleClose();
         setNewLoan({
             id: uuidv7(),
+            alternateId: "",
             clientId: '',
             principal: 0,
             interestRate: 10,
@@ -111,7 +169,12 @@ const LoanDialog: React.FC<LoanDialogProps> = ({ onAddLoan, fixedGuarantorId, ch
             guarantorId: fixedGuarantorId || '',
             date: dayjs().format('YYYY-MM-DD'),
             sourceAcct: '',
-            fileId: newLoan.fileId
+            fileId: '',
+            gracePeriodDays: 0,
+            gracePeriodInterest: 0,
+            latePaymentPenalty: 0,
+            interestRuleId: window.webConfig.defaultLoanTemplate,
+            interestBase: 'principal' as 'principal' | 'balance'
         });
     };
 
@@ -148,15 +211,15 @@ const LoanDialog: React.FC<LoanDialogProps> = ({ onAddLoan, fixedGuarantorId, ch
                         return null;
                     });
 
-                setNewLoan(prev => ({
-                    ...prev,
-                    alternateId: `${data.reference.slice(-6)}-${dayjs(data.datetime).format("DD")}-${newLoan.id.slice(-4)}`,
-                    clientId: acct?.userId || '',
-                    principal: data.amount || prev.principal,
-                    sourceAcct: recipient?.accountId || prev.sourceAcct,
-                    fileId: data.fileId || null,
-                    date: data.datetime ? dayjs(data.datetime).format('YYYY-MM-DD') : prev.date
-                }));
+                handleSelectUser(acct?.userId || '', (prev: any) => {
+                    return {
+                        alternateId: `${data.reference.slice(-6)}-${dayjs(data.datetime).format("DD")}-${newLoan.id.slice(-4)}`,
+                        principal: data.amount || prev.principal,
+                        sourceAcct: recipient?.accountId || prev.sourceAcct,
+                        fileId: data.fileId || '',
+                        date: data.datetime ? dayjs(data.datetime).format('YYYY-MM-DD') : prev.date
+                    }
+                });
             }
         } catch (error) {
             console.error("Error identifying transaction:", error);
@@ -196,18 +259,27 @@ const LoanDialog: React.FC<LoanDialogProps> = ({ onAddLoan, fixedGuarantorId, ch
             </DialogTitle>
             <DialogContent>
                 <Stack spacing={2} sx={{ mt: 1 }}>
-                    <Stack direction="row" spacing={1} alignItems="flex-end">
+                    <Stack direction="row" spacing={1} alignItems="center">
                         <FormControl fullWidth>
                             <InputLabel>Client</InputLabel>
                             <Select
                                 value={newLoan.clientId}
                                 label="Client"
-                                onChange={(e) => setNewLoan({ ...newLoan, clientId: e.target.value })}
+                                onChange={(e) => {
+                                    handleSelectUser(e.target.value);
+                                }}
                             >
                                 {users.filter(u => u.role === 'Client').map(u => (
                                     <MenuItem key={u.id} value={u.id}>{u.name}</MenuItem>
                                 ))}
                             </Select>
+                            {newLoan.interestRuleId && (
+                                <FormHelperText>
+                                    {/* <Typography variant="caption" sx={{ mt: -1.5, ml: 1, color: 'primary.main', fontWeight: 500, display: 'flex', alignItems: 'center', gap: 0.5 }}> */}
+                                    <Sparkles size={12} /> Template: {rules.find(r => r.id === newLoan.interestRuleId)?.name}
+                                    {/* </Typography> */}
+                                </FormHelperText>
+                            )}
                         </FormControl>
                         <UserDialog onAddUser={handleAddUser} imgData={imgData}>
                             <Tooltip title="Add New Client">
@@ -225,6 +297,7 @@ const LoanDialog: React.FC<LoanDialogProps> = ({ onAddLoan, fixedGuarantorId, ch
                         onChange={(e) => setNewLoan({ ...newLoan, date: e.target.value })}
                         slotProps={{ inputLabel: { shrink: true } }}
                     />
+
                     <TextField
                         label="Principal Amount"
                         type="number"
@@ -239,13 +312,92 @@ const LoanDialog: React.FC<LoanDialogProps> = ({ onAddLoan, fixedGuarantorId, ch
                         value={newLoan.interestRate}
                         onChange={(e) => setNewLoan({ ...newLoan, interestRate: Number(e.target.value) })}
                     />
-                    <TextField
-                        label="Term (Months)"
-                        type="number"
-                        fullWidth
-                        value={newLoan.termMonths}
-                        onChange={(e) => setNewLoan({ ...newLoan, termMonths: Number(e.target.value) })}
-                    />
+                    <Button
+                        size="small"
+                        variant="text"
+                        onClick={() => setShowAdvanced(!showAdvanced)}
+                        startIcon={showAdvanced ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                        sx={{ alignSelf: 'flex-start', textTransform: 'none', fontSize: '0.8rem', color: 'text.secondary', px: 0.5, minHeight: 0, py: 0.5 }}
+                    >
+                        Advanced Settings
+                    </Button>
+                    <Collapse in={showAdvanced}>
+                        <Stack spacing={2} sx={{ mt: 1 }}>
+                            {rules.length > 0 && (
+                                <FormControl fullWidth size="small">
+                                    <InputLabel>Interest Template</InputLabel>
+                                    <Select
+                                        value={newLoan.interestRuleId}
+                                        label="Interest Template"
+                                        onChange={(e) => {
+                                            const selectedId = e.target.value;
+                                            let updates: any = { interestRuleId: selectedId };
+                                            if (selectedId) {
+                                                const rule = rules.find(r => r.id === selectedId);
+                                                if (rule) {
+                                                    updates.interestRate = rule.interestPerMonth;
+                                                    updates.termMonths = rule.defaultTerms;
+                                                    updates.gracePeriodDays = rule.gracePeriodDays;
+                                                    updates.gracePeriodInterest = rule.gracePeriodInterest;
+                                                    updates.latePaymentPenalty = rule.latePaymentPenalty;
+                                                    updates.interestBase = rule.interestBase;
+                                                }
+                                            }
+                                            setNewLoan(prev => ({ ...prev, ...updates }));
+                                        }}
+                                    >
+                                        <MenuItem value="">Custom / Manual</MenuItem>
+                                        {rules.map((r) => (
+                                            <MenuItem key={r.id} value={r.id}>{r.name} ({r.interestPerMonth}%)</MenuItem>
+                                        ))}
+                                    </Select>
+                                </FormControl>
+                            )}
+                            <TextField
+                                label="Grace Period (Days)"
+                                type="number"
+                                fullWidth
+                                size="small"
+                                value={newLoan.gracePeriodDays}
+                                onChange={(e) => setNewLoan({ ...newLoan, gracePeriodDays: Number(e.target.value) })}
+                            />
+                            <TextField
+                                label="Grace Period Interest (%)"
+                                type="number"
+                                fullWidth
+                                size="small"
+                                value={newLoan.gracePeriodInterest}
+                                onChange={(e) => setNewLoan({ ...newLoan, gracePeriodInterest: Number(e.target.value) })}
+                            />
+                            <TextField
+                                label="Late Payment Penalty (%)"
+                                type="number"
+                                fullWidth
+                                size="small"
+                                value={newLoan.latePaymentPenalty}
+                                onChange={(e) => setNewLoan({ ...newLoan, latePaymentPenalty: Number(e.target.value) })}
+                            />
+                            <TextField
+                                label="Term (Months)"
+                                type="number"
+                                fullWidth
+                                size="small"
+                                value={newLoan.termMonths}
+                                onChange={(e) => setNewLoan({ ...newLoan, termMonths: Number(e.target.value) })}
+                            />
+                            <FormControl fullWidth size="small">
+                                <InputLabel>Interest Computed On</InputLabel>
+                                <Select
+                                    value={newLoan.interestBase}
+                                    label="Interest Computed On"
+                                    onChange={(e) => setNewLoan({ ...newLoan, interestBase: e.target.value as 'principal' | 'balance' })}
+                                >
+                                    <MenuItem value="principal">Original Principal</MenuItem>
+                                    <MenuItem value="balance">Remaining Balance</MenuItem>
+                                </Select>
+                            </FormControl>
+                        </Stack>
+                    </Collapse>
                     <FormControl fullWidth>
                         <InputLabel>Guarantor (Optional)</InputLabel>
                         <Select

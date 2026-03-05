@@ -16,6 +16,18 @@ export interface User {
     mobileNumber?: string;
     role: UserRole;
     accounts?: UserAccount[];
+    defaultInterestRuleId?: string;
+}
+
+export interface InterestRule {
+    id: string;
+    name: string;
+    interestPerMonth: number;
+    gracePeriodDays: number;
+    gracePeriodInterest: number;
+    latePaymentPenalty: number;
+    defaultTerms: number;
+    interestBase: 'principal' | 'balance';
 }
 
 export type LoanStatus = 'Pending' | 'Active' | 'Paid' | 'Defaulted' | 'Archived';
@@ -37,10 +49,15 @@ export interface Loan {
     principal: number;
     balance: number,
     interestRate: number; // Monthly Interest Rate (%)
+    gracePeriodDays?: number;
+    gracePeriodInterest?: number;
+    latePaymentPenalty?: number;
+    interestBase?: 'principal' | 'balance';
     termMonths: number;
     status: LoanStatus;
     date: string;
     sourceAcct?: string;
+    fileId?: string;
     transactions: LoanLedger[];
 }
 

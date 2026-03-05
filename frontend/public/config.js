@@ -5,4 +5,5 @@ webConfig = {
     "redirectUri": "https://localhost:5173",
     adminRole: "COOP_ADMIN",
     guarantorRole: "COOP_GUARANTOR",
+    defaultLoanTemplate : "019cbbab-e1dd-7e68-b501-f2962425d11d"
 }

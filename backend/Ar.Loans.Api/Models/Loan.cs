@@ -22,6 +22,19 @@ namespace Ar.Loans.Api.Models
 				[JsonPropertyName("interestRate")]
 				public decimal InterestRate { get; set; } // Monthly Interest Rate (%)
 
+				[JsonPropertyName("gracePeriodDays")]
+				public int GracePeriodDays { get; set; }
+
+				[JsonPropertyName("gracePeriodInterest")]
+				public decimal GracePeriodInterest { get; set; }
+
+				[JsonPropertyName("latePaymentPenalty")]
+				public decimal LatePaymentPenalty { get; set; }
+
+				// "principal" = always compute on original principal, "balance" = compute on remaining balance
+				[JsonPropertyName("interestBase")]
+				public string InterestBase { get; set; } = "principal";
+
 				[JsonPropertyName("termMonths")]
 				public int TermMonths { get; set; }
 

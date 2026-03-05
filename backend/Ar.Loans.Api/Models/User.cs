@@ -15,6 +15,7 @@ namespace Ar.Loans.Api.Models
 				public string MobileNumber { get; set; }
 				public string EmailAddress { get; set; }
 				public List<UserBankAccount> Accounts { get; set; } = new List<UserBankAccount>();
+				public Guid? DefaultInterestRuleId { get; set; }
 		}
 
 

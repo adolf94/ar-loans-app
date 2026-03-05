@@ -20,6 +20,7 @@ import PortfolioTab from '../components/admin/PortfolioTab';
 import UsersTab from '../components/admin/UsersTab';
 import LedgerTab from '../components/admin/LedgerTab';
 import BalanceSheetTab from '../components/admin/BalanceSheetTab';
+import InterestRulesTab from '../components/admin/InterestRulesTab';
 import UserDialog from '../components/dialogs/UserDialog';
 import LoanDialog from '../components/dialogs/LoanDialog';
 import PaymentDialog from '../components/dialogs/PaymentDialog';
@@ -36,7 +37,8 @@ import {
     Plus,
     UserPlus,
     FilePlus,
-    Wallet
+    Wallet,
+    Settings
 } from 'lucide-react';
 import {
     mockLoans,
@@ -49,7 +51,7 @@ import { calculateBalanceSheet } from '../logic/accounting';
 import { analyzePortfolio } from '../services/aiService';
 import { useUsers, useCreateUser, useUpdateUser } from '../repositories/user';
 import { useCreateLoan } from '../repositories/loan';
-import type { Loan, Transaction, GeneralLedgerEntry, User, Payment } from '../@types/types';
+import type { Loan, GeneralLedgerEntry, User, Payment } from '../@types/types';
 import { Users } from 'lucide-react';
 import { useAccounts } from '../repositories/account';
 import { accountIds } from '../components/accountConstants';
@@ -76,6 +78,7 @@ const AdminDashboard: React.FC = () => {
     const [transactions, setTransactions] = useState<Payment[]>([]);
     const [ledger, setLedger] = useState<GeneralLedgerEntry[]>(mockLedger);
     const [editingUserId, setEditingUserId] = useState<string | null>(null);
+    const [openUserDialog, setOpenUserDialog] = useState(false);
 
     const isMobile = useIsMobile()
 
@@ -106,9 +109,11 @@ const AdminDashboard: React.FC = () => {
     }, [accounts])
 
 
+    const { data: users = [] } = useUsers();
+
     const editingUser = useMemo(() =>
-        null,
-        [editingUserId]);
+        users.find(u => u.id === editingUserId) || null,
+        [editingUserId, users]);
 
 
     const balanceSheet = useMemo(() =>
@@ -135,27 +140,30 @@ const AdminDashboard: React.FC = () => {
         createUserMutation.mutate(user);
     };
 
-    const handleUpdateUser = (user: User) => {
+    const handleUpdateUser = async (user: User) => {
         if (!editingUserId) return;
-        updateUserMutation.mutate({ id: editingUserId, user });
+        await updateUserMutation.mutateAsync({ id: editingUserId, user });
         setEditingUserId(null);
+        setOpenUserDialog(false);
     };
 
     const handleEditUser = (userId: string) => {
         setEditingUserId(userId);
+        setOpenUserDialog(true);
     };
 
     const handleAddLoan = (newLoan: Loan) => {
         setLoans([...loans, newLoan]);
 
         // Add disbursement transaction locally for UI
-        const disbursement: Transaction = {
+        const disbursement: Payment = {
             id: (transactions.length + 1).toString(),
             loanId: newLoan.id,
             amount: newLoan.principal,
             date: newLoan.date,
-            type: 'Disbursement',
-            description: `Initial disbursement for Loan #${newLoan.id}`
+            description: `Initial disbursement for Loan #${newLoan.id}`,
+            destinationAcctId: '',
+            userId: newLoan.clientId
         };
         setTransactions([...transactions, disbursement]);
 
@@ -201,6 +209,11 @@ const AdminDashboard: React.FC = () => {
                 <Typography variant="h4" sx={{ fontWeight: 700 }}>Lender Overview</Typography>
                 <Stack direction="row" spacing={2}>
                     <UserDialog
+                        openOverride={openUserDialog}
+                        onCloseOverride={() => {
+                            setOpenUserDialog(false);
+                            setEditingUserId(null);
+                        }}
                         onAddUser={handleAddUser}
                         onUpdateUser={handleUpdateUser}
                         userToEdit={editingUser}
@@ -208,6 +221,10 @@ const AdminDashboard: React.FC = () => {
                         <Button
                             variant="outlined"
                             startIcon={<UserPlus size={18} />}
+                            onClick={() => {
+                                setEditingUserId(null);
+                                setOpenUserDialog(true);
+                            }}
                         >
                             Add User
                         </Button>
@@ -302,6 +319,7 @@ const AdminDashboard: React.FC = () => {
                         <Tab label="System Users" icon={<Users size={18} />} iconPosition="start" />
                         <Tab label="Ledger" icon={<History size={18} />} iconPosition="start" />
                         <Tab label="Balance Sheet" icon={<PieChart size={18} />} iconPosition="start" />
+                        <Tab label="Interest Rules" icon={<Settings size={18} />} iconPosition="start" />
                     </Tabs>
                     <Box sx={{
                         pr: { xs: 0, md: 2 },
@@ -349,6 +367,10 @@ const AdminDashboard: React.FC = () => {
 
                 <TabPanel value={tabValue} index={3}>
                     <BalanceSheetTab balanceSheet={balanceSheet} />
+                </TabPanel>
+
+                <TabPanel value={tabValue} index={4}>
+                    <InterestRulesTab />
                 </TabPanel>
             </Paper>
 

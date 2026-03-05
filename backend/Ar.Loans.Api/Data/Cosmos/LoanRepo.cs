@@ -231,8 +231,7 @@ namespace Ar.Loans.Api.Data.Cosmos
 
 
 						var client = await _context.Users.FirstOrDefaultAsync(l => l.Id == loan.ClientId);
-						while (loan.NextInterestDate.AddDays(1).ToDateTime(new TimeOnly(8,0)) <= referenceDateUTC8)
-								
+						while (true)
 						{
 								if (loan.Balance <= 0)
 								{
@@ -242,14 +241,46 @@ namespace Ar.Loans.Api.Data.Cosmos
 								
 								if (loan.Transactions.Count > 100) break;
 
-								// Interest Factor: Principal or Remaining Balance, whichever is lower
-								decimal factor = loan.Principal; //Math.Min(loan.Balance, loan.Principal);
-								decimal monthlyInterest = factor * (loan.InterestRate / 100);
+								// We wait until the grace period is over to accrue the full interest
+								DateTime accrualThreshold = loan.NextInterestDate.AddDays(loan.GracePeriodDays).ToDateTime(new TimeOnly(8,0));
+								
+								if (accrualThreshold > referenceDateUTC8) 
+										break;
 
-								if (monthlyInterest <= 0) break;
+								var startDate = loan.NextInterestDate;
+
+								// Calculate missed payment (Late Factor)
+								int monthsElapsed = ((startDate.Year - loan.Date.Year) * 12) + startDate.Month - loan.Date.Month;
+								if (monthsElapsed < 0) monthsElapsed = 0;
+
+								decimal expectedPrincipal = loan.TermMonths > 0 ? (loan.Principal / loan.TermMonths) * monthsElapsed : loan.Principal;
+								if (expectedPrincipal > loan.Principal) expectedPrincipal = loan.Principal;
+
+								decimal expectedInterest = loan.Transactions.Where(t => t.Type == "interest" && t.DateStart < startDate).Sum(t => t.Amount);
+								decimal expectedTotal = expectedPrincipal + expectedInterest;
+
+								// Include payments made up to the end of the grace period
+								DateOnly graceDate = DateOnly.FromDateTime(accrualThreshold);
+								decimal totalPaid = loan.Transactions.Where(t => t.Type == "payment" && t.DateStart <= graceDate).Sum(t => t.Amount);
+
+								decimal lateFactor = expectedTotal - totalPaid;
+								if (lateFactor < 0) lateFactor = 0;
+
+								decimal monthlyInterest = (loan.InterestBase == "balance"
+							? Math.Max(loan.Balance, 0)
+							: loan.Principal) * (loan.InterestRate / 100M);
+                                decimal penaltyInterest = lateFactor * (loan.LatePaymentPenalty / 100M);
+                                
+                                decimal totalCharge = monthlyInterest + penaltyInterest;
+
+								if (totalCharge <= 0) 
+								{
+                                    // Make sure we advance dates even if 0 charge
+                                    loan.NextInterestDate = loan.NextInterestDate.AddMonths(1);
+                                    continue;
+                                }
 
 								var entryId = Guid.CreateVersion7(); 
-								var startDate = loan.NextInterestDate;
 								var endDate = startDate.AddMonths(1);
 
 								var entry = new Entry
@@ -258,9 +289,9 @@ namespace Ar.Loans.Api.Data.Cosmos
 										Description = $"Interest Accrual ({loan.AlternateId}) - {client!.Name} ",
 										DebitId = AccountConstants.LoanReceivables,
 										CreditId = AccountConstants.InterestIncome,
-										Amount = monthlyInterest,
+										Amount = totalCharge,
 										LoanId = loan.Id,
-										Date =startDate,
+										Date = startDate,
 										AddedBy = _user.UserId
 								};
 
@@ -269,12 +300,12 @@ namespace Ar.Loans.Api.Data.Cosmos
 										LedgerId = entryId,
 										AltKey = $"interest|{startDate:yyyy-MM-dd}",
 										Type = "interest",
-										Amount = monthlyInterest,
+										Amount = totalCharge,
 										DateStart = startDate,
 										EndDate = endDate
 								});
 
-								loan.Balance += monthlyInterest;
+								loan.Balance += totalCharge;
 								loan.NextInterestDate = endDate;
 
 								if (saveEntries)

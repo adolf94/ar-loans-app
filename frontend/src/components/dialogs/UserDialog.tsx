@@ -25,6 +25,7 @@ import { PHQRParser } from '../../services/qrph';
 import { v7 as uuidv7 } from 'uuid';
 import type { IdentifiedTransaction } from '../../repositories/file';
 import { useCreateUser } from '../../repositories/user';
+import { useGetInterestRules } from '../../repositories/interestRule';
 
 interface UserDialogProps {
     onAddUser: (user: User) => void;
@@ -32,28 +33,42 @@ interface UserDialogProps {
     imgData?: IdentifiedTransaction | null;
     userToEdit?: User | null;
     children?: React.ReactNode;
+    openOverride?: boolean;
+    onCloseOverride?: () => void;
 }
 
-const UserDialog: React.FC<UserDialogProps> = ({ onAddUser, onUpdateUser, imgData, userToEdit, children }) => {
+const UserDialog: React.FC<UserDialogProps> = ({
+    onAddUser,
+    onUpdateUser,
+    imgData,
+    userToEdit,
+    children,
+    openOverride,
+    onCloseOverride
+}) => {
+    const [internalOpen, setInternalOpen] = useState(false);
+    const open = openOverride !== undefined ? openOverride : internalOpen;
+
     const [newUser, setNewUser] = useState({
         id: uuidv7(),
         fullName: '',
         role: 'Client' as UserRole,
         mobileNumber: '',
-        email: ''
+        email: '',
+        defaultInterestRuleId: ''
     });
-    const [open, setOpen] = useState(false);
     const [accounts, setAccounts] = useState<UserAccount[]>([]);
     const [newAccount, setNewAccount] = useState<UserAccount>({ bank: '', accountNumber: '', name: '' });
     const [isScanning, setIsScanning] = useState(false);
     const [viewQrAccount, setViewQrAccount] = useState<UserAccount | null>(null);
 
 
-    const [trData, setTrData] = useState<IdentifiedTransaction | null>(null);
+
     const createUserMutation = useCreateUser();
+    const { data: rules = [] } = useGetInterestRules();
+
     useEffect(() => {
         if (imgData) {
-            setTrData(imgData);
             setAccounts([{
                 name: imgData.recipientName,
                 bank: imgData.recipientBank,
@@ -68,27 +83,27 @@ const UserDialog: React.FC<UserDialogProps> = ({ onAddUser, onUpdateUser, imgDat
     }, [imgData]);
 
 
-    const addUser = () => {
-        const user: User = {
-            id: newUser.id,
-            name: newUser.fullName,
-            role: newUser.role,
-            mobileNumber: newUser.mobileNumber,
-            email: newUser.email,
-            accounts: accounts
-        };
-    };
+
 
     const onClose = () => {
-        setOpen(false);
-        setNewUser({
-            id: uuidv7(),
-            fullName: '',
-            role: 'Client' as UserRole,
-            mobileNumber: '',
-            email: ''
-        });
-        setAccounts([]);
+        if (onCloseOverride) {
+            onCloseOverride();
+        } else {
+            setInternalOpen(false);
+        }
+
+        // Only reset if we're not editing (to avoid flickering while closing)
+        if (!userToEdit) {
+            setNewUser({
+                id: uuidv7(),
+                fullName: '',
+                role: 'Client' as UserRole,
+                mobileNumber: '',
+                email: '',
+                defaultInterestRuleId: ''
+            });
+            setAccounts([]);
+        }
         setNewAccount({ bank: '', accountNumber: '', name: '' });
         setIsScanning(false);
         setViewQrAccount(null);
@@ -101,7 +116,8 @@ const UserDialog: React.FC<UserDialogProps> = ({ onAddUser, onUpdateUser, imgDat
                     fullName: userToEdit.name,
                     role: userToEdit.role,
                     mobileNumber: userToEdit.mobileNumber || '',
-                    email: userToEdit.email
+                    email: userToEdit.email,
+                    defaultInterestRuleId: userToEdit.defaultInterestRuleId || ''
                 });
                 setAccounts(userToEdit.accounts || []);
             }
@@ -194,11 +210,16 @@ const UserDialog: React.FC<UserDialogProps> = ({ onAddUser, onUpdateUser, imgDat
             role: newUser.role,
             email: newUser.email,
             mobileNumber: newUser.mobileNumber,
-            accounts: accounts.length > 0 ? accounts : []
+            accounts: accounts.length > 0 ? accounts : [],
+            defaultInterestRuleId: newUser.defaultInterestRuleId || undefined
         };
 
         if (userToEdit && onUpdateUser) {
             onUpdateUser(user);
+            // If updating, and not externally controlled, close the dialog
+            if (openOverride === undefined) {
+                setInternalOpen(false);
+            }
         } else {
             createUserMutation.mutateAsync(user).then(() => {
                 onAddUser(user);
@@ -206,14 +227,14 @@ const UserDialog: React.FC<UserDialogProps> = ({ onAddUser, onUpdateUser, imgDat
             });
         }
 
-        setOpen(false);
+        if (openOverride === undefined) setInternalOpen(false);
     };
 
     return (
         <>
             {React.isValidElement(children) && React.cloneElement(children as React.ReactElement<any>, {
                 onClick: (e: React.MouseEvent) => {
-                    setOpen(true);
+                    if (openOverride === undefined) setInternalOpen(true);
                     if ((children.props as any).onClick) (children.props as any).onClick(e);
                 }
             })}
@@ -274,6 +295,22 @@ const UserDialog: React.FC<UserDialogProps> = ({ onAddUser, onUpdateUser, imgDat
                                 <MenuItem value="Admin">Admin</MenuItem>
                             </Select>
                         </FormControl>
+
+                        {newUser.role === 'Client' && rules.length > 0 && (
+                            <FormControl fullWidth>
+                                <InputLabel>Default Interest template</InputLabel>
+                                <Select
+                                    value={newUser.defaultInterestRuleId}
+                                    label="Default Interest template"
+                                    onChange={(e) => setNewUser({ ...newUser, defaultInterestRuleId: e.target.value })}
+                                >
+                                    <MenuItem value="">None</MenuItem>
+                                    {rules.map(r => (
+                                        <MenuItem key={r.id} value={r.id}>{r.name} ({r.interestPerMonth}%)</MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
+                        )}
 
                         <Divider sx={{ my: 1 }} />
                         <Typography variant="subtitle2" color="text.secondary" sx={{ fontWeight: 600 }}>

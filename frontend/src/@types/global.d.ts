@@ -7,6 +7,7 @@ declare global {
             authUrl: string;
             adminRole: string;
             guarantorRole: string;
+        defaultLoanTemplate:string;
         };
     }
     const webConfig: {
@@ -14,5 +15,6 @@ declare global {
         authUrl: string;
         adminRole: string;
         guarantorRole: string;
+        defaultLoanTemplate:string;
     };
 }
