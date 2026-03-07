@@ -58,16 +58,16 @@ namespace Ar.Loans.Api.Data.Cosmos
 								.HasPartitionKey(e => e.PartitionKey)
 								.HasKey(c => c.Id);
 
-						// builder.Entity<Account>().HasData(
-						// 		new Account { Id = AccountConstants.ArGoTyme, Name = AccountConstants.GetName(AccountConstants.ArGoTyme), Section = "Assets", PartitionKey = "default", Balance = 0 },
-						// 		new Account { Id = AccountConstants.ArNonGoTyme, Name = AccountConstants.GetName(AccountConstants.ArNonGoTyme), Section = "Assets", PartitionKey = "default", Balance = 0 },
-						// 		new Account { Id = AccountConstants.MarkGoTyme, Name = AccountConstants.GetName(AccountConstants.MarkGoTyme), Section = "Assets", PartitionKey = "default", Balance = 0 },
-						// 		new Account { Id = AccountConstants.LoanReceivables, Name = AccountConstants.GetName(AccountConstants.LoanReceivables), Section = "Assets", PartitionKey = "default", Balance = 0 },
-						// 		new Account { Id = AccountConstants.ArIncome, Name = AccountConstants.GetName(AccountConstants.ArIncome), Section = "Income", PartitionKey = "default", Balance = 0 },
-						// 		new Account { Id = AccountConstants.MarkIncome, Name = AccountConstants.GetName(AccountConstants.MarkIncome), Section = "Income", PartitionKey = "default", Balance = 0 },
-						// 		new Account { Id = AccountConstants.InterestIncome, Name = AccountConstants.GetName(AccountConstants.InterestIncome), Section = "Income", PartitionKey = "default", Balance = 0 },
-						// 		new Account { Id = AccountConstants.Unionbank, Name = AccountConstants.GetName(AccountConstants.Unionbank), Section = "Liabilities", PartitionKey = "default", Balance = 0 }
-						// );
+						builder.Entity<Account>().HasData(
+								new Account { Id = AccountConstants.ArGoTyme, Name = AccountConstants.GetName(AccountConstants.ArGoTyme), Section = "Assets", PartitionKey = "default", Balance = 0 },
+								new Account { Id = AccountConstants.ArNonGoTyme, Name = AccountConstants.GetName(AccountConstants.ArNonGoTyme), Section = "Assets", PartitionKey = "default", Balance = 0 },
+								new Account { Id = AccountConstants.MarkGoTyme, Name = AccountConstants.GetName(AccountConstants.MarkGoTyme), Section = "Assets", PartitionKey = "default", Balance = 0 },
+								new Account { Id = AccountConstants.LoanReceivables, Name = AccountConstants.GetName(AccountConstants.LoanReceivables), Section = "Assets", PartitionKey = "default", Balance = 0 },
+								new Account { Id = AccountConstants.ArIncome, Name = AccountConstants.GetName(AccountConstants.ArIncome), Section = "Income", PartitionKey = "default", Balance = 0 },
+								new Account { Id = AccountConstants.MarkIncome, Name = AccountConstants.GetName(AccountConstants.MarkIncome), Section = "Income", PartitionKey = "default", Balance = 0 },
+								new Account { Id = AccountConstants.InterestIncome, Name = AccountConstants.GetName(AccountConstants.InterestIncome), Section = "Income", PartitionKey = "default", Balance = 0 },
+								new Account { Id = AccountConstants.Unionbank, Name = AccountConstants.GetName(AccountConstants.Unionbank), Section = "Liabilities", PartitionKey = "default", Balance = 0 }
+						);
 
 						builder.Entity<InterestRule>().HasData(
 								new InterestRule { Id = new Guid("019cbbab-e1dd-7e68-b501-f2962425d11d"), Name = "Default", InterestPerMonth = 10, GracePeriodDays = 0, GracePeriodInterest = 0, LatePaymentPenalty = 0, DefaultTerms = 0, InterestBase = "principal", PartitionKey = "default" }
