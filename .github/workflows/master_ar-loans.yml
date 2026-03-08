@@ -1,7 +1,6 @@
 name: AR-Loans-Api Deploy to Azure Functions
 
 on:
-  push:
   workflow_dispatch:
 
 env:
