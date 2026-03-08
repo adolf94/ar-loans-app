@@ -16,6 +16,7 @@ namespace Ar.Loans.Api.Utilities
         public string AuthUrl { get; set; }
         public string AzureStorage { get; set; }
         public string StorageContainer { get; set; }
+        public bool AllowAccountCreation { get; set; } = false;
 
         public JwtConfiguration JwtConfig { get; set; } = new();
     }

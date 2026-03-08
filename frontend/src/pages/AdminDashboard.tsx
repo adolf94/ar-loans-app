@@ -181,7 +181,6 @@ const AdminDashboard: React.FC = () => {
         setLedger([...ledger, ledgerEntry]);
 
 
-        setOpenLoanDialog(false);
     };
 
     const handleAddPayment = (payment: Payment) => {
@@ -193,12 +192,10 @@ const AdminDashboard: React.FC = () => {
             date: payment.date,
             description: `Loan Payment - Loan #${payment.loanId}`,
             amount: payment.amount,
-            isDebit: false,
             accountId: '1' // Loan Receivables
         };
         setLedger([...ledger, ledgerEntry]);
 
-        setOpenPaymentDialog(false);
     };
 
     const handleAddLedger = (ledgerEntry: GeneralLedgerEntry) => {

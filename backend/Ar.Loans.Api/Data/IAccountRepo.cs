@@ -7,5 +7,6 @@ namespace Ar.Loans.Api.Data
     public interface IAccountRepo
     {
         Task<List<Account>> GetAllAccounts();
+        Task<Account> CreateAccount(Account account);
     }
 }

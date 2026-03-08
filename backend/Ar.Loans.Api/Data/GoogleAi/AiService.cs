@@ -47,7 +47,7 @@ namespace Ar.Loans.Api.Data.GoogleAi
 							5. **Transaction Types**: Use: [""transfer"", ""transfer_via_instapay"", ""transfer_via_pesonet"", ""pay_merchant"", ""bills_pay""].
 							6. **Description**: Concise summary (min 60 characters) including recipient and app name.
 
-							# JSON SCHEMA
+							# JSON SCHEMA - SHOULD ONLY BE A SINGLE OBJECT NOT AN ARRAY
 							{
 							""transactionType"": ""string"",
 							""app"": ""string"",

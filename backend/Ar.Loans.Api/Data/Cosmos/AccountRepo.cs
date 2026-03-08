@@ -18,5 +18,12 @@ namespace Ar.Loans.Api.Data.Cosmos
         {
             return await _context.Accounts.ToListAsync();
         }
+        public async Task<Account> CreateAccount(Account account)
+        {
+            if (account.Id == Guid.Empty) account.Id = Guid.CreateVersion7();
+            _context.Accounts.Add(account);
+            await _context.SaveChangesAsync();
+            return account;
+        }
     }
 }

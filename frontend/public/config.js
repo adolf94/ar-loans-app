@@ -1,9 +1,10 @@
 webConfig = {
     apiUrl: "http://localhost:7071/api",
     authUrl: "http://localhost:7071/api/",
-    clientId:  "929828408348-sq488sibic3oquur1ov5ke3jos7sgfmv.apps.googleusercontent.com",
+    clientId: "929828408348-sq488sibic3oquur1ov5ke3jos7sgfmv.apps.googleusercontent.com",
     "redirectUri": "https://localhost:5173",
     adminRole: "COOP_ADMIN",
     guarantorRole: "COOP_GUARANTOR",
-    defaultLoanTemplate : "019cbbab-e1dd-7e68-b501-f2962425d11d"
+    defaultLoanTemplate: "019cbbab-e1dd-7e68-b501-f2962425d11d",
+    allowAccountCreation: true
 }

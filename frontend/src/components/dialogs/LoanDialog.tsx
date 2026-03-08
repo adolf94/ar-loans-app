@@ -269,7 +269,7 @@ const LoanDialog: React.FC<LoanDialogProps> = ({ onAddLoan, fixedGuarantorId, ch
                                     handleSelectUser(e.target.value);
                                 }}
                             >
-                                {users.filter(u => u.role === 'Client').map(u => (
+                                {users.map(u => (
                                     <MenuItem key={u.id} value={u.id}>{u.name}</MenuItem>
                                 ))}
                             </Select>
