@@ -2,87 +2,87 @@
 
 namespace Ar.Loans.Api.Models
 {
-		public class Loan
-		{
-				[JsonPropertyName("id")]
-				public Guid Id { get; set; } = Guid.CreateVersion7();
+    public class Loan
+    {
+        [JsonPropertyName("id")]
+        public Guid Id { get; set; } = Guid.CreateVersion7();
 
-				[JsonPropertyName("alternateId")]
-				public string AlternateId { get; set; } = "";
+        [JsonPropertyName("alternateId")]
+        public string AlternateId { get; set; } = "";
 
-				[JsonPropertyName("clientId")]
-				public Guid ClientId { get; set; }
+        [JsonPropertyName("clientId")]
+        public Guid ClientId { get; set; }
 
-				[JsonPropertyName("guarantorId")]
-				public Guid? GuarantorId { get; set; }
+        [JsonPropertyName("guarantorId")]
+        public Guid? GuarantorId { get; set; }
 
-				[JsonPropertyName("principal")]
-				public decimal Principal { get; set; }
+        [JsonPropertyName("principal")]
+        public decimal Principal { get; set; }
 
-				[JsonPropertyName("interestRate")]
-				public decimal InterestRate { get; set; } // Monthly Interest Rate (%)
+        [JsonPropertyName("interestRate")]
+        public decimal InterestRate { get; set; } // Monthly Interest Rate (%)
 
-				[JsonPropertyName("gracePeriodDays")]
-				public int GracePeriodDays { get; set; }
+        [JsonPropertyName("gracePeriodDays")]
+        public int GracePeriodDays { get; set; }
 
-				[JsonPropertyName("gracePeriodInterest")]
-				public decimal GracePeriodInterest { get; set; }
+        [JsonPropertyName("gracePeriodInterest")]
+        public decimal GracePeriodInterest { get; set; }
 
-				[JsonPropertyName("latePaymentPenalty")]
-				public decimal LatePaymentPenalty { get; set; }
+        [JsonPropertyName("latePaymentPenalty")]
+        public decimal LatePaymentPenalty { get; set; }
 
-				// "principal" = always compute on original principal, "balance" = compute on remaining balance
-				[JsonPropertyName("interestBase")]
-				public string InterestBase { get; set; } = "principal";
+        // Modes: "principal" (flat), "balance" (reducing vs principal cap), "principalBalance" (weighted avg)
+        [JsonPropertyName("interestBase")]
+        public string InterestBase { get; set; } = "principal";
 
-				[JsonPropertyName("termMonths")]
-				public int TermMonths { get; set; }
+        [JsonPropertyName("termMonths")]
+        public int TermMonths { get; set; }
 
-				[JsonPropertyName("balance")]
-				public decimal Balance { get; set; }
+        [JsonPropertyName("balance")]
+        public decimal Balance { get; set; }
 
-				[JsonPropertyName("date")]
-				public DateOnly Date { get; set; }
+        [JsonPropertyName("date")]
+        public DateOnly Date { get; set; }
 
-				[JsonPropertyName("nextInterestDate")]
-				public DateOnly NextInterestDate { get; set; }
+        [JsonPropertyName("nextInterestDate")]
+        public DateOnly NextInterestDate { get; set; }
 
-				[JsonPropertyName("ledgerId")]
-				public Guid LedgerId { get; set; }
+        [JsonPropertyName("ledgerId")]
+        public Guid LedgerId { get; set; }
 
-				[JsonPropertyName("sourceAcct")]
-				public Guid SourceAcct { get; set; }
+        [JsonPropertyName("sourceAcct")]
+        public Guid SourceAcct { get; set; }
 
-				[JsonPropertyName("status")]
-				public string Status { get; set; } = "Active";
+        [JsonPropertyName("status")]
+        public string Status { get; set; } = "Active";
 
-				[JsonPropertyName("transactions")]
-				public IList<LoanLedger> Transactions { get; set; } = new List<LoanLedger>();
+        [JsonPropertyName("transactions")]
+        public IList<LoanLedger> Transactions { get; set; } = new List<LoanLedger>();
 
-				[JsonPropertyName("partitionKey")]
-				public string PartitionKey { get; set; } = "default";
-				[JsonPropertyName("fileId")]
-				public string FileId {get;set;} = "";
-		}
-		
-		public class LoanLedger
-		{
-				[JsonPropertyName("ledgerId")]
-				public Guid LedgerId { get; set; }
+        [JsonPropertyName("partitionKey")]
+        public string PartitionKey { get; set; } = "default";
+        [JsonPropertyName("fileId")]
+        public string FileId { get; set; } = "";
+    }
 
-				[JsonPropertyName("altKey")]
-				public string AltKey { get; set; }
+    public class LoanLedger
+    {
+        [JsonPropertyName("ledgerId")]
+        public Guid LedgerId { get; set; }
 
-				[JsonPropertyName("type")]
-				public string Type { get; set; } = "interest";
+        [JsonPropertyName("altKey")]
+        public string AltKey { get; set; }
 
-				[JsonPropertyName("amount")]
-				public decimal Amount { get; set; }
+        [JsonPropertyName("type")]
+        public string Type { get; set; } = "interest";
 
-				[JsonPropertyName("dateStart")]
-				public DateOnly DateStart { get; set; }
+        [JsonPropertyName("amount")]
+        public decimal Amount { get; set; }
 
-				[JsonPropertyName("endDate")]
-				public DateOnly EndDate { get; set; }
-		}
+        [JsonPropertyName("dateStart")]
+        public DateOnly DateStart { get; set; }
+
+        [JsonPropertyName("endDate")]
+        public DateOnly EndDate { get; set; }
+    }
 }

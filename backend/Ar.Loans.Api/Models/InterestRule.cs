@@ -30,7 +30,7 @@ namespace Ar.Loans.Api.Models
         [JsonPropertyName("defaultTerms")]
         public int DefaultTerms { get; set; }
 
-        // "principal" = always compute on original principal, "balance" = compute on remaining balance
+        // Modes: "principal" (flat), "balance" (reducing vs principal cap), "principalBalance" (weighted avg)
         [JsonPropertyName("interestBase")]
         public string InterestBase { get; set; } = "principal";
 

@@ -56,7 +56,7 @@ const LoanDialog: React.FC<LoanDialogProps> = ({ onAddLoan, fixedGuarantorId, ch
         gracePeriodInterest: 0,
         latePaymentPenalty: 0,
         interestRuleId: window.webConfig.defaultLoanTemplate,
-        interestBase: 'principal' as 'principal' | 'balance'
+        interestBase: 'principal' as 'principal' | 'balance' | 'principalBalance'
     });
     const theme = useTheme()
     const [open, setOpen] = useState(false)
@@ -87,7 +87,7 @@ const LoanDialog: React.FC<LoanDialogProps> = ({ onAddLoan, fixedGuarantorId, ch
             gracePeriodInterest: 0,
             latePaymentPenalty: 0,
             interestRuleId: window.webConfig.defaultLoanTemplate,
-            interestBase: 'principal' as 'principal' | 'balance'
+            interestBase: 'principal' as 'principal' | 'balance' | 'principalBalance'
         });
         setOpen(false);
     };
@@ -174,7 +174,7 @@ const LoanDialog: React.FC<LoanDialogProps> = ({ onAddLoan, fixedGuarantorId, ch
             gracePeriodInterest: 0,
             latePaymentPenalty: 0,
             interestRuleId: window.webConfig.defaultLoanTemplate,
-            interestBase: 'principal' as 'principal' | 'balance'
+            interestBase: 'principal' as 'principal' | 'balance' | 'principalBalance'
         });
     };
 
@@ -390,10 +390,11 @@ const LoanDialog: React.FC<LoanDialogProps> = ({ onAddLoan, fixedGuarantorId, ch
                                 <Select
                                     value={newLoan.interestBase}
                                     label="Interest Computed On"
-                                    onChange={(e) => setNewLoan({ ...newLoan, interestBase: e.target.value as 'principal' | 'balance' })}
+                                    onChange={(e) => setNewLoan({ ...newLoan, interestBase: e.target.value as 'principal' | 'balance' | 'principalBalance' })}
                                 >
                                     <MenuItem value="principal">Original Principal</MenuItem>
-                                    <MenuItem value="balance">Remaining Balance</MenuItem>
+                                    <MenuItem value="balance">Remaining Balance (Capped at Principal)</MenuItem>
+                                    <MenuItem value="principalBalance">Principal Balance (Principal first payout)</MenuItem>
                                 </Select>
                             </FormControl>
                         </Stack>

@@ -98,7 +98,11 @@ const InterestRulesTab: React.FC = () => {
                                 <TableCell>{r.gracePeriodInterest}%</TableCell>
                                 <TableCell>{r.latePaymentPenalty}%</TableCell>
                                 <TableCell>{r.defaultTerms} months</TableCell>
-                                <TableCell>{r.interestBase === 'balance' ? 'Remaining Balance' : 'Original Principal'}</TableCell>
+                                <TableCell>
+                                    {r.interestBase === 'balance' ? 'Remaining Balance' :
+                                        r.interestBase === 'principalBalance' ? 'Principal + Balance Avg' :
+                                            'Original Principal'}
+                                </TableCell>
                                 <TableCell align="right">
                                     <IconButton size="small" onClick={() => handleOpenDialog(r)} color="primary">
                                         <Edit2 size={16} />
@@ -168,10 +172,11 @@ const InterestRulesTab: React.FC = () => {
                             <Select
                                 value={editingRule.interestBase || 'principal'}
                                 label="Interest Computed On"
-                                onChange={(e) => setEditingRule({ ...editingRule, interestBase: e.target.value as 'principal' | 'balance' })}
+                                onChange={(e) => setEditingRule({ ...editingRule, interestBase: e.target.value as 'principal' | 'balance' | 'principalBalance' })}
                             >
                                 <MenuItem value="principal">Original Principal</MenuItem>
-                                <MenuItem value="balance">Remaining Balance</MenuItem>
+                                <MenuItem value="balance">Remaining Balance (Capped at Principal)</MenuItem>
+                                <MenuItem value="principalBalance">Principal Balance (Principal first payout)</MenuItem>
                             </Select>
                         </FormControl>
                     </Box>

@@ -27,7 +27,7 @@ export interface InterestRule {
     gracePeriodInterest: number;
     latePaymentPenalty: number;
     defaultTerms: number;
-    interestBase: 'principal' | 'balance';
+    interestBase: 'principal' | 'balance' | 'principalBalance';
 }
 
 export type LoanStatus = 'Pending' | 'Active' | 'Paid' | 'Defaulted' | 'Archived';
@@ -52,7 +52,7 @@ export interface Loan {
     gracePeriodDays?: number;
     gracePeriodInterest?: number;
     latePaymentPenalty?: number;
-    interestBase?: 'principal' | 'balance';
+    interestBase?: 'principal' | 'balance' | 'principalBalance';
     termMonths: number;
     status: LoanStatus;
     date: string;
