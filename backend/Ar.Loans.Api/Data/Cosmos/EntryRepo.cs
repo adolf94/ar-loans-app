@@ -27,6 +27,20 @@ namespace Ar.Loans.Api.Data.Cosmos
 						await _context.Entries.AddAsync(entry);
 				}
 
+				public async Task<TransactionResult> ExecuteCreateEntryAndSave(Entry dto)
+				{
+						await CreateEntry(dto);
+						await AdjustAccountBalance(dto.CreditId, dto.Amount, false, true);
+						await AdjustAccountBalance(dto.DebitId, dto.Amount, true, true);
+
+						var accounts = _context.ChangeTracker.Entries<Account>()
+							.Where(e => e.State == EntityState.Modified || e.State == EntityState.Added)
+							.Select(e => e.Entity).ToList();
+
+						await _context.SaveChangesAsync();
+						return new TransactionResult { Entry = dto, Accounts = accounts };
+				}
+
 				public async Task AdjustAccountBalance(Guid accountId, decimal amount, bool isDebit, bool isAdding)
 				{
 						var account = await _context.Accounts.FindAsync(accountId);
@@ -46,14 +60,16 @@ namespace Ar.Loans.Api.Data.Cosmos
 						_context.Accounts.Update(account);
 				}
 
-				public async Task DeleteEntry(Guid id)
+				public async Task<TransactionResult> DeleteEntry(Guid id)
 				{
 						var entry = await _context.Entries.FindAsync(id);
-						if (entry == null) return;
+						if (entry == null) return null;
 
 						// 1. Revert Account Balances
 						await AdjustAccountBalance(entry.DebitId, entry.Amount, true, false);
 						await AdjustAccountBalance(entry.CreditId, entry.Amount, false, false);
+
+						Loan updatedLoan = null;
 
 						// 2. If it's a loan entry, update the loan balance and remove from transactions list
 						if (entry.LoanId.HasValue)
@@ -79,10 +95,24 @@ namespace Ar.Loans.Api.Data.Cosmos
 												loan.Status = "Active";
 										}
 										_context.Loans.Update(loan);
+										updatedLoan = loan;
 								}
 						}
 
 						_context.Entries.Remove(entry);
+
+						var accounts = _context.ChangeTracker.Entries<Account>()
+							.Where(e => e.State == EntityState.Modified)
+							.Select(e => e.Entity).ToList();
+
+						await _context.SaveChangesAsync();
+
+						return new TransactionResult 
+						{ 
+							DeletedEntryIds = new List<Guid> { id },
+							Loan = updatedLoan,
+							Accounts = accounts
+						};
 				}
 		}
 }

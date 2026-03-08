@@ -39,11 +39,8 @@ namespace Ar.Loans.Api.Controllers
             var dto = await req.ReadFromJsonAsync<Entry>();
             if (dto == null) return new BadRequestResult();
 
-						await _entryRepo.CreateEntry(dto);
-						await _entryRepo.AdjustAccountBalance(dto.CreditId, dto.Amount, false, true);
-						await _entryRepo.AdjustAccountBalance(dto.DebitId, dto.Amount, true, true);
-            await _db.SaveChangesAsync();
-						return new OkObjectResult(dto);
+						var result = await _entryRepo.ExecuteCreateEntryAndSave(dto);
+						return new OkObjectResult(result);
 				}
 
         [Function("DeleteEntry")]
@@ -58,9 +55,8 @@ namespace Ar.Loans.Api.Controllers
                 return new BadRequestResult();
             }
 
-            await _entryRepo.DeleteEntry(entryId);
-            await _db.SaveChangesAsync();
-            return new OkResult();
+            var result = await _entryRepo.DeleteEntry(entryId);
+            return new OkObjectResult(result);
         }
 
 		}

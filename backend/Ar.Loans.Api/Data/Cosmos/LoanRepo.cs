@@ -23,7 +23,7 @@ namespace Ar.Loans.Api.Data.Cosmos
 						_user = user;
 				}
 
-				public async Task<Loan> CreateLoan(Loan loan)
+				public async Task<TransactionResult> CreateLoan(Loan loan)
 				{
 						var client = await _context.Users.FirstOrDefaultAsync(l => l.Id == loan.ClientId);
 
@@ -76,8 +76,16 @@ namespace Ar.Loans.Api.Data.Cosmos
 						await AccrueInterestInternal(loan, referenceDateUTC8, true	);
 
 						_context.Loans.Add(loan);
+
+						var accounts = _context.ChangeTracker.Entries<Account>()
+							.Where(e => e.State == EntityState.Modified || e.State == EntityState.Added)
+							.Select(e => e.Entity).ToList();
+						var entries = _context.ChangeTracker.Entries<Entry>()
+							.Where(e => e.State == EntityState.Modified || e.State == EntityState.Added)
+							.Select(e => e.Entity).ToList();
+
 						await _context.SaveChangesAsync();
-						return loan;
+						return new TransactionResult { Loan = loan, Accounts = accounts, Entries = entries };
 				}
 
 				public async Task<List<Loan>> GetLoansPendingInterest(DateTime referenceDateUTC8)
@@ -116,7 +124,7 @@ namespace Ar.Loans.Api.Data.Cosmos
 						await _context.SaveChangesAsync();
 				}
 
-				public async Task RecordPayment(Payment payment)
+				public async Task<TransactionResult> RecordPayment(Payment payment)
 				{
 						var loan = await _context.Loans.FirstOrDefaultAsync(l => l.Id == payment.LoanId);
 						var client = await _context.Users.FirstOrDefaultAsync(l => l.Id == payment.UserId);
@@ -127,11 +135,14 @@ namespace Ar.Loans.Api.Data.Cosmos
 								.Where(t => t.DateStart > payment.Date)
 								.ToList();
 
+						var deletedEntryIds = new List<Guid>();
+
 						if (futureTransactions.Any())
 						{
 								// Backdated Payment Logic: Rebuild state
 								foreach (var tx in futureTransactions)
 								{
+										deletedEntryIds.Add(tx.LedgerId);
 										// Remove from Balance if it was an interest accrual
 										if (tx.Type == "interest")
 										{
@@ -198,7 +209,17 @@ namespace Ar.Loans.Api.Data.Cosmos
 						}
 
 						_context.Loans.Update(loan);
+
+						var accounts = _context.ChangeTracker.Entries<Account>()
+							.Where(e => e.State == EntityState.Modified || e.State == EntityState.Added)
+							.Select(e => e.Entity).ToList();
+						var entries = _context.ChangeTracker.Entries<Entry>()
+							.Where(e => e.State == EntityState.Modified || e.State == EntityState.Added)
+							.Select(e => e.Entity).ToList();
+
 						await _context.SaveChangesAsync();
+
+						return new TransactionResult { Loan = loan, Payment = payment, Accounts = accounts, Entries = entries, DeletedEntryIds = deletedEntryIds };
 				}
 
 				public async Task DeleteLoan(Guid id)

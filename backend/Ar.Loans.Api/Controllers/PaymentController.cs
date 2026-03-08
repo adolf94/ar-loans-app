@@ -32,8 +32,8 @@ namespace Ar.Loans.Api.Controllers
 
             try
             {
-                await _loanRepo.RecordPayment(payment);
-                return new OkObjectResult(payment);
+                var result = await _loanRepo.RecordPayment(payment);
+                return new OkObjectResult(result);
             }
             catch (System.Exception ex)
             {

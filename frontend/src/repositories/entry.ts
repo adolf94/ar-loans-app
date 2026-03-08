@@ -1,7 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../services/api';
 import api from '../services/api';
-import { ACCOUNT } from './account';
 
 export interface Entry {
     id: string;
@@ -35,16 +34,15 @@ export const useLoanEntries = (loanId: string) => {
 };
 
 
+import { type TransactionResult, updateCacheOffline } from './cacheUpdates';
+
 export const useCreateEntry = () => {
     let queryClient = useQueryClient()
     return useMutation({
-        mutationFn: (data: Entry) => api.post<Entry>("/entries", data)
+        mutationFn: (data: Entry) => api.post<TransactionResult>("/entries", data)
             .then(e => e.data),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: [ENTRY] })
-
-            queryClient.invalidateQueries({ queryKey: [ACCOUNT] });
-
+        onSuccess: (data) => {
+            updateCacheOffline(queryClient, data);
         }
     })
 
@@ -54,13 +52,11 @@ export const useDeleteEntry = () => {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: async (id: string) => {
-            await apiClient.delete(`/entries/${id}`)
+            return await apiClient.delete<TransactionResult>(`/entries/${id}`)
                 .then(e => e.data);
         },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: [ENTRY] });
-            queryClient.invalidateQueries({ queryKey: ['loans'] });
-            queryClient.invalidateQueries({ queryKey: [ACCOUNT] });
+        onSuccess: (data) => {
+            updateCacheOffline(queryClient, data);
         },
     });
 };
