@@ -1,24 +1,40 @@
-name: Azure Static Web Apps CI/CD
+name: AR-Loans Deploy to Azure Web Apps
 
 on:
-  push:
-    branches:
-      - master
-  pull_request:
-    types: [opened, synchronize, reopened, closed]
-    branches:
-      - master
+  workflow_dispatch:
 
 jobs:
   build_and_deploy_job:
     if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action != 'closed')
     runs-on: ubuntu-latest
+    environment: AR_Loans
     name: Build and Deploy Job
     steps:
       - uses: actions/checkout@v3
         with:
           submodules: true
           lfs: false
+      - name: Install Dependencies
+        run: npm install --legacy-peer-deps
+        working-directory: frontend
+          
+      - name: Build React
+        run: npm run build
+        working-directory: frontend
+  
+      - name: Substitute JSON 
+        uses: restackio/update-json-file-action@2.1
+        with:
+          file: frontend/dist/config.json
+          fields: '{"apiUrl":"${{ vars.API }}", "redirectUri":"${{ vars.REDIRECT_URI }}", "authUrl":"${{ vars.AUTH_API }}"}'
+          
+      - name: Move/Rename config.json to js
+        run: |
+              echo window.webConfig= > config.js
+              cat config.json >> config.js
+        working-directory: frontend/dist
+
+        
       - name: Build And Deploy
         id: builddeploy
         uses: Azure/static-web-apps-deploy@v1
@@ -28,10 +44,12 @@ jobs:
           action: "upload"
           ###### Repository/Build Configurations - These values can be configured to match your app requirements. ######
           # For more information regarding Static Web App workflow configurations, please visit: https://aka.ms/swaworkflowconfig
-          app_location: "./frontend" # App source code path
+          app_location: "./frontend/dist" # App source code path
           api_location: "" # Api source code path - optional
-          output_location: "build" # Built app content directory - optional
-          ###### End of Repository/Build Configurations ######
+          skip_app_build : true,
+          skip_api_build : true,
+          output_location: "dist" # Built app content directory - optional
+          github_id_token: ${{ steps.idtoken.outputs.result }}
 
   close_pull_request_job:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'

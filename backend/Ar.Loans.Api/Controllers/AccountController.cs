@@ -12,16 +12,10 @@ using System.Threading.Tasks;
 
 namespace Ar.Loans.Api.Controllers
 {
-    public class AccountController
+    public class AccountController(IAccountRepo accountRepo, CurrentUser user)
     {
-        private readonly IAccountRepo _accountRepo;
-        private readonly CurrentUser _user;
-
-        public AccountController(IAccountRepo accountRepo, CurrentUser user)
-        {
-            _accountRepo = accountRepo;
-            _user = user;
-        }
+        private readonly IAccountRepo _accountRepo = accountRepo;
+        private readonly CurrentUser _user = user;
 
         [Function("GetAccounts")]
         public async Task<IActionResult> GetAccounts([HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "accounts")] HttpRequest req)

@@ -6,14 +6,9 @@ using Microsoft.Azure.Functions.Worker;
 
 namespace Ar.Loans.Api.Controllers
 {
-    public class InterestRulesController
+    public class InterestRulesController(IInterestRuleRepo repo)
     {
-        private readonly IInterestRuleRepo _repo;
-
-        public InterestRulesController(IInterestRuleRepo repo)
-        {
-            _repo = repo;
-        }
+        private readonly IInterestRuleRepo _repo = repo;
 
         [Function("GetAllRules")]
         public async Task<IActionResult> GetAllRules([HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "InterestRules")] HttpRequest req)

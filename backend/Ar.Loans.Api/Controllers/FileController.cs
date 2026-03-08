@@ -11,22 +11,14 @@ using System.Threading.Tasks;
 
 namespace Ar.Loans.Api.Controllers
 {
-    public class FileController
+    public class FileController(IAiService ai, AzureFileRepo azFile, IFileRepo files, IDbHelper db, CurrentUser user, AppConfig config)
     {
-        private readonly IAiService _ai;
-        private readonly AzureFileRepo _azFile;
-				private readonly IFileRepo _files;
-				private readonly IDbHelper _db;
-        private readonly CurrentUser _user;
-
-        public FileController(IAiService ai, AzureFileRepo azFile, IFileRepo files, IDbHelper db, CurrentUser user)
-        {
-            _ai = ai;
-            _azFile = azFile;
-            _files = files;
-            _db = db;
-            _user = user;
-        }
+        private readonly IAiService _ai = ai;
+        private readonly AzureFileRepo _azFile = azFile;
+        private readonly IFileRepo _files = files;
+        private readonly IDbHelper _db = db;
+        private readonly CurrentUser _user = user;
+        private readonly AppConfig _config = config;
 
         [Function("IdentifyTransactionInformation")]
         public async Task<IActionResult> IdentifyTransactionInformation(
@@ -46,16 +38,16 @@ namespace Ar.Loans.Api.Controllers
                 {
                     return new BadRequestObjectResult("No file uploaded.");
                 }
-                
+
                 // Save file temporarily
                 var tempPath = Path.Combine(Path.GetTempPath(), file.FileName);
-                
+
                 using (var stream = new FileStream(tempPath, FileMode.Create))
                 {
                     await file.CopyToAsync(stream);
                 }
 
-                var fileRecord = await _azFile.UploadFile(tempPath, "loan-files", file.ContentType);
+                var fileRecord = await _azFile.UploadFile(tempPath, _config.StorageContainer, file.ContentType);
 
 
 

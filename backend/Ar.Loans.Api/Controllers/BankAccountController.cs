@@ -12,79 +12,72 @@ using System.Threading.Tasks;
 
 namespace Ar.Loans.Api.Controllers
 {
-		public class BankAccountController
-		{
-				private readonly IBankAccountRepo _repo;
-				private readonly IDbHelper _db;
-        private readonly CurrentUser _user;
-
-        public BankAccountController(IBankAccountRepo repo, IDbHelper db, CurrentUser user)
-				{
-						_repo = repo;
-						_db = db;
-						_user = user;
-				}
+    public class BankAccountController(IBankAccountRepo repo, IDbHelper db, CurrentUser user)
+    {
+        private readonly IBankAccountRepo _repo = repo;
+        private readonly IDbHelper _db = db;
+        private readonly CurrentUser _user = user;
 
 
 
-				[Function("GetByBankAccountId")]
-				public async Task<IActionResult> GetByBankAccountId([HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "bankaccounts")] HttpRequest req)
-				{
-						if (!_user.IsAuthenticated) return new UnauthorizedResult();
-						if (!_user.IsAuthorized("coop_guarantor,coop_admin")) return new ForbidResult();
-						string? accountId = req.Query["accountId"];
-						if (string.IsNullOrEmpty(accountId))
-						{
-								return new BadRequestObjectResult("Account ID is required.");
-						}
+        [Function("GetByBankAccountId")]
+        public async Task<IActionResult> GetByBankAccountId([HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "bankaccounts")] HttpRequest req)
+        {
+            if (!_user.IsAuthenticated) return new UnauthorizedResult();
+            if (!_user.IsAuthorized("coop_guarantor,coop_admin")) return new ForbidResult();
+            string? accountId = req.Query["accountId"];
+            if (string.IsNullOrEmpty(accountId))
+            {
+                return new BadRequestObjectResult("Account ID is required.");
+            }
 
-						var account = await _repo.GetByAccountId(accountId);
-						if (account == null)
-						{
-								return new NotFoundResult();
-						}
+            var account = await _repo.GetByAccountId(accountId);
+            if (account == null)
+            {
+                return new NotFoundResult();
+            }
 
-						return new OkObjectResult(account);
-				}
+            return new OkObjectResult(account);
+        }
 
-				[Function("PutBankAccount")]
-				public async Task<IActionResult> PutBankAccount([HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "bankaccounts")] HttpRequest req)
-				{
-						if (!_user.IsAuthenticated) return new UnauthorizedResult();
-						if (!_user.IsAuthorized("coop_guarantor,coop_admin")) return new ForbidResult();
+        [Function("PutBankAccount")]
+        public async Task<IActionResult> PutBankAccount([HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "bankaccounts")] HttpRequest req)
+        {
+            if (!_user.IsAuthenticated) return new UnauthorizedResult();
+            if (!_user.IsAuthorized("coop_guarantor,coop_admin")) return new ForbidResult();
 
-						var dto = await req.ReadFromJsonAsync<UserBankAccount>();
+            var dto = await req.ReadFromJsonAsync<UserBankAccount>();
 
-						var item = await _repo.GetByExactAccountId(dto!.AccountNumber);
+            var item = await _repo.GetByExactAccountId(dto!.AccountNumber);
 
-						if (item == null)
-						{
-								await _repo.CreateBankAccount(dto);
-						}
-						else
-						{
-								item.UserId = dto.UserId;
-						}
+            if (item == null)
+            {
+                await _repo.CreateBankAccount(dto);
+            }
+            else
+            {
+                item.UserId = dto.UserId;
+            }
 
-						await _db.SaveChangesAsync();
+            await _db.SaveChangesAsync();
 
 
-						return new OkObjectResult(dto);
-				}
+            return new OkObjectResult(dto);
+        }
 
-				[Function("GetAccountsById")]
-				public async Task<IActionResult> GetAccountsById([HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "user/{id}/bankaccounts")] HttpRequest req)
-				{
-						if (!_user.IsAuthenticated) return new UnauthorizedResult();
-						if (!_user.IsAuthorized("coop_guarantor,coop_admin")) return new ForbidResult();
-						if(!Guid.TryParse(req.RouteValues["id"]!.ToString(), out var id))
-						{
-								return new BadRequestResult();
-						}
+        [Function("GetAccountsById")]
+        public async Task<IActionResult> GetAccountsById([HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "user/{id}/bankaccounts")] HttpRequest req)
+        {
+            if (!_user.IsAuthenticated) return new UnauthorizedResult();
+            if (!_user.IsAuthorized("coop_guarantor,coop_admin")) return new ForbidResult();
+            if (!Guid.TryParse(req.RouteValues["id"]!.ToString(), out var id))
+            {
+                return new BadRequestResult();
+            }
 
-						var items = await _repo.GetByUserId(id);
+            var items = await _repo.GetByUserId(id);
 
-						return new OkObjectResult(items);
-				}
-		}
+            return new OkObjectResult(items);
+        }
+    }
 }

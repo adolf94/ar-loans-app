@@ -8,18 +8,11 @@ using System.Threading.Tasks;
 
 namespace Ar.Loans.Api.Controllers
 {
-    public class EntryController
+    public class EntryController(IEntryRepo entryRepo, IDbHelper db, CurrentUser user)
     {
-        private readonly IEntryRepo _entryRepo;
-				private readonly IDbHelper _db;
-        private readonly CurrentUser _user;
-
-        public EntryController(IEntryRepo entryRepo, IDbHelper db, CurrentUser user)
-        {
-            _entryRepo = entryRepo;
-            _db = db;
-            _user = user;
-        }
+        private readonly IEntryRepo _entryRepo = entryRepo;
+        private readonly IDbHelper _db = db;
+        private readonly CurrentUser _user = user;
 
         [Function("GetAllEntries")]
         public async Task<IActionResult> GetAllEntries([HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "entries")] HttpRequest req)
@@ -31,17 +24,17 @@ namespace Ar.Loans.Api.Controllers
         }
 
         [Function("CreateEntry")]
-				public async Task<IActionResult> CreateEntry([HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "entries")] HttpRequest req)
-				{
+        public async Task<IActionResult> CreateEntry([HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "entries")] HttpRequest req)
+        {
             if (!_user.IsAuthenticated) return new UnauthorizedResult();
             if (!_user.IsAuthorized("coop_guarantor,coop_admin")) return new ForbidResult();
 
             var dto = await req.ReadFromJsonAsync<Entry>();
             if (dto == null) return new BadRequestResult();
 
-						var result = await _entryRepo.ExecuteCreateEntryAndSave(dto);
-						return new OkObjectResult(result);
-				}
+            var result = await _entryRepo.ExecuteCreateEntryAndSave(dto);
+            return new OkObjectResult(result);
+        }
 
         [Function("DeleteEntry")]
         public async Task<IActionResult> DeleteEntry([HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "entries/{id}")] HttpRequest req)
@@ -59,5 +52,5 @@ namespace Ar.Loans.Api.Controllers
             return new OkObjectResult(result);
         }
 
-		}
+    }
 }

@@ -8,16 +8,10 @@ using System.Threading.Tasks;
 
 namespace Ar.Loans.Api.Controllers
 {
-    public class PaymentController
+    public class PaymentController(ILoanRepo loanRepo, CurrentUser user)
     {
-        private readonly ILoanRepo _loanRepo;
-        private readonly CurrentUser _user;
-
-        public PaymentController(ILoanRepo loanRepo, CurrentUser user)
-        {
-            _loanRepo = loanRepo;
-            _user = user;
-        }
+        private readonly ILoanRepo _loanRepo = loanRepo;
+        private readonly CurrentUser _user = user;
 
         [Function("RecordPayment")]
         public async Task<IActionResult> RecordPayment([HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "payments")] HttpRequest req)
