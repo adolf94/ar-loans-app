@@ -19,7 +19,7 @@ import { getTokenViaRefreshToken } from './services/api';
 const Root = () => {
     const [currentUser, setCurrentUser] = useState<User>(mockUsers[0]);
 
-    
+
 
     return (
         <Layout currentUser={currentUser}>
@@ -44,9 +44,9 @@ const indexRoute = createRoute({
 const adminRoute = createRoute({
     getParentRoute: () => rootRoute,
     path: '/admin',
-    beforeLoad: (ctx)=>{
-        if(!ctx.context.auth.hasRole(["COOP_ADMIN"])){
-            throw redirect({to:"/client"})
+    beforeLoad: (ctx) => {
+        if (!ctx.context.auth.hasRole(["COOP_ADMIN"])) {
+            throw redirect({ to: "/client" })
         }
     },
     component: AdminDashboard,
@@ -58,19 +58,33 @@ const clientRoute = createRoute({
     component: ClientDashboard,
 });
 
+import ClientStatementPage from './pages/ClientStatementPage';
+
 const guarantorRoute = createRoute({
     getParentRoute: () => rootRoute,
     path: '/guarantor',
-    beforeLoad: (ctx)=>{
-        if(!ctx.context.auth.hasRole(["COOP_GUARANTOR"])){
-            throw redirect({to:"/client"})
+    beforeLoad: (ctx) => {
+        if (!ctx.context.auth.hasRole(["COOP_GUARANTOR"])) {
+            throw redirect({ to: "/client" })
         }
     },
     component: GuarantorDashboard,
 });
 
+const clientStatementRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: '/client-statement/$clientId',
+    component: ClientStatementPage,
+});
+
 // Create the router instance
-const routeTree = rootRoute.addChildren([indexRoute, adminRoute, clientRoute, guarantorRoute]);
+const routeTree = rootRoute.addChildren([
+    indexRoute,
+    adminRoute,
+    clientRoute,
+    guarantorRoute,
+    clientStatementRoute
+]);
 
 export const router = createRouter({ routeTree });
 

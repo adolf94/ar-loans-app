@@ -5,6 +5,7 @@ import numeral from "numeral"
 import { useGetUser } from "../../repositories/user"
 import type { Loan } from "../../@types/types"
 import dayjs from 'dayjs';
+import { Link } from '@tanstack/react-router';
 
 interface GuarantorLoansRowProps {
     loan: Loan;
@@ -21,7 +22,16 @@ const GuarantorLoansRow: React.FC<GuarantorLoansRowProps> = ({ loan, onSelect })
         return <TableRow hover onClick={onSelect} sx={{ cursor: 'pointer' }}>
             <TableCell>
                 <Stack spacing={0.25}>
-                    <Typography variant="body2" fontWeight={600}>{user?.name || loan?.clientId}</Typography>
+                    <Typography
+                        variant="body2"
+                        fontWeight={600}
+                        component={Link}
+                        to={`/client-statement/${loan.clientId}`}
+                        sx={{ color: 'primary.main', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}
+                        onClick={(e: React.MouseEvent) => e.stopPropagation()}
+                    >
+                        {user?.name || loan?.clientId}
+                    </Typography>
                     <Typography variant="caption" color="text.secondary">{loan.alternateId}</Typography>
                     <Typography variant="caption" color="text.secondary">
                         {dayjs(loan.date).format("MMM DD")}
@@ -47,7 +57,17 @@ const GuarantorLoansRow: React.FC<GuarantorLoansRowProps> = ({ loan, onSelect })
 
     return <TableRow hover>
         <TableCell>{loan.alternateId}</TableCell>
-        <TableCell>{user?.name || loan?.clientId}</TableCell>
+        <TableCell>
+            <Typography
+                variant="body2"
+                fontWeight={600}
+                component={Link}
+                to={`/client-statement/${loan.clientId}`}
+                sx={{ color: 'primary.main', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}
+            >
+                {user?.name || loan?.clientId}
+            </Typography>
+        </TableCell>
         <TableCell>${loan.principal.toLocaleString()}</TableCell>
         <TableCell sx={{ color: 'error.main', fontWeight: 600 }}>
             {numeral(loan.balance).format("0,0.00")}

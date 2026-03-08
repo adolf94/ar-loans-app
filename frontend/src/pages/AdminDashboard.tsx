@@ -99,12 +99,14 @@ const AdminDashboard: React.FC = () => {
     const summary = useMemo(() => {
         let assets = accounts.filter(e => e.section == "Assets").reduce((p, c) => p + c.balance, 0)
         let receivables = (accounts.find(e => e.id == accountIds.receivables))?.balance || 0
-        let income = accounts.filter(e => e.section == "Income").reduce((p, c) => p + c.balance, 0)
+        let realizedInterest = (accounts.find(e => e.id == accountIds.realized_interests))?.balance || 0
+        let accruedInterest = (accounts.find(e => e.id == accountIds.accrued_interests))?.balance || 0
 
         return {
             totalAssets: assets,
             receivables,
-            income: -income
+            realizedInterest: -realizedInterest,
+            accruedInterest: -accruedInterest
         }
     }, [accounts])
 
@@ -248,9 +250,10 @@ const AdminDashboard: React.FC = () => {
                 {[
                     { label: 'Loan Receivables', value: summary.receivables, icon: <DollarSign size={isMobile ? 16 : 24} />, color: 'primary.main' },
                     { label: 'Liquid Asset', value: summary.totalAssets - summary.receivables, icon: <Landmark size={isMobile ? 16 : 24} />, color: 'info.main' },
-                    { label: 'Net Revenue', value: summary.income, icon: <CreditCard size={isMobile ? 16 : 24} />, color: 'secondary.main' },
+                    { label: 'Realized Interest', value: summary.realizedInterest, icon: <TrendingUp size={isMobile ? 16 : 24} />, color: 'success.main' },
+                    { label: 'Accrued Interest', value: summary.accruedInterest, icon: <CreditCard size={isMobile ? 16 : 24} />, color: 'secondary.main' },
                 ].map((item, idx) => (
-                    <Grid size={{ xs: 6, sm: 6, md: 4 }} key={idx}>
+                    <Grid size={{ xs: 6, sm: 4, md: 3 }} key={idx}>
                         <Card sx={{
                             height: '100%',
                             position: 'relative',

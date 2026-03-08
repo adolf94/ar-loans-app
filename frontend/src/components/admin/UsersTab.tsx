@@ -9,23 +9,24 @@ import {
     Button,
     Chip,
     useMediaQuery,
-    useTheme
+    useTheme,
+    Stack
 } from '@mui/material';
-import { Edit2 } from 'lucide-react';
-import type { User } from '../../@types/types';
+import { Edit2, FileText } from 'lucide-react';
 import { useUsers } from '../../repositories/user';
+import { Link } from '@tanstack/react-router';
 
 interface UsersTabProps {
     onEditUser: (userId: string) => void;
 }
 
-const UsersTab: React.FC<UsersTabProps> = ({  onEditUser }) => {
+const UsersTab: React.FC<UsersTabProps> = ({ onEditUser }) => {
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-    const {data : users = []} = useUsers()
+    const { data: users = [] } = useUsers()
 
     return (
-            <TableContainer sx={{ maxHeight: 'calc(100vh - 300px)', overflowX: 'auto' }}>
+        <TableContainer sx={{ maxHeight: 'calc(100vh - 300px)', overflowX: 'auto' }}>
             <Table stickyHeader size={isMobile ? 'small' : 'medium'}>
                 <TableHead>
                     <TableRow>
@@ -46,14 +47,25 @@ const UsersTab: React.FC<UsersTabProps> = ({  onEditUser }) => {
                             {!isMobile && <TableCell>{user.email}</TableCell>}
                             {!isMobile && <TableCell>{user.mobileNumber || '-'}</TableCell>}
                             <TableCell align="right">
-                                <Button
-                                    size="small"
-                                    variant="text"
-                                    startIcon={<Edit2 size={14} />}
-                                    onClick={() => onEditUser(user.id)}
-                                >
-                                    Edit
-                                </Button>
+                                <Stack direction="row" spacing={1} justifyContent="flex-end">
+                                    <Button
+                                        size="small"
+                                        variant="text"
+                                        component={Link}
+                                        to={`/client-statement/${user.id}`}
+                                        startIcon={<FileText size={14} />}
+                                    >
+                                        Statement
+                                    </Button>
+                                    <Button
+                                        size="small"
+                                        variant="text"
+                                        startIcon={<Edit2 size={14} />}
+                                        onClick={() => onEditUser(user.id)}
+                                    >
+                                        Edit
+                                    </Button>
+                                </Stack>
                             </TableCell>
                         </TableRow>
                     ))}
