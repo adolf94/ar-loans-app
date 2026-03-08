@@ -65,6 +65,7 @@ namespace Ar.Loans.Api.Data.Cosmos
 								new Account { Id = AccountConstants.LoanReceivables, Name = AccountConstants.GetName(AccountConstants.LoanReceivables), Section = "Assets", PartitionKey = "default", Balance = 0 },
 								new Account { Id = AccountConstants.ArIncome, Name = AccountConstants.GetName(AccountConstants.ArIncome), Section = "Income", PartitionKey = "default", Balance = 0 },
 								new Account { Id = AccountConstants.MarkIncome, Name = AccountConstants.GetName(AccountConstants.MarkIncome), Section = "Income", PartitionKey = "default", Balance = 0 },
+								new Account { Id = AccountConstants.AccruedInterest, Name = AccountConstants.GetName(AccountConstants.AccruedInterest), Section = "Income", PartitionKey = "default", Balance = 0 },
 								new Account { Id = AccountConstants.InterestIncome, Name = AccountConstants.GetName(AccountConstants.InterestIncome), Section = "Income", PartitionKey = "default", Balance = 0 },
 								new Account { Id = AccountConstants.Unionbank, Name = AccountConstants.GetName(AccountConstants.Unionbank), Section = "Liabilities", PartitionKey = "default", Balance = 0 }
 						);

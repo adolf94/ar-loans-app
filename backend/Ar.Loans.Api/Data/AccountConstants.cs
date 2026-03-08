@@ -13,7 +13,8 @@ namespace Ar.Loans.Api.Data
         // Income
         public static readonly Guid ArIncome = Guid.Parse("44cc7e41-0f37-43ca-a0ad-8f96e814a601");
         public static readonly Guid MarkIncome = Guid.Parse("b0448f7d-2b3a-4416-8c4d-6e9f2d011f44");
-        public static readonly Guid InterestIncome = Guid.Parse("cb5f2a1b-9d4e-4f3a-bf3d-cfcd9e12013b");
+        public static readonly Guid AccruedInterest = Guid.Parse("cb5f2a1b-9d4e-4f3a-bf3d-cfcd9e12013b");
+        public static readonly Guid InterestIncome = Guid.Parse("92a2b0e4-5c7d-4f8e-bd3c-824a736d9361");
 
         // Liabilities
         public static readonly Guid Unionbank = Guid.Parse("a5d8f9e1-6b4c-4e89-9a2d-1ea234e6789c");
@@ -26,6 +27,7 @@ namespace Ar.Loans.Api.Data
             _ when id == LoanReceivables => "Loan Receivables",
             _ when id == ArIncome => "AR",
             _ when id == MarkIncome => "Mark",
+            _ when id == AccruedInterest => "Accrued Interest",
             _ when id == InterestIncome => "Interest Income",
             _ when id == Unionbank => "Unionbank",
             _ => "Unknown Account"

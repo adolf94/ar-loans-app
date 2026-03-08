@@ -191,7 +191,40 @@ namespace Ar.Loans.Api.Data.Cosmos
 								EndDate = payment.Date
 						});
 
+						decimal oldBalance = loan.Balance;
 						loan.Balance -= payment.Amount;
+						decimal newBalance = loan.Balance;
+
+						// Principal First Interest Realization Logic: 
+						// Payments are applied to the principal portion first. 
+						// Interest is only realized when the payment amount exceeds the outstanding principal.
+						decimal currentPrincipalBefore = Math.Min(oldBalance, loan.Principal);
+						decimal possibleInterestRealized = Math.Max(0, payment.Amount - currentPrincipalBefore);
+						decimal totalInterestBefore = Math.Max(0, oldBalance - loan.Principal);
+						
+						decimal realizedInterest = Math.Min(possibleInterestRealized, totalInterestBefore);
+
+						if (realizedInterest > 0)
+						{
+								var interestEntryId = Guid.CreateVersion7();
+								var interestRealizationEntry = new Entry
+								{
+										Id = interestEntryId,
+										Description = $"Interest Income Realization ({loan.AlternateId}) - {client!.Name}",
+										DebitId = AccountConstants.AccruedInterest,
+										CreditId = AccountConstants.InterestIncome,
+										Date = payment.Date,
+										Amount = realizedInterest,
+										LoanId = loan.Id,
+										AddedBy = _user.UserId,
+								};
+								_context.Entries.Add(interestRealizationEntry);
+
+								// Transfer balance from Accrued to Realized
+								await _entry.AdjustAccountBalance(interestRealizationEntry.DebitId, realizedInterest, true, true);
+								await _entry.AdjustAccountBalance(interestRealizationEntry.CreditId, realizedInterest, false, true);
+						}
+
 						_context.Entries.Add(paymentEntry);
 						_context.Payment.Add(payment);
 
@@ -309,7 +342,7 @@ namespace Ar.Loans.Api.Data.Cosmos
 										Id = entryId,
 										Description = $"Interest Accrual ({loan.AlternateId}) - {client!.Name} ",
 										DebitId = AccountConstants.LoanReceivables,
-										CreditId = AccountConstants.InterestIncome,
+										CreditId = AccountConstants.AccruedInterest,
 										Amount = totalCharge,
 										LoanId = loan.Id,
 										Date = startDate,
