@@ -9,142 +9,158 @@ using System.Threading.Tasks;
 
 namespace Ar.Loans.Api.Data.Cosmos
 {
-		public class UserRepo : IUserRepo
-		{
-				private readonly AppDbContext _ctx;
-				private readonly IQueryable<User> _q;
+    public class UserRepo : IUserRepo
+    {
+        private readonly AppDbContext _ctx;
+        private readonly IQueryable<User> _q;
         private readonly AppConfig _config;
 
         public UserRepo(AppDbContext ctx, AppConfig config)
-				{
-						_ctx = ctx;
-						_q = ctx.Users.Where(e => e.PartitionKey == "default");
-						_config = config;
-				}
+        {
+            _ctx = ctx;
+            _q = ctx.Users.Where(e => e.PartitionKey == "default");
+            _config = config;
+        }
 
-				public async Task<User?> GetUserById(Guid id)
-				{
-						return await _q.Where(e => e.Id == id).FirstOrDefaultAsync();
-				}
+        public async Task<User?> GetUserById(Guid id)
+        {
+            return await _q.Where(e => e.Id == id).FirstOrDefaultAsync();
+        }
 
-				public async Task<User[]> GetAllUsers()
-				{
-						return await _q.ToArrayAsync();
-				}
-
-
-				public async Task<User?> GetUser(Guid id)
-				{
-						return await _q.FirstOrDefaultAsync(e => e.Id == id);
-				}
-
-				public async Task<User> CreateUser(User item)
-				{
-
-						User? user = null;
-
-						if(!string.IsNullOrEmpty(item.MobileNumber) || !string.IsNullOrEmpty(item.EmailAddress))
-						{
-								user = await _q.Where(e=>(!string.IsNullOrEmpty(item.EmailAddress) && e.EmailAddress == item.EmailAddress) || (item.MobileNumber != "" && e.MobileNumber == item.MobileNumber)).FirstOrDefaultAsync();
-								
-								if(user != null)
-								{
-										user.Accounts = item.Accounts
-														.UnionBy(user.Accounts, a => a.AccountNumber)
-														.ToList();
-										_ctx.Update(user);
-										return user;
-								}
-						}
-								
-								
-								
-						
-						if(user == null)
-						{
-								var existingUser = await GetUserByEmailOrMobile(item.EmailAddress, item.MobileNumber);
-
-								if (existingUser != null)
-								{
-										item.Id = existingUser.Id;
-										item.Name = existingUser.Name ?? item.Name;
-										item.EmailAddress = existingUser.EmailAddress ?? item.EmailAddress;
-										item.MobileNumber = existingUser.MobileNumber ?? item.MobileNumber;
-								}
-						}
+        public async Task<User[]> GetAllUsers()
+        {
+            return await _q.ToArrayAsync();
+        }
 
 
-						await _ctx.Users.AddAsync(item);
-						return item;
-				}
+        public async Task<User?> GetUser(Guid id)
+        {
+            return await _q.FirstOrDefaultAsync(e => e.Id == id);
+        }
 
-				private async Task<User?> GetUserByEmailOrMobile(string email, string mobile)
-				{
-						var client = _ctx.Database.GetCosmosClient();
-						var container = client.GetContainer(_config.UsersDb, "User");
+        public async Task<User> CreateUser(User item)
+        {
 
-						var query = new Microsoft.Azure.Cosmos.QueryDefinition("SELECT * FROM c WHERE (c.EmailAddress = @email AND @email != '') OR (c.MobileNumber = @mobile AND @mobile != '')")
-								.WithParameter("@email", email ?? "")
-								.WithParameter("@mobile", mobile ?? "");
+            User? user = null;
 
-						using var iterator = container.GetItemQueryIterator<dynamic>(query);
-						if (iterator.HasMoreResults)
-						{
-								var response = await iterator.ReadNextAsync();
-								var item = response.FirstOrDefault();
-								if (item != null)
-								{
-										return new User
-										{
-												Id = Guid.TryParse((string)item.id, out var id) ? id : Guid.Empty,
-												Name = item.GoogleName,
-												Role = "Client", // default mapping
-												EmailAddress = (string)item.EmailAddress,
-												MobileNumber = (string)item.MobileNumber
-										};
-								}
-						}
-						
-						return null;
-				}
+            if (!string.IsNullOrEmpty(item.MobileNumber) || !string.IsNullOrEmpty(item.EmailAddress))
+            {
+                user = await _q.Where(e => (!string.IsNullOrEmpty(item.EmailAddress) && e.EmailAddress == item.EmailAddress) || (item.MobileNumber != "" && e.MobileNumber == item.MobileNumber)).FirstOrDefaultAsync();
 
-				public async Task<User?> TestCreateUser(User item)
-				{
-						User? user = null;
-
-						if (!string.IsNullOrEmpty(item.MobileNumber) || !string.IsNullOrEmpty(item.EmailAddress))
-						{
-								user = await _q.Where(e => (!string.IsNullOrEmpty(item.EmailAddress) && e.EmailAddress == item.EmailAddress) || (item.MobileNumber != "" && e.MobileNumber == item.MobileNumber)).FirstOrDefaultAsync();
-
-								if (user != null)
-								{
-										user.Accounts = item.Accounts
-														.UnionBy(user.Accounts, a => a.AccountNumber)
-														.ToList();
-										//_ctx.Update(user);
-										return user;
-								}
-						}
+                if (user != null)
+                {
+                    user.Accounts = item.Accounts
+                                    .UnionBy(user.Accounts, a => a.AccountNumber)
+                                    .ToList();
+                    _ctx.Update(user);
+                    return user;
+                }
+            }
 
 
 
 
-						if (user == null)
-						{
-								var existingUser = await GetUserByEmailOrMobile(item.EmailAddress, item.MobileNumber);
+            if (user == null)
+            {
+                var existingUser = await GetUserByEmailOrMobile(item.EmailAddress, item.MobileNumber);
 
-								if (existingUser != null)
-								{
-										item.Id = existingUser.Id;
-										item.Name = existingUser.Name ?? item.Name;
-										item.EmailAddress = existingUser.EmailAddress ?? item.EmailAddress;
-										item.MobileNumber = existingUser.MobileNumber ?? item.MobileNumber;
-								}
-						}
+                if (existingUser != null)
+                {
+                    item.Id = existingUser.Id;
+                    item.Name = existingUser.Name ?? item.Name;
+                    item.EmailAddress = existingUser.EmailAddress ?? item.EmailAddress;
+                    item.MobileNumber = existingUser.MobileNumber ?? item.MobileNumber;
+                }
+            }
 
 
-						//await _ctx.Users.AddAsync(item);
-						return item;
-				}
-		}
+            await _ctx.Users.AddAsync(item);
+            return item;
+        }
+
+        private async Task<User?> GetUserByEmailOrMobile(string email, string mobile)
+        {
+            var client = _ctx.Database.GetCosmosClient();
+            var container = client.GetContainer(_config.UsersDb, "User");
+
+            var query = new Microsoft.Azure.Cosmos.QueryDefinition("SELECT * FROM c WHERE (c.EmailAddress = @email AND @email != '') OR (c.MobileNumber = @mobile AND @mobile != '')")
+                    .WithParameter("@email", email ?? "")
+                    .WithParameter("@mobile", mobile ?? "");
+
+            using var iterator = container.GetItemQueryIterator<dynamic>(query);
+            if (iterator.HasMoreResults)
+            {
+                var response = await iterator.ReadNextAsync();
+                var item = response.FirstOrDefault();
+                if (item != null)
+                {
+                    return new User
+                    {
+                        Id = Guid.TryParse((string)item.id, out var id) ? id : Guid.Empty,
+                        Name = item.GoogleName,
+                        Role = "Client", // default mapping
+                        EmailAddress = (string)item.EmailAddress,
+                        MobileNumber = (string)item.MobileNumber
+                    };
+                }
+            }
+
+            return null;
+        }
+
+        public async Task<User> UpdateUser(User item)
+        {
+            var existing = await _ctx.Users.FindAsync(item.Id);
+            if (existing == null) throw new Exception("User not found");
+
+            existing.Name = item.Name;
+            existing.Role = item.Role;
+            existing.MobileNumber = item.MobileNumber;
+            existing.EmailAddress = item.EmailAddress;
+            existing.Accounts = item.Accounts;
+            existing.DefaultInterestRuleId = item.DefaultInterestRuleId;
+
+            _ctx.Users.Update(existing);
+            return existing;
+        }
+
+        public async Task<User?> TestCreateUser(User item)
+        {
+            User? user = null;
+
+            if (!string.IsNullOrEmpty(item.MobileNumber) || !string.IsNullOrEmpty(item.EmailAddress))
+            {
+                user = await _q.Where(e => (!string.IsNullOrEmpty(item.EmailAddress) && e.EmailAddress == item.EmailAddress) || (item.MobileNumber != "" && e.MobileNumber == item.MobileNumber)).FirstOrDefaultAsync();
+
+                if (user != null)
+                {
+                    user.Accounts = item.Accounts
+                                    .UnionBy(user.Accounts, a => a.AccountNumber)
+                                    .ToList();
+                    //_ctx.Update(user);
+                    return user;
+                }
+            }
+
+
+
+
+            if (user == null)
+            {
+                var existingUser = await GetUserByEmailOrMobile(item.EmailAddress, item.MobileNumber);
+
+                if (existingUser != null)
+                {
+                    item.Id = existingUser.Id;
+                    item.Name = existingUser.Name ?? item.Name;
+                    item.EmailAddress = existingUser.EmailAddress ?? item.EmailAddress;
+                    item.MobileNumber = existingUser.MobileNumber ?? item.MobileNumber;
+                }
+            }
+
+
+            //await _ctx.Users.AddAsync(item);
+            return item;
+        }
+    }
 }

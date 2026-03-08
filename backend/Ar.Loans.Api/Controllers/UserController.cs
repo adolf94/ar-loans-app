@@ -33,6 +33,22 @@ namespace Ar.Loans.Api.Controllers
             return await Task.FromResult(new CreatedResult($"/users/{user.Id}", newUser));
         }
 
+        [Function(nameof(UpdateUser))]
+        public async Task<IActionResult> UpdateUser([HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "users/{id}")] HttpRequest req, Guid id)
+        {
+            if (!_user.IsAuthenticated) return new UnauthorizedResult();
+            if (!_user.IsAuthorized("coop_guarantor,coop_admin")) return new ForbidResult();
+
+            var user = await req.ReadFromJsonAsync<User>();
+            if (user == null) return new BadRequestResult();
+
+            user.Id = id;
+            var updatedUser = await _repo.UpdateUser(user);
+            await _db.SaveChangesAsync();
+
+            return await Task.FromResult(new OkObjectResult(updatedUser));
+        }
+
 
 
         [Function(nameof(GetAllUsers))]
