@@ -208,9 +208,9 @@ const LedgerDialog: React.FC<LedgerDialogProps> = ({ onAddLedger, currentLedgerC
                 <Button
                     onClick={handleAdd}
                     variant="contained"
-                    disabled={!newLedger.description || newLedger.amount <= 0}
+                    disabled={!newLedger.description || newLedger.amount <= 0 || createEntry.isPending}
                 >
-                    Add Entry
+                    {createEntry.isPending ? 'Adding...' : 'Add Entry'}
                 </Button>
             </DialogActions>
         </Dialog>

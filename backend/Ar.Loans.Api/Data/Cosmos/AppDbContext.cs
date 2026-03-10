@@ -13,116 +13,117 @@ using System.Threading.Tasks;
 
 namespace Ar.Loans.Api.Data.Cosmos
 {
-		public class AppDbContext : DbContext
-		{
+    public class AppDbContext : DbContext
+    {
 
-				private readonly IConfiguration _configuration;
-				public AppDbContext(DbContextOptions<AppDbContext> options, IConfiguration config) : base(options)
-				{
-						_configuration = config;
-						base.Database.EnsureCreatedAsync().Wait();
-				}
-
-
-				public DbSet<User> Users { get; set; }
-				public DbSet<Loan> Loans { get; set; }
-				public DbSet<Payment> Payment { get; set; }
-				public DbSet<Account> Accounts { get; set; }
-				public DbSet<Entry> Entries { get; set; }
-				public DbSet<UserBankAccount> BankAccounts { get; set; }
-				public DbSet<BlobFile> Files { get; set; }
-				public DbSet<InterestRule> InterestRules { get; set; }
+        private readonly IConfiguration _configuration;
+        public AppDbContext(DbContextOptions<AppDbContext> options, IConfiguration config) : base(options)
+        {
+            _configuration = config;
+            base.Database.EnsureCreatedAsync().Wait();
+        }
 
 
-				protected override void OnModelCreating(ModelBuilder builder)
-				{
+        public DbSet<User> Users { get; set; }
+        public DbSet<Loan> Loans { get; set; }
+        public DbSet<Payment> Payment { get; set; }
+        public DbSet<Account> Accounts { get; set; }
+        public DbSet<Entry> Entries { get; set; }
+        public DbSet<UserBankAccount> BankAccounts { get; set; }
+        public DbSet<BlobFile> Files { get; set; }
+        public DbSet<InterestRule> InterestRules { get; set; }
 
 
-						builder.Entity<User>()
-								.ToContainer("Users")
-								.HasPartitionKey(e => e.PartitionKey)
-								.HasKey(c => c.Id);
+        protected override void OnModelCreating(ModelBuilder builder)
+        {
 
-						builder.Entity<Loan>()
-								.ToContainer("Loans")
-								.HasPartitionKey(e => e.PartitionKey)
-								.HasKey(c => c.Id);
 
-						builder.Entity<Payment>()
-								.ToContainer("Payments")
-								.HasPartitionKey(e => e.PartitionKey)
-								.HasKey(c => c.Id);
+            builder.Entity<User>()
+                    .ToContainer("Users")
+                    .HasPartitionKey(e => e.PartitionKey)
+                    .HasKey(c => c.Id);
 
-						builder.Entity<Account>()
-								.ToContainer("Accounts")
-								.HasPartitionKey(e => e.PartitionKey)
-								.HasKey(c => c.Id);
+            builder.Entity<Loan>()
+                    .ToContainer("Loans")
+                    .HasPartitionKey(e => e.PartitionKey)
+                    .HasKey(c => c.Id);
 
-						builder.Entity<Account>().HasData(
-								new Account { Id = AccountConstants.ArGoTyme, Name = AccountConstants.GetName(AccountConstants.ArGoTyme), Section = "Assets", PartitionKey = "default", Balance = 0 },
-								new Account { Id = AccountConstants.ArNonGoTyme, Name = AccountConstants.GetName(AccountConstants.ArNonGoTyme), Section = "Assets", PartitionKey = "default", Balance = 0 },
-								new Account { Id = AccountConstants.MarkGoTyme, Name = AccountConstants.GetName(AccountConstants.MarkGoTyme), Section = "Assets", PartitionKey = "default", Balance = 0 },
-								new Account { Id = AccountConstants.LoanReceivables, Name = AccountConstants.GetName(AccountConstants.LoanReceivables), Section = "Assets", PartitionKey = "default", Balance = 0 },
-								new Account { Id = AccountConstants.ArIncome, Name = AccountConstants.GetName(AccountConstants.ArIncome), Section = "Income", PartitionKey = "default", Balance = 0 },
-								new Account { Id = AccountConstants.MarkIncome, Name = AccountConstants.GetName(AccountConstants.MarkIncome), Section = "Income", PartitionKey = "default", Balance = 0 },
-								new Account { Id = AccountConstants.AccruedInterest, Name = AccountConstants.GetName(AccountConstants.AccruedInterest), Section = "Income", PartitionKey = "default", Balance = 0 },
-								new Account { Id = AccountConstants.InterestIncome, Name = AccountConstants.GetName(AccountConstants.InterestIncome), Section = "Income", PartitionKey = "default", Balance = 0 },
-								new Account { Id = AccountConstants.Unionbank, Name = AccountConstants.GetName(AccountConstants.Unionbank), Section = "Liabilities", PartitionKey = "default", Balance = 0 }
-						);
+            builder.Entity<Payment>()
+                    .ToContainer("Payments")
+                    .HasPartitionKey(e => e.PartitionKey)
+                    .HasKey(c => c.Id);
 
-						builder.Entity<InterestRule>().HasData(
-								new InterestRule { Id = new Guid("019cbbab-e1dd-7e68-b501-f2962425d11d"), Name = "Default", InterestPerMonth = 10, GracePeriodDays = 0, GracePeriodInterest = 0, LatePaymentPenalty = 0, DefaultTerms = 0, InterestBase = "principal", PartitionKey = "default" }
-						);
+            builder.Entity<Account>()
+                    .ToContainer("Accounts")
+                    .HasPartitionKey(e => e.PartitionKey)
+                    .HasKey(c => c.Id);
 
-						builder.Entity<Entry>()
-								.ToContainer("Entries")
-								.HasPartitionKey(e => e.PartitionKey)
-								.HasKey(c => c.Id);
-						builder.Entity<BlobFile>()
-								.ToContainer("Files")
-								.HasPartitionKey(e => e.PartitionKey)
-								.HasKey(c => c.Id);
-						builder.Entity<UserBankAccount>()
-								.ToContainer("BankAccounts")
-								.HasPartitionKey(e => e.PartitionKey)
-								.HasKey(c => c.Id);
-						builder.Entity<InterestRule>()
-								.ToContainer("InterestRules")
-								.HasPartitionKey(e => e.PartitionKey)
-								.HasKey(c => c.Id);
+            builder.Entity<Account>().HasData(
+                    new Account { Id = AccountConstants.ArGoTyme, Name = AccountConstants.GetName(AccountConstants.ArGoTyme), Section = "Assets", PartitionKey = "default", Balance = 0 },
+                    new Account { Id = AccountConstants.ArNonGoTyme, Name = AccountConstants.GetName(AccountConstants.ArNonGoTyme), Section = "Assets", PartitionKey = "default", Balance = 0 },
+                    new Account { Id = AccountConstants.MarkGoTyme, Name = AccountConstants.GetName(AccountConstants.MarkGoTyme), Section = "Assets", PartitionKey = "default", Balance = 0 },
+                    new Account { Id = AccountConstants.LoanReceivables, Name = AccountConstants.GetName(AccountConstants.LoanReceivables), Section = "Assets", PartitionKey = "default", Balance = 0 },
+                    new Account { Id = AccountConstants.ArIncome, Name = AccountConstants.GetName(AccountConstants.ArIncome), Section = "Income", PartitionKey = "default", Balance = 0 },
+                    new Account { Id = AccountConstants.MarkIncome, Name = AccountConstants.GetName(AccountConstants.MarkIncome), Section = "Income", PartitionKey = "default", Balance = 0 },
+                    new Account { Id = AccountConstants.AccruedInterest, Name = AccountConstants.GetName(AccountConstants.AccruedInterest), Section = "Income", PartitionKey = "default", Balance = 0 },
+                    new Account { Id = AccountConstants.InterestIncome, Name = AccountConstants.GetName(AccountConstants.InterestIncome), Section = "Income", PartitionKey = "default", Balance = 0 },
+                    new Account { Id = AccountConstants.LatePenaltyIncome, Name = AccountConstants.GetName(AccountConstants.LatePenaltyIncome), Section = "Income", PartitionKey = "default", Balance = 0 },
+                    new Account { Id = AccountConstants.Unionbank, Name = AccountConstants.GetName(AccountConstants.Unionbank), Section = "Liabilities", PartitionKey = "default", Balance = 0 }
+            );
 
-				}
-		}
+            builder.Entity<InterestRule>().HasData(
+                    new InterestRule { Id = new Guid("019cbbab-e1dd-7e68-b501-f2962425d11d"), Name = "Default", InterestPerMonth = 10, GracePeriodDays = 0, GracePeriodInterest = 0, LatePaymentPenalty = 0, DefaultTerms = 0, InterestBase = "principal", PartitionKey = "default" }
+            );
 
-		public static class ServiceExtension
-		{
-				public static IServiceCollection AddCosmosDbContext(this IServiceCollection services, IConfiguration Configuration)
-				{
-						string? db = Environment.GetEnvironmentVariable("AppConfig__DatabaseName");
-						services.AddDbContext<AppDbContext>(opt =>
-						{
-								var cosmosEndpoint = Environment.GetEnvironmentVariable("AppConfig__CosmosEndpoint")!;
+            builder.Entity<Entry>()
+                    .ToContainer("Entries")
+                    .HasPartitionKey(e => e.PartitionKey)
+                    .HasKey(c => c.Id);
+            builder.Entity<BlobFile>()
+                    .ToContainer("Files")
+                    .HasPartitionKey(e => e.PartitionKey)
+                    .HasKey(c => c.Id);
+            builder.Entity<UserBankAccount>()
+                    .ToContainer("BankAccounts")
+                    .HasPartitionKey(e => e.PartitionKey)
+                    .HasKey(c => c.Id);
+            builder.Entity<InterestRule>()
+                    .ToContainer("InterestRules")
+                    .HasPartitionKey(e => e.PartitionKey)
+                    .HasKey(c => c.Id);
 
-								// var encrypted = Configuration.GetConnectionString("CosmosDb")!;
-								// var connection = AesOperation.DecryptString(passkey, encrypted);
+        }
+    }
 
-								// The Emulator requires the well-known Auth Key
-								string EmulatorKey = Environment.GetEnvironmentVariable("AppConfig__CosmosKey");
-								opt.UseCosmos(cosmosEndpoint, EmulatorKey, db);
-								
-								
-						});
+    public static class ServiceExtension
+    {
+        public static IServiceCollection AddCosmosDbContext(this IServiceCollection services, IConfiguration Configuration)
+        {
+            string? db = Environment.GetEnvironmentVariable("AppConfig__DatabaseName");
+            services.AddDbContext<AppDbContext>(opt =>
+            {
+                var cosmosEndpoint = Environment.GetEnvironmentVariable("AppConfig__CosmosEndpoint")!;
 
-						services.AddScoped<IDbHelper, DbHelper>();
-						services.AddScoped<IUserRepo, UserRepo>();
-						services.AddScoped<IBankAccountRepo, BankAccountRepo>();
-						services.AddScoped<IFileRepo, FileRepo>();
-						services.AddScoped<ILoanRepo, LoanRepo>();
-						services.AddScoped<IAccountRepo, AccountRepo>();
-						services.AddScoped<IEntryRepo, EntryRepo>();
-						services.AddScoped<IInterestRuleRepo, InterestRuleRepo>();
-						return services;
-				}
-		}
+                // var encrypted = Configuration.GetConnectionString("CosmosDb")!;
+                // var connection = AesOperation.DecryptString(passkey, encrypted);
+
+                // The Emulator requires the well-known Auth Key
+                string EmulatorKey = Environment.GetEnvironmentVariable("AppConfig__CosmosKey");
+                opt.UseCosmos(cosmosEndpoint, EmulatorKey, db);
+
+
+            });
+
+            services.AddScoped<IDbHelper, DbHelper>();
+            services.AddScoped<IUserRepo, UserRepo>();
+            services.AddScoped<IBankAccountRepo, BankAccountRepo>();
+            services.AddScoped<IFileRepo, FileRepo>();
+            services.AddScoped<ILoanRepo, LoanRepo>();
+            services.AddScoped<IAccountRepo, AccountRepo>();
+            services.AddScoped<IEntryRepo, EntryRepo>();
+            services.AddScoped<IInterestRuleRepo, InterestRuleRepo>();
+            return services;
+        }
+    }
 
 }

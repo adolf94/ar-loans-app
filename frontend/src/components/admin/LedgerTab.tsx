@@ -12,7 +12,8 @@ import {
     Stack,
     IconButton,
     Tooltip,
-    CircularProgress
+    CircularProgress,
+    Skeleton
 } from '@mui/material';
 import { Image as ImageIcon } from 'lucide-react';
 import { useEntries, type Entry } from '../../repositories/entry';
@@ -165,9 +166,11 @@ const LedgerRow = (props: { entry: Entry }) => {
 
 
 const LedgerTab: React.FC<LedgerTabProps> = () => {
-    const { data: items = [] } = useEntries();
+    const { data: items = [], isLoading: isLoadingEntries } = useEntries();
     const theme = useTheme();
+    const { data: accounts = [], isLoading: isLoadingAccounts } = useAccounts();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+    const isLoading = isLoadingEntries || isLoadingAccounts;
     const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
     const sentinelRef = useRef<HTMLTableRowElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
@@ -233,7 +236,26 @@ const LedgerTab: React.FC<LedgerTabProps> = () => {
                     </TableRow>
                 </TableHead>
                 <TableBody>
-                    {visibleEntries.length > 0 ? (
+                    {isLoading ? (
+                        [...Array(10)].map((_, i) => (
+                            <TableRow key={i}>
+                                {isMobile ? (
+                                    <>
+                                        <TableCell><Skeleton variant="text" width="80%" /><Skeleton variant="text" width="40%" /></TableCell>
+                                        <TableCell align="right"><Skeleton variant="text" width="60%" /></TableCell>
+                                    </>
+                                ) : (
+                                    <>
+                                        <TableCell><Skeleton variant="text" /></TableCell>
+                                        <TableCell><Skeleton variant="text" /></TableCell>
+                                        <TableCell><Skeleton variant="text" /></TableCell>
+                                        <TableCell><Skeleton variant="text" /></TableCell>
+                                        <TableCell align="right"><Skeleton variant="text" /></TableCell>
+                                    </>
+                                )}
+                            </TableRow>
+                        ))
+                    ) : visibleEntries.length > 0 ? (
                         <>
                             {visibleEntries.map((entry) => <LedgerRow entry={entry} key={entry.id} />)}
                             {hasMore && (

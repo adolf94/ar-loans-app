@@ -1,50 +1,54 @@
 import React from 'react';
 import {
     Box,
-    Button,
     Typography,
     Container,
     Paper,
     Stack,
-    useTheme
+    useTheme,
+    Backdrop,
+    CircularProgress
 } from '@mui/material';
 import { Sparkles } from 'lucide-react';
-import { GoogleLogin, useGoogleLogin, type CredentialResponse } from '@react-oauth/google';
+import { GoogleLogin, type CredentialResponse } from '@react-oauth/google';
 import axios from 'axios';
 import useUserInfo from '../useUserInfo';
 import type { User } from '../../@types/types';
 
 interface LoginProps {
-    onLogin: (data: any, user : User) => void;
-
+    onLogin: (data: any, user: User) => void;
 }
-
-
 
 const Login: React.FC<LoginProps> = ({ onLogin }) => {
     const theme = useTheme();
-    const { userInfo, setUserInfo } = useUserInfo()
+    const { setUserInfo } = useUserInfo()
+    const [isLoggingIn, setIsLoggingIn] = React.useState(false);
 
     const onGoogleSuccess = (data: CredentialResponse) => {
-        console.log(window.webConfig)
+        setIsLoggingIn(true);
         axios.post(`${window.webConfig.authUrl}auth/google_credential`, data, { preventAuth: true })
             .then(e => {
                 window.localStorage.setItem("refresh_token", e.data.refresh_token);
                 window.localStorage.setItem("id_token", e.data.id_token);
                 window.sessionStorage.setItem("access_token", e.data.access_token);
 
-                // setBackdropLoading(false)
-                let id = atob(e.data.id_token.split(".")[1])
-                let user = JSON.parse(id)
-                user.roles = Array.isArray(user.roles) ? user.roles : [user.roles]
-                
+                let id = e.data.id_token.split(".")[1]
+                let decoded = JSON.parse(atob(id))
+                decoded.roles = Array.isArray(decoded.roles) ? decoded.roles : [decoded.roles]
+
                 setUserInfo({
-                    ...JSON.parse(id),
-                    isAuthenticated: true                    
+                    ...decoded,
+                    isAuthenticated: true
                 })
 
-                return onLogin(e.data, user)
+                onLogin(e.data, decoded)
             })
+            .catch(err => {
+                console.error("Login failed:", err);
+            })
+            .finally(() => {
+                setIsLoggingIn(false);
+            });
     }
 
     return (
@@ -85,28 +89,6 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                         Manage portfolios, analyze risk with Gemini 3 Flash, and streamline your accounting operations in one platform.
                     </Typography>
 
-                    {/* <Button
-                            variant="outlined"
-                            size="large"
-                            fullWidth
-                            startIcon={<img src="https://www.google.com/favicon.ico" alt="Google" style={{ width: 18 }} />}
-                            onClick={login}
-                            sx={{
-                                py: 1.5,
-                                borderRadius: 3,
-                                textTransform: 'none',
-                                fontSize: '1rem',
-                                fontWeight: 600,
-                                borderColor: 'divider',
-                                color: 'text.primary',
-                                '&:hover': {
-                                    borderColor: 'primary.main',
-                                    bgcolor: 'primary.50'
-                                }
-                            }}
-                        >
-                            Sign in with Google
-                        </Button> */}
                     <GoogleLogin onSuccess={onGoogleSuccess} />
 
                     <Stack direction="row" spacing={1} alignItems="center">
@@ -117,6 +99,12 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                     </Stack>
                 </Stack>
             </Paper>
+            <Backdrop
+                sx={(theme) => ({ color: '#fff', zIndex: theme.zIndex.drawer + 1 })}
+                open={isLoggingIn}
+            >
+                <CircularProgress color="inherit" />
+            </Backdrop>
         </Container>
     );
 };

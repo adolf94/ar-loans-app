@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
     Dialog,
     DialogTitle,
@@ -18,9 +18,10 @@ import {
     Chip,
     IconButton,
     Tooltip,
-    Divider
+    Divider,
+    Collapse
 } from '@mui/material';
-import { Trash2, Receipt, ArrowUpDown, Calendar, User as UserIcon, Wallet, Image as ImageIcon } from 'lucide-react';
+import { Trash2, Receipt, ArrowUpDown, Calendar, User as UserIcon, Wallet, Image as ImageIcon, ChevronDown, ChevronRight } from 'lucide-react';
 import type { Loan, User } from '../../@types/types';
 import dayjs from 'dayjs';
 import { useDeleteLoan } from '../../repositories/loan';
@@ -28,6 +29,7 @@ import PaymentDialog from './PaymentDialog';
 import { useConfirm } from 'material-ui-confirm';
 import { useDeleteEntry, useEntries } from '../../repositories/entry';
 import ImageViewerDialog from './ImageViewerDialog';
+import AmortizationSchedule from '../AmortizationSchedule';
 
 interface LoanManageDialogProps {
     open: boolean;
@@ -48,6 +50,7 @@ const LoanManageDialog: React.FC<LoanManageDialogProps> = ({
     const deleteEntry = useDeleteEntry();
     const confirm = useConfirm();
     const { data: entries = [] } = useEntries();
+    const [showSchedule, setShowSchedule] = useState(false);
 
     // Build a map from entry ID to fileId for quick lookup
     const entryFileMap = useMemo(() => {
@@ -152,6 +155,29 @@ const LoanManageDialog: React.FC<LoanManageDialogProps> = ({
                         </Box>
                     </Paper>
 
+                    {loan.showAmortization && (
+                        <Box sx={{ mt: 1 }}>
+                            <Button
+                                size="small"
+                                variant="text"
+                                onClick={() => setShowSchedule(!showSchedule)}
+                                startIcon={showSchedule ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                                sx={{ textTransform: 'none', color: 'primary.main', fontWeight: 600 }}
+                            >
+                                {showSchedule ? 'Hide' : 'View'} Forthcoming Payments
+                            </Button>
+                            <Collapse in={showSchedule}>
+                                <AmortizationSchedule
+                                    principal={loan.principal}
+                                    interestRate={loan.interestRate}
+                                    termMonths={loan.termMonths}
+                                    startDate={loan.date}
+                                    interestBase={loan.interestBase || 'principal'}
+                                />
+                            </Collapse>
+                        </Box>
+                    )}
+
                     <Divider>
                         <Typography variant="overline" color="text.secondary" fontWeight={700}>
                             Transaction History
@@ -184,7 +210,7 @@ const LoanManageDialog: React.FC<LoanManageDialogProps> = ({
                                                             onDelete={(tx.type == "payment" && !readOnly) ? () => {
                                                                 handleDeleteEntry(tx.ledgerId)
                                                             } : undefined}
-                                                            color={tx.type === 'payment' ? 'success' : tx.type === 'interest' ? 'warning' : 'primary'}
+                                                            color={tx.type === 'payment' ? 'success' : tx.type === 'interest' ? 'warning' : tx.type === 'penalty' ? 'error' : 'primary'}
                                                             sx={{ textTransform: 'capitalize', height: 20, fontSize: '0.65rem' }}
                                                         />
                                                         {txFileId && (

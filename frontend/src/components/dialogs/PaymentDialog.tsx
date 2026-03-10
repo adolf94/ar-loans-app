@@ -124,7 +124,7 @@ const PaymentDialog: React.FC<PaymentDialogProps> = ({
 
     return <>
         {React.cloneElement(children as React.ReactElement<any>, { onClick: () => setOpen(true) })}
-        { open  && <Dialog open={open} onClose={handleClose}>
+        {open && <Dialog open={open} onClose={handleClose}>
             <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 Record Loan Payment
                 <Box>
@@ -198,9 +198,9 @@ const PaymentDialog: React.FC<PaymentDialogProps> = ({
                 <Button
                     onClick={handleAdd}
                     variant="contained"
-                    disabled={!newPayment.loanId || newPayment.amount == 0}
+                    disabled={!newPayment.loanId || newPayment.amount == 0 || createPayment.isPending}
                 >
-                    Record Payment
+                    {createPayment.isPending ? 'Recording...' : 'Record Payment'}
                 </Button>
             </DialogActions>
         </Dialog>}

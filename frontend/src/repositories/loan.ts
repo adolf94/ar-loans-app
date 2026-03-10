@@ -7,11 +7,6 @@ import { ENTRY } from './entry';
 
 export const LOAN = "loan"
 
-export const createLoan = async (loan: Loan): Promise<Loan> => {
-    const response = await apiClient.post<Loan>('/loans', loan);
-    return response.data;
-};
-
 export const getLoans = async (): Promise<Loan[]> => {
     const response = await apiClient.get<Loan[]>('/loans');
     return response.data;
@@ -24,39 +19,27 @@ export const useLoans = () => {
     });
 };
 
-
 export const updateLoanInCache = (loan: Loan) => {
     const queryClient = useQueryClient()
-    if (queryClient.getQueryState([LOAN])) {
-        queryClient.setQueryData([LOAN], (oldData: Loan[]) => {
-            return oldData.map(l => l.id === loan.id ? loan : l)
-        })
+
+    const updateFn = (oldData: Loan[] | undefined) => {
+        if (!oldData) return undefined;
+        return oldData.map(l => l.id === loan.id ? loan : l);
+    };
+
+    if (queryClient.getQueryData([LOAN])) {
+        queryClient.setQueryData([LOAN], updateFn);
     }
 
-    if (queryClient.getQueryState([LOAN, { clientId: loan.clientId }])) {
-        queryClient.setQueryData([LOAN, { clientId: loan.clientId }], (oldData: Loan[]) => {
-            return oldData.map(l => l.id === loan.id ? loan : l)
-        })
+    if (queryClient.getQueryData([LOAN, { clientId: loan.clientId }])) {
+        queryClient.setQueryData([LOAN, { clientId: loan.clientId }], updateFn);
     }
 
-    if (queryClient.getQueryState([LOAN, { guarantorId: loan.guarantorId }])) {
-        queryClient.setQueryData([LOAN, { guarantorId: loan.guarantorId }], (oldData: Loan[]) => {
-            return oldData.map(l => l.id === loan.id ? loan : l)
-        })
+    if (queryClient.getQueryData([LOAN, { guarantorId: loan.guarantorId }])) {
+        queryClient.setQueryData([LOAN, { guarantorId: loan.guarantorId }], updateFn);
     }
 }
-/**
- * Hook to fetch loans with optional status filter
- * @param status - Optional loan status to filter by ('Active', 'Paid', etc.)
- * @returns React Query result with filtered loans
- * 
- * @example
- * // Get all active loans
- * const { data: activeLoans } = useLoansFiltered('Active');
- * 
- * // Get all loans (same as useLoans)
- * const { data: allLoans } = useLoansFiltered();
- */
+
 export const useLoansFiltered = (status?: LoanStatus) => {
     return useQuery({
         queryKey: status ? [LOAN, 'status', status] : [LOAN],
@@ -72,13 +55,11 @@ export const useGuaranteedLoans = (guid: string) => {
     return useQuery({
         queryKey: [LOAN, { guarantorId: guid }],
         queryFn: async () => {
-
-            const loans = await queryClient.getQueryData<Loan[]>(["loans"])
-            if (!!loans) {
+            const loans = queryClient.getQueryData<Loan[]>([LOAN])
+            if (loans) {
                 return loans.filter(loan => loan.guarantorId === guid)
             }
-            return await api.get(`/guarantor/${guid}/loans`)
-                .then(e => e.data)
+            return await api.get(`/guarantor/${guid}/loans`).then(e => e.data)
         },
     });
 }
@@ -88,18 +69,15 @@ export const useUserLoans = (guid: string) => {
     const { data = [] } = useQuery({
         queryKey: [LOAN, { clientId: guid }],
         queryFn: async () => {
-
-            const loans = await queryClient.getQueryData<Loan[]>(["loans"])
-            if (!!loans) {
+            const loans = queryClient.getQueryData<Loan[]>([LOAN])
+            if (loans) {
                 return loans.filter(loan => loan.clientId === guid)
             }
-            return await api.get(`/user/${guid}/loans`)
-                .then(e => e.data)
+            return await api.get(`/user/${guid}/loans`).then(e => e.data)
         },
     });
     return data
 }
-
 
 import { type TransactionResult, updateCacheOffline } from './cacheUpdates';
 

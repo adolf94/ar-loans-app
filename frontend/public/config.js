@@ -1,6 +1,6 @@
 webConfig = {
-    apiUrl: "http://localhost:7071/api",
-    authUrl: "http://localhost:7071/api/",
+    apiUrl: "http://localhost:7239/api",
+    authUrl: "http://localhost:7239/api/",
     clientId: "929828408348-sq488sibic3oquur1ov5ke3jos7sgfmv.apps.googleusercontent.com",
     "redirectUri": "https://localhost:5173",
     adminRole: "COOP_ADMIN",

@@ -58,10 +58,11 @@ export interface Loan {
     date: string;
     sourceAcct?: string;
     fileId?: string;
+    showAmortization?: boolean;
     transactions: LoanLedger[];
 }
 
-export type TransactionType = 'Disbursement' | 'Payment' | 'Interest';
+export type TransactionType = 'Disbursement' | 'Payment' | 'Interest' | 'Penalty';
 
 export interface Transaction {
     id: string;

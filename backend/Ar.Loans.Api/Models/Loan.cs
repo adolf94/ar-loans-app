@@ -63,6 +63,8 @@ namespace Ar.Loans.Api.Models
         public string PartitionKey { get; set; } = "default";
         [JsonPropertyName("fileId")]
         public string FileId { get; set; } = "";
+        [JsonPropertyName("showAmortization")]
+        public bool ShowAmortization { get; set; }
     }
 
     public class LoanLedger

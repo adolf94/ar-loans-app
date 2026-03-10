@@ -12,8 +12,6 @@ import {
     Stack,
     Avatar,
     Fab,
-    useMediaQuery,
-    useTheme,
     Tooltip
 } from '@mui/material';
 import PortfolioTab from '../components/admin/PortfolioTab';
@@ -38,21 +36,15 @@ import {
     UserPlus,
     FilePlus,
     Wallet,
-    Settings
+    Settings,
+    Users
 } from 'lucide-react';
-import {
-    mockLoans,
-    mockTransactions,
-    mockAccounts,
-    mockLedger,
-    mockUsers
-} from '../mockData';
 import { calculateBalanceSheet } from '../logic/accounting';
 import { analyzePortfolio } from '../services/aiService';
 import { useUsers, useCreateUser, useUpdateUser } from '../repositories/user';
-import { useCreateLoan } from '../repositories/loan';
-import type { Loan, GeneralLedgerEntry, User, Payment } from '../@types/types';
-import { Users } from 'lucide-react';
+import { useLoans } from '../repositories/loan';
+import { useEntries, useCreateEntry } from '../repositories/entry';
+import type { User } from '../@types/types';
 import { useAccounts } from '../repositories/account';
 import { accountIds } from '../components/accountConstants';
 import { useIsMobile } from '../theme';
@@ -74,61 +66,48 @@ function TabPanel(props: TabPanelProps) {
 
 const AdminDashboard: React.FC = () => {
     const [tabValue, setTabValue] = useState(0);
-    const [loans, setLoans] = useState<Loan[]>(mockLoans);
-    const [transactions, setTransactions] = useState<Payment[]>([]);
-    const [ledger, setLedger] = useState<GeneralLedgerEntry[]>(mockLedger);
     const [editingUserId, setEditingUserId] = useState<string | null>(null);
     const [openUserDialog, setOpenUserDialog] = useState(false);
 
-    const isMobile = useIsMobile()
+    const isMobile = useIsMobile();
+    const { data: accounts = [] } = useAccounts();
+    const { data: users = [] } = useUsers();
+    const { data: loans = [] } = useLoans();
+    const { data: entries = [] } = useEntries();
 
+    // Mutations
+    const createUserMutation = useCreateUser();
+    const updateUserMutation = useUpdateUser();
+    const createEntryMutation = useCreateEntry();
 
     // AI Analysis State
     const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
     const [isAiLoading, setIsAiLoading] = useState(false);
 
-    // User Data & Mutations from Repository
-    const createUserMutation = useCreateUser();
-    const updateUserMutation = useUpdateUser();
-
-    // Dialog States
-
-    const { data: accounts = [] } = useAccounts()
-
-
     const summary = useMemo(() => {
-        let assets = accounts.filter(e => e.section == "Assets").reduce((p, c) => p + c.balance, 0)
-        let receivables = (accounts.find(e => e.id == accountIds.receivables))?.balance || 0
-        let realizedInterest = (accounts.find(e => e.id == accountIds.realized_interests))?.balance || 0
-        let accruedInterest = (accounts.find(e => e.id == accountIds.accrued_interests))?.balance || 0
+        const assets = accounts.filter(e => e.section === "Assets").reduce((p, c) => p + c.balance, 0);
+        const receivables = accounts.find(e => e.id === accountIds.receivables)?.balance || 0;
+        const realizedInterest = accounts.find(e => e.id === accountIds.realized_interests)?.balance || 0;
+        const accruedInterest = accounts.find(e => e.id === accountIds.accrued_interests)?.balance || 0;
 
         return {
             totalAssets: assets,
             receivables,
             realizedInterest: -realizedInterest,
             accruedInterest: -accruedInterest
-        }
-    }, [accounts])
-
-
-    const { data: users = [] } = useUsers();
+        };
+    }, [accounts]);
 
     const editingUser = useMemo(() =>
         users.find(u => u.id === editingUserId) || null,
         [editingUserId, users]);
 
-
-    const balanceSheet = useMemo(() =>
-        calculateBalanceSheet(loans, transactions, mockAccounts, ledger),
-        [loans, transactions, ledger]
-    );
-
     const stats = useMemo(() => ({
-        totalPrincipal: balanceSheet.loanReceivables,
-        totalInterestReceivable: balanceSheet.interestReceivables,
+        totalPrincipal: summary.receivables,
+        totalInterestReceivable: summary.accruedInterest,
         totalRiskExposure: loans.reduce((sum, l) => sum + (l.status === 'Active' ? l.principal : 0), 0),
-        healthScore: 85 // Mocked for now
-    }), [balanceSheet, loans]);
+        healthScore: 85 // Keeping logic consistent
+    }), [summary, loans]);
 
     const handleAiAnalysis = async () => {
         setIsAiLoading(true);
@@ -152,54 +131,6 @@ const AdminDashboard: React.FC = () => {
     const handleEditUser = (userId: string) => {
         setEditingUserId(userId);
         setOpenUserDialog(true);
-    };
-
-    const handleAddLoan = (newLoan: Loan) => {
-        setLoans([...loans, newLoan]);
-
-        // Add disbursement transaction locally for UI
-        const disbursement: Payment = {
-            id: (transactions.length + 1).toString(),
-            loanId: newLoan.id,
-            amount: newLoan.principal,
-            date: newLoan.date,
-            description: `Initial disbursement for Loan #${newLoan.id}`,
-            destinationAcctId: '',
-            userId: newLoan.clientId
-        };
-        setTransactions([...transactions, disbursement]);
-
-        // Add to ledger locally for UI
-        const ledgerEntry: GeneralLedgerEntry = {
-            id: (ledger.length + 1).toString(),
-            date: newLoan.date,
-            description: `Loan Disbursement - Loan #${newLoan.id}`,
-            amount: newLoan.principal,
-            isDebit: true,
-            accountId: '1' // Loan Receivables
-        };
-        setLedger([...ledger, ledgerEntry]);
-
-
-    };
-
-    const handleAddPayment = (payment: Payment) => {
-        setTransactions([...transactions, payment]);
-
-        // Add to ledger
-        const ledgerEntry: GeneralLedgerEntry = {
-            id: (ledger.length + 1).toString(),
-            date: payment.date,
-            description: `Loan Payment - Loan #${payment.loanId}`,
-            amount: payment.amount,
-            accountId: '1' // Loan Receivables
-        };
-        setLedger([...ledger, ledgerEntry]);
-
-    };
-
-    const handleAddLedger = (ledgerEntry: GeneralLedgerEntry) => {
-        setLedger([...ledger, ledgerEntry]);
     };
 
     return (
@@ -258,21 +189,19 @@ const AdminDashboard: React.FC = () => {
                             borderRadius: { xs: 2, sm: 3 },
                         }}>
                             <CardContent sx={{ p: { xs: 1.5, sm: 2, md: 3 }, '&:last-child': { pb: { xs: 1.5, sm: 2, md: 3 } } }}>
-                                {/* Desktop: stacked layout */}
                                 <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
                                     <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
                                         <Avatar sx={{ bgcolor: `${item.color}15`, color: item.color }}>{item.icon}</Avatar>
                                     </Box>
                                     <Typography variant="body2" color="text.secondary" fontWeight={500}>{item.label}</Typography>
-                                    <Typography variant="h5" fontWeight={700}>${item.value.toLocaleString()}</Typography>
+                                    <Typography variant="h5" fontWeight={700}>P {item.value.toLocaleString()}</Typography>
                                 </Box>
-                                {/* Mobile: compact layout */}
                                 <Box sx={{ display: { xs: 'block', sm: 'none' } }}>
                                     <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
                                         <Avatar sx={{ bgcolor: `${item.color}15`, color: item.color, width: 28, height: 28 }}>{item.icon}</Avatar>
                                         <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ lineHeight: 1.2 }}>{item.label}</Typography>
                                     </Stack>
-                                    <Typography variant="h6" fontWeight={700} sx={{ fontSize: '1.1rem', pl: 0.5 }}>${item.value.toLocaleString()}</Typography>
+                                    <Typography variant="h6" fontWeight={700} sx={{ fontSize: '1.1rem', pl: 0.5 }}>P {item.value.toLocaleString()}</Typography>
                                 </Box>
                             </CardContent>
                         </Card>
@@ -328,7 +257,7 @@ const AdminDashboard: React.FC = () => {
                     }}>
                         {tabValue === 0 && (
                             <LoanDialog
-                                onAddLoan={handleAddLoan}
+                                onAddLoan={() => { }}
                                 currentLoansCount={loans.length}
                             >
                                 <Button startIcon={<FilePlus size={18} />}>New Loan</Button>
@@ -337,14 +266,13 @@ const AdminDashboard: React.FC = () => {
                         {tabValue === 2 && (
                             <Stack direction="row" spacing={1}>
                                 <PaymentDialog
-                                    onAddPayment={handleAddPayment}
-                                    loans={loans}
-                                    currentTransactionsCount={transactions.length}>
+                                    onAddPayment={() => { }}
+                                >
                                     <Button startIcon={<Wallet size={18} />} >Record Payment</Button>
                                 </PaymentDialog>
                                 <LedgerDialog
-                                    onAddLedger={handleAddLedger}
-                                    currentLedgerCount={ledger.length}
+                                    onAddLedger={(e) => createEntryMutation.mutate(e)}
+                                    currentLedgerCount={entries.length}
                                 >
                                     <Button startIcon={<Plus size={18} />} >Manual Entry</Button>
                                 </LedgerDialog>
@@ -362,11 +290,11 @@ const AdminDashboard: React.FC = () => {
                 </TabPanel>
 
                 <TabPanel value={tabValue} index={2}>
-                    <LedgerTab ledger={ledger} />
+                    <LedgerTab />
                 </TabPanel>
 
                 <TabPanel value={tabValue} index={3}>
-                    <BalanceSheetTab balanceSheet={balanceSheet} />
+                    <BalanceSheetTab />
                 </TabPanel>
 
                 <TabPanel value={tabValue} index={4}>
@@ -374,7 +302,6 @@ const AdminDashboard: React.FC = () => {
                 </TabPanel>
             </Paper>
 
-            {/* Mobile Floating Action Buttons */}
             {isMobile && (
                 <>
                     {tabValue === 0 && (
@@ -388,7 +315,7 @@ const AdminDashboard: React.FC = () => {
                                 textAlign: "center"
                             }}
                         >
-                            <PaymentDialog onAddPayment={handleAddPayment}>
+                            <PaymentDialog onAddPayment={() => { }}>
                                 <Tooltip title="Record Payment" placement='left' >
                                     <Fab
                                         color="secondary"
@@ -399,16 +326,14 @@ const AdminDashboard: React.FC = () => {
                                     </Fab>
                                 </Tooltip>
                             </PaymentDialog>
-                            <LoanDialog onAddLoan={handleAddLoan} currentLoansCount={0} >
+                            <LoanDialog onAddLoan={() => { }} currentLoansCount={0} >
                                 <Tooltip title="Issue Loan" placement='left' >
-
                                     <Fab
                                         color="primary"
                                         aria-label="new loan"
                                         size="large"
                                     >
                                         <FilePlus size={24} />
-
                                     </Fab>
                                 </Tooltip>
                             </LoanDialog>
@@ -424,7 +349,7 @@ const AdminDashboard: React.FC = () => {
                                 zIndex: 1000
                             }}
                         >
-                            <LedgerDialog currentLedgerCount={0} onAddLedger={handleAddLedger}>
+                            <LedgerDialog currentLedgerCount={0} onAddLedger={(e) => createEntryMutation.mutate(e)}>
                                 <Fab
                                     color="secondary"
                                     aria-label="manual entry"
@@ -437,11 +362,6 @@ const AdminDashboard: React.FC = () => {
                     )}
                 </>
             )}
-
-            {/* Dialogs */}
-
-
-
         </Box>
     );
 };

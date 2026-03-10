@@ -10,7 +10,8 @@ import {
     Chip,
     useMediaQuery,
     useTheme,
-    Stack
+    Stack,
+    Skeleton
 } from '@mui/material';
 import { Edit2, FileText } from 'lucide-react';
 import { useUsers } from '../../repositories/user';
@@ -23,7 +24,7 @@ interface UsersTabProps {
 const UsersTab: React.FC<UsersTabProps> = ({ onEditUser }) => {
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-    const { data: users = [] } = useUsers()
+    const { data: users = [], isLoading } = useUsers()
 
     return (
         <TableContainer sx={{ maxHeight: 'calc(100vh - 300px)', overflowX: 'auto' }}>
@@ -38,7 +39,22 @@ const UsersTab: React.FC<UsersTabProps> = ({ onEditUser }) => {
                     </TableRow>
                 </TableHead>
                 <TableBody>
-                    {users.map((user) => (
+                    {isLoading ? (
+                        [...Array(5)].map((_, i) => (
+                            <TableRow key={i}>
+                                <TableCell><Skeleton variant="text" /></TableCell>
+                                <TableCell><Skeleton variant="rectangular" width={60} height={24} /></TableCell>
+                                {!isMobile && <TableCell><Skeleton variant="text" /></TableCell>}
+                                {!isMobile && <TableCell><Skeleton variant="text" /></TableCell>}
+                                <TableCell align="right">
+                                    <Stack direction="row" spacing={1} justifyContent="flex-end">
+                                        <Skeleton variant="text" width={80} />
+                                        <Skeleton variant="text" width={40} />
+                                    </Stack>
+                                </TableCell>
+                            </TableRow>
+                        ))
+                    ) : users.map((user) => (
                         <TableRow key={user.id} hover>
                             <TableCell sx={{ fontWeight: 600 }}>{user.name}</TableCell>
                             <TableCell>

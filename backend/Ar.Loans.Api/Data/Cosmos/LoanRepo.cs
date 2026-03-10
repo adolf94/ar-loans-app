@@ -143,8 +143,8 @@ namespace Ar.Loans.Api.Data.Cosmos
                 foreach (var tx in futureTransactions)
                 {
                     deletedEntryIds.Add(tx.LedgerId);
-                    // Remove from Balance if it was an interest accrual
-                    if (tx.Type == "interest")
+                    // Remove from Balance if it was an interest accrual or penalty
+                    if (tx.Type == "interest" || tx.Type == "penalty")
                     {
                         loan.Balance -= tx.Amount;
                     }
@@ -291,7 +291,7 @@ namespace Ar.Loans.Api.Data.Cosmos
                     break;
                 }
 
-                if (loan.Transactions.Count > 100) break;
+                if (loan.Transactions.Count > 160) break; // Increased limit slightly to handle more separate entries
 
                 // We wait until the grace period is over to accrue the full interest
                 DateTime accrualThreshold = loan.NextInterestDate.AddDays(loan.GracePeriodDays).ToDateTime(new TimeOnly(8, 0));
@@ -308,8 +308,8 @@ namespace Ar.Loans.Api.Data.Cosmos
                 decimal expectedPrincipal = loan.TermMonths > 0 ? (loan.Principal / loan.TermMonths) * monthsElapsed : loan.Principal;
                 if (expectedPrincipal > loan.Principal) expectedPrincipal = loan.Principal;
 
-                decimal expectedInterest = loan.Transactions.Where(t => t.Type == "interest" && t.DateStart < startDate).Sum(t => t.Amount);
-                decimal expectedTotal = expectedPrincipal + expectedInterest;
+                decimal expectedInterestTotal = loan.Transactions.Where(t => (t.Type == "interest" || t.Type == "penalty") && t.DateStart < startDate).Sum(t => t.Amount);
+                decimal expectedTotal = expectedPrincipal + expectedInterestTotal;
 
                 // Include payments made up to the end of the grace period
                 DateOnly graceDate = DateOnly.FromDateTime(accrualThreshold);
@@ -321,11 +321,11 @@ namespace Ar.Loans.Api.Data.Cosmos
                 decimal currentBalance = Math.Max(loan.Balance, 0);
                 decimal originalPrincipal = loan.Principal;
                 decimal remainingPrincipal = Math.Min(currentBalance, originalPrincipal);
-                decimal totalInterestAccrued = Math.Max(0, currentBalance - originalPrincipal);
+                decimal totalInterestAccruedSoFar = Math.Max(0, currentBalance - originalPrincipal);
 
                 decimal interestFactor = loan.InterestBase switch
                 {
-                    "principalBalance" => Math.Max(remainingPrincipal, (remainingPrincipal + totalInterestAccrued) / 2m),
+                    "principalBalance" => Math.Max(remainingPrincipal, (remainingPrincipal + totalInterestAccruedSoFar) / 2m),
                     "balance" => Math.Min(originalPrincipal, currentBalance),
                     "principal" => originalPrincipal,
                     _ => originalPrincipal
@@ -343,41 +343,79 @@ namespace Ar.Loans.Api.Data.Cosmos
                     continue;
                 }
 
-                var entryId = Guid.CreateVersion7();
                 var endDate = startDate.AddMonths(1);
 
-                var entry = new Entry
+                if (monthlyInterest > 0)
                 {
-                    Id = entryId,
-                    Description = $"Interest Accrual ({loan.AlternateId}) - {client!.Name} ",
-                    DebitId = AccountConstants.LoanReceivables,
-                    CreditId = AccountConstants.AccruedInterest,
-                    Amount = totalCharge,
-                    LoanId = loan.Id,
-                    Date = startDate,
-                    AddedBy = _user.UserId
-                };
+                    var interestEntryId = Guid.CreateVersion7();
+                    var interestEntry = new Entry
+                    {
+                        Id = interestEntryId,
+                        Description = $"Interest Accrual ({loan.AlternateId}) - {client!.Name} ",
+                        DebitId = AccountConstants.LoanReceivables,
+                        CreditId = AccountConstants.AccruedInterest,
+                        Amount = monthlyInterest,
+                        LoanId = loan.Id,
+                        Date = startDate,
+                        AddedBy = _user.UserId
+                    };
 
-                loan.Transactions.Add(new LoanLedger
-                {
-                    LedgerId = entryId,
-                    AltKey = $"interest|{startDate:yyyy-MM-dd}",
-                    Type = "interest",
-                    Amount = totalCharge,
-                    DateStart = startDate,
-                    EndDate = endDate
-                });
+                    loan.Transactions.Add(new LoanLedger
+                    {
+                        LedgerId = interestEntryId,
+                        AltKey = $"interest|{startDate:yyyy-MM-dd}",
+                        Type = "interest",
+                        Amount = monthlyInterest,
+                        DateStart = startDate,
+                        EndDate = endDate
+                    });
 
-                loan.Balance += totalCharge;
-                loan.NextInterestDate = endDate;
+                    loan.Balance += monthlyInterest;
 
-                if (saveEntries)
-                {
-                    _context.Entries.Add(entry);
-                    // Synchronize Account Balances
-                    await _entry.AdjustAccountBalance(entry.DebitId, entry.Amount, true, true);
-                    await _entry.AdjustAccountBalance(entry.CreditId, entry.Amount, false, true);
+                    if (saveEntries)
+                    {
+                        _context.Entries.Add(interestEntry);
+                        await _entry.AdjustAccountBalance(interestEntry.DebitId, interestEntry.Amount, true, true);
+                        await _entry.AdjustAccountBalance(interestEntry.CreditId, interestEntry.Amount, false, true);
+                    }
                 }
+
+                if (penaltyInterest > 0)
+                {
+                    var penaltyEntryId = Guid.CreateVersion7();
+                    var penaltyEntry = new Entry
+                    {
+                        Id = penaltyEntryId,
+                        Description = $"Late Penalty Accrual ({loan.AlternateId}) - {client!.Name} ",
+                        DebitId = AccountConstants.LoanReceivables,
+                        CreditId = AccountConstants.AccruedInterest,
+                        Amount = penaltyInterest,
+                        LoanId = loan.Id,
+                        Date = startDate,
+                        AddedBy = _user.UserId
+                    };
+
+                    loan.Transactions.Add(new LoanLedger
+                    {
+                        LedgerId = penaltyEntryId,
+                        AltKey = $"penalty|{startDate:yyyy-MM-dd}",
+                        Type = "penalty",
+                        Amount = penaltyInterest,
+                        DateStart = startDate,
+                        EndDate = endDate
+                    });
+
+                    loan.Balance += penaltyInterest;
+
+                    if (saveEntries)
+                    {
+                        _context.Entries.Add(penaltyEntry);
+                        await _entry.AdjustAccountBalance(penaltyEntry.DebitId, penaltyEntry.Amount, true, true);
+                        await _entry.AdjustAccountBalance(penaltyEntry.CreditId, penaltyEntry.Amount, false, true);
+                    }
+                }
+
+                loan.NextInterestDate = endDate;
             }
 
             await Task.CompletedTask;

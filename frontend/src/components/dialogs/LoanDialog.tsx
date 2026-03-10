@@ -19,7 +19,9 @@ import {
     useTheme,
     Collapse,
     Typography,
-    FormHelperText
+    FormHelperText,
+    FormControlLabel,
+    Switch
 } from '@mui/material';
 import { Camera, Sparkles, UserPlus, ChevronDown, ChevronRight } from 'lucide-react';
 import type { User, Loan, UserAccount } from '../../@types/types';
@@ -56,7 +58,8 @@ const LoanDialog: React.FC<LoanDialogProps> = ({ onAddLoan, fixedGuarantorId, ch
         gracePeriodInterest: 0,
         latePaymentPenalty: 0,
         interestRuleId: window.webConfig.defaultLoanTemplate,
-        interestBase: 'principal' as 'principal' | 'balance' | 'principalBalance'
+        interestBase: 'principal' as 'principal' | 'balance' | 'principalBalance',
+        showAmortization: false
     });
     const theme = useTheme()
     const [open, setOpen] = useState(false)
@@ -87,7 +90,8 @@ const LoanDialog: React.FC<LoanDialogProps> = ({ onAddLoan, fixedGuarantorId, ch
             gracePeriodInterest: 0,
             latePaymentPenalty: 0,
             interestRuleId: window.webConfig.defaultLoanTemplate,
-            interestBase: 'principal' as 'principal' | 'balance' | 'principalBalance'
+            interestBase: 'principal' as 'principal' | 'balance' | 'principalBalance',
+            showAmortization: false
         });
         setOpen(false);
     };
@@ -146,6 +150,7 @@ const LoanDialog: React.FC<LoanDialogProps> = ({ onAddLoan, fixedGuarantorId, ch
             gracePeriodInterest: newLoan.gracePeriodInterest,
             latePaymentPenalty: newLoan.latePaymentPenalty,
             interestBase: newLoan.interestBase,
+            showAmortization: newLoan.showAmortization,
             transactions: []
         };
         if (!found && !!imgData) {
@@ -174,7 +179,8 @@ const LoanDialog: React.FC<LoanDialogProps> = ({ onAddLoan, fixedGuarantorId, ch
             gracePeriodInterest: 0,
             latePaymentPenalty: 0,
             interestRuleId: window.webConfig.defaultLoanTemplate,
-            interestBase: 'principal' as 'principal' | 'balance' | 'principalBalance'
+            interestBase: 'principal' as 'principal' | 'balance' | 'principalBalance',
+            showAmortization: false
         });
     };
 
@@ -312,6 +318,38 @@ const LoanDialog: React.FC<LoanDialogProps> = ({ onAddLoan, fixedGuarantorId, ch
                         value={newLoan.interestRate}
                         onChange={(e) => setNewLoan({ ...newLoan, interestRate: Number(e.target.value) })}
                     />
+                    <FormControlLabel
+                        control={
+                            <Switch
+                                checked={newLoan.showAmortization}
+                                onChange={(e) => setNewLoan({ ...newLoan, showAmortization: e.target.checked })}
+                            />
+                        }
+                        label="Show Amortization Schedule"
+                    />
+                    {newLoan.showAmortization && (
+                        <Box sx={{ p: 1, bgcolor: 'primary.50', borderRadius: 1, border: '1px dashed', borderColor: 'primary.main' }}>
+                            <Typography variant="caption" color="primary.main" fontWeight={600}>
+                                Expected Monthly Payment:
+                                P {(() => {
+                                    const p = newLoan.principal;
+                                    const r = newLoan.interestRate / 100;
+                                    const n = newLoan.termMonths;
+                                    if (p <= 0 || n <= 0) return 0;
+
+                                    if (newLoan.interestBase === 'principal') {
+                                        // Flat Rate
+                                        return ((p + (p * r * n)) / n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                                    } else {
+                                        // Reducing Balance (EMI)
+                                        if (r === 0) return (p / n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                                        const emi = (p * r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
+                                        return emi.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                                    }
+                                })()}
+                            </Typography>
+                        </Box>
+                    )}
                     <Button
                         size="small"
                         variant="text"
@@ -432,9 +470,9 @@ const LoanDialog: React.FC<LoanDialogProps> = ({ onAddLoan, fixedGuarantorId, ch
                 <Button
                     onClick={handleAdd}
                     variant="contained"
-                    disabled={!newLoan.clientId || newLoan.principal <= 0 || !newLoan.sourceAcct}
+                    disabled={!newLoan.clientId || newLoan.principal <= 0 || !newLoan.sourceAcct || createLoan.isPending}
                 >
-                    Issue Loan
+                    {createLoan.isPending ? 'Issuing...' : 'Issue Loan'}
                 </Button>
             </DialogActions>
         </Dialog></>

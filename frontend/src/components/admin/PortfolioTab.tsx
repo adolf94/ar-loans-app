@@ -14,7 +14,8 @@ import {
     useTheme,
     FormControlLabel,
     Switch,
-    Box
+    Box,
+    Skeleton
 } from '@mui/material';
 import type { User } from '../../@types/types';
 import { useLoans } from '../../repositories/loan';
@@ -24,34 +25,31 @@ import LoanManageDialog from '../dialogs/LoanManageDialog';
 import type { Loan } from '../../@types/types';
 
 interface PortfolioTabProps {
-    users: User[];
+    users?: User[];
 }
 
 const PortfolioTab: React.FC<PortfolioTabProps> = ({ }) => {
-    const { data: loans = [] } = useLoans();
+    const { data: loans = [], isLoading: isLoadingLoans } = useLoans();
     const theme = useTheme();
-    const { data: users = [] } = useUsers()
+    const { data: users = [], isLoading: isLoadingUsers } = useUsers()
+    const isLoading = isLoadingLoans || isLoadingUsers;
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-    const [selectedLoan, setSelectedLoan] = useState<Loan | null>(null);
+
+    const [selectedLoanId, setSelectedLoanId] = useState<string | null>(null);
     const [isManageOpen, setIsManageOpen] = useState(false);
     const [showClosed, setShowClosed] = useState(false);
 
-
-    
-
-    const filteredLoans = useMemo(()=>{
-        let sorted = loans.sort((a,b)=> a.date < b.date ? 1: a.date > b.date ? -1 : a.id > b.id ? 1:0  )
+    const filteredLoans = useMemo(() => {
+        let sorted = [...loans].sort((a, b) => a.date < b.date ? 1 : a.date > b.date ? -1 : a.id > b.id ? 1 : 0)
         return showClosed ? sorted : sorted.filter(l => l.status !== 'Paid');
-    },[loans, showClosed])
-    
-    
-    
+    }, [loans, showClosed]);
 
-    
-
+    const selectedLoan = useMemo(() =>
+        loans.find(l => l.id === selectedLoanId) || null
+        , [loans, selectedLoanId]);
 
     const handleManage = (loan: Loan) => {
-        setSelectedLoan(loan);
+        setSelectedLoanId(loan.id);
         setIsManageOpen(true);
     };
 
@@ -73,7 +71,7 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({ }) => {
                     }
                 />
             </Box>
-                    <TableContainer sx={{ maxHeight: 'calc(100vh - 300px)', overflowX: 'auto' }}>
+            <TableContainer sx={{ maxHeight: 'calc(100vh - 300px)', overflowX: 'auto' }}>
                 <Table stickyHeader size={isMobile ? 'small' : 'medium'}>
                     <TableHead>
                         <TableRow>
@@ -98,7 +96,30 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({ }) => {
                         </TableRow>
                     </TableHead>
                     <TableBody>
-                        {filteredLoans.map((loan) => {
+                        {isLoading ? (
+                            [...Array(5)].map((_, i) => (
+                                <TableRow key={i}>
+                                    {isMobile ? (
+                                        <>
+                                            <TableCell><Skeleton variant="text" width="80%" /><Skeleton variant="text" width="40%" /></TableCell>
+                                            <TableCell align="right"><Skeleton variant="text" width="60%" /></TableCell>
+                                            <TableCell />
+                                        </>
+                                    ) : (
+                                        <>
+                                            <TableCell><Skeleton variant="text" /></TableCell>
+                                            <TableCell><Skeleton variant="text" /></TableCell>
+                                            <TableCell><Skeleton variant="text" /></TableCell>
+                                            <TableCell><Skeleton variant="text" /></TableCell>
+                                            <TableCell><Skeleton variant="text" /></TableCell>
+                                            <TableCell><Skeleton variant="text" /></TableCell>
+                                            <TableCell><Skeleton variant="rectangular" width={60} height={24} /></TableCell>
+                                            <TableCell align="right"><Skeleton variant="rectangular" width={80} height={32} /></TableCell>
+                                        </>
+                                    )}
+                                </TableRow>
+                            ))
+                        ) : filteredLoans.map((loan) => {
                             const clientName = users.find(u => u.id === loan.clientId)?.name || `ID: ${loan.clientId}`;
 
                             if (isMobile) {
@@ -167,7 +188,10 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({ }) => {
             </TableContainer>
             <LoanManageDialog
                 open={isManageOpen}
-                onClose={() => setIsManageOpen(false)}
+                onClose={() => {
+                    setIsManageOpen(false);
+                    setSelectedLoanId(null);
+                }}
                 loan={selectedLoan}
                 user={selectedLoan ? users.find(u => u.id === selectedLoan.clientId) || null : null}
             />
