@@ -34,7 +34,8 @@ const InterestRulesTab: React.FC = () => {
                 gracePeriodInterest: 0,
                 latePaymentPenalty: 0,
                 defaultTerms: 12,
-                interestBase: 'principal' as const
+                interestBase: 'principal' as const,
+                recurringGracePeriod: true
             });
         }
         setOpenDialog(true);
@@ -177,6 +178,17 @@ const InterestRulesTab: React.FC = () => {
                                 <MenuItem value="principal">Original Principal</MenuItem>
                                 <MenuItem value="balance">Remaining Balance (Capped at Principal)</MenuItem>
                                 <MenuItem value="principalBalance">Principal Balance (Principal first payout)</MenuItem>
+                            </Select>
+                        </FormControl>
+                        <FormControl fullWidth>
+                            <InputLabel>Grace Period Activation</InputLabel>
+                            <Select
+                                value={editingRule.recurringGracePeriod ? 'monthly' : 'start'}
+                                label="Grace Period Activation"
+                                onChange={(e) => setEditingRule({ ...editingRule, recurringGracePeriod: e.target.value === 'monthly' })}
+                            >
+                                <MenuItem value="start">Start of Loan Only</MenuItem>
+                                <MenuItem value="monthly">Monthly Basis (Every Month)</MenuItem>
                             </Select>
                         </FormControl>
                     </Box>

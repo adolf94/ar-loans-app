@@ -291,10 +291,11 @@ namespace Ar.Loans.Api.Data.Cosmos
                     break;
                 }
 
-                if (loan.Transactions.Count > 160) break; // Increased limit slightly to handle more separate entries
+                if (loan.Transactions.Count > 120) break; // Increased limit slightly to handle more separate entries
 
                 // We wait until the grace period is over to accrue the full interest
-                DateTime accrualThreshold = loan.NextInterestDate.AddDays(loan.GracePeriodDays).ToDateTime(new TimeOnly(8, 0));
+                int graceDays = (loan.RecurringGracePeriod || loan.NextInterestDate == loan.Date) ? loan.GracePeriodDays : 0;
+                DateTime accrualThreshold = loan.NextInterestDate.AddDays(graceDays).ToDateTime(new TimeOnly(8, 0));
 
                 if (accrualThreshold > referenceDateUTC8)
                     break;
@@ -331,7 +332,9 @@ namespace Ar.Loans.Api.Data.Cosmos
                     _ => originalPrincipal
                 };
 
-                decimal monthlyInterest = interestFactor * (loan.InterestRate / 100M);
+                decimal rateToUse = (lateFactor <= 0) ? loan.GracePeriodInterest : loan.InterestRate;
+
+                decimal monthlyInterest = interestFactor * (rateToUse / 100M);
                 decimal penaltyInterest = lateFactor * (loan.LatePaymentPenalty / 100M);
 
                 decimal totalCharge = monthlyInterest + penaltyInterest;

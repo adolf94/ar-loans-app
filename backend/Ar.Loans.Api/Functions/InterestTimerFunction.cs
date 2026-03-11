@@ -25,7 +25,7 @@ namespace Ar.Loans.Api.Functions
 
             // UTC+8 Reference Date
             DateTime referenceDateUTC8 = DateTime.UtcNow.AddHours(8);
-            
+
             var loans = await _loanRepo.GetLoansPendingInterest(referenceDateUTC8);
             _logger.LogInformation($"Found {loans.Count} loans pending interest accrual.");
 

@@ -1,4 +1,4 @@
-import React, { useState, type SetStateAction } from 'react';
+import React, { useState } from 'react';
 import dayjs from 'dayjs';
 import {
     Dialog,
@@ -59,7 +59,8 @@ const LoanDialog: React.FC<LoanDialogProps> = ({ onAddLoan, fixedGuarantorId, ch
         latePaymentPenalty: 0,
         interestRuleId: window.webConfig.defaultLoanTemplate,
         interestBase: 'principal' as 'principal' | 'balance' | 'principalBalance',
-        showAmortization: false
+        showAmortization: false,
+        recurringGracePeriod: true
     });
     const theme = useTheme()
     const [open, setOpen] = useState(false)
@@ -91,7 +92,8 @@ const LoanDialog: React.FC<LoanDialogProps> = ({ onAddLoan, fixedGuarantorId, ch
             latePaymentPenalty: 0,
             interestRuleId: window.webConfig.defaultLoanTemplate,
             interestBase: 'principal' as 'principal' | 'balance' | 'principalBalance',
-            showAmortization: false
+            showAmortization: false,
+            recurringGracePeriod: true
         });
         setOpen(false);
     };
@@ -114,6 +116,7 @@ const LoanDialog: React.FC<LoanDialogProps> = ({ onAddLoan, fixedGuarantorId, ch
             updates.gracePeriodInterest = rule.gracePeriodInterest;
             updates.latePaymentPenalty = rule.latePaymentPenalty;
             updates.interestBase = rule.interestBase;
+            updates.recurringGracePeriod = rule.recurringGracePeriod ?? true;
         }
 
         if (typeof otherUpdates === 'function') {
@@ -151,6 +154,7 @@ const LoanDialog: React.FC<LoanDialogProps> = ({ onAddLoan, fixedGuarantorId, ch
             latePaymentPenalty: newLoan.latePaymentPenalty,
             interestBase: newLoan.interestBase,
             showAmortization: newLoan.showAmortization,
+            recurringGracePeriod: newLoan.recurringGracePeriod,
             transactions: []
         };
         if (!found && !!imgData) {
@@ -162,7 +166,7 @@ const LoanDialog: React.FC<LoanDialogProps> = ({ onAddLoan, fixedGuarantorId, ch
             }
             await createBankAccount(userAcct);
         }
-        await createLoan.mutateAsync(loan).then(res => onAddLoan(res));
+        await createLoan.mutateAsync(loan).then(res => onAddLoan(res.loan!));
         handleClose();
         setNewLoan({
             id: uuidv7(),
@@ -180,7 +184,8 @@ const LoanDialog: React.FC<LoanDialogProps> = ({ onAddLoan, fixedGuarantorId, ch
             latePaymentPenalty: 0,
             interestRuleId: window.webConfig.defaultLoanTemplate,
             interestBase: 'principal' as 'principal' | 'balance' | 'principalBalance',
-            showAmortization: false
+            showAmortization: false,
+            recurringGracePeriod: true
         });
     };
 
@@ -237,7 +242,7 @@ const LoanDialog: React.FC<LoanDialogProps> = ({ onAddLoan, fixedGuarantorId, ch
     };
 
     return <>
-        {React.cloneElement(children, { onClick: () => setOpen(true) })}
+        {children && React.isValidElement(children) && React.cloneElement(children as React.ReactElement<any>, { onClick: () => setOpen(true) })}
         <Dialog open={open} onClose={handleClose} maxWidth="xs" fullScreen={isMobile} fullWidth>
             <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 Issue New Loan
@@ -379,6 +384,7 @@ const LoanDialog: React.FC<LoanDialogProps> = ({ onAddLoan, fixedGuarantorId, ch
                                                     updates.gracePeriodInterest = rule.gracePeriodInterest;
                                                     updates.latePaymentPenalty = rule.latePaymentPenalty;
                                                     updates.interestBase = rule.interestBase;
+                                                    updates.recurringGracePeriod = rule.recurringGracePeriod ?? true;
                                                 }
                                             }
                                             setNewLoan(prev => ({ ...prev, ...updates }));
@@ -435,6 +441,17 @@ const LoanDialog: React.FC<LoanDialogProps> = ({ onAddLoan, fixedGuarantorId, ch
                                     <MenuItem value="principalBalance">Principal Balance (Principal first payout)</MenuItem>
                                 </Select>
                             </FormControl>
+                            <FormControl fullWidth size="small">
+                                <InputLabel>Grace Period Activation</InputLabel>
+                                <Select
+                                    value={newLoan.recurringGracePeriod ? 'monthly' : 'start'}
+                                    label="Grace Period Activation"
+                                    onChange={(e) => setNewLoan({ ...newLoan, recurringGracePeriod: e.target.value === 'monthly' })}
+                                >
+                                    <MenuItem value="start">Start of Loan Only</MenuItem>
+                                    <MenuItem value="monthly">Monthly Basis (Every Month)</MenuItem>
+                                </Select>
+                            </FormControl>
                         </Stack>
                     </Collapse>
                     <FormControl fullWidth>
@@ -475,7 +492,8 @@ const LoanDialog: React.FC<LoanDialogProps> = ({ onAddLoan, fixedGuarantorId, ch
                     {createLoan.isPending ? 'Issuing...' : 'Issue Loan'}
                 </Button>
             </DialogActions>
-        </Dialog></>
+        </Dialog>
+    </>;
 };
 
 export default LoanDialog;

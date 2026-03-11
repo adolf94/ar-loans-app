@@ -65,6 +65,9 @@ namespace Ar.Loans.Api.Models
         public string FileId { get; set; } = "";
         [JsonPropertyName("showAmortization")]
         public bool ShowAmortization { get; set; }
+
+        [JsonPropertyName("recurringGracePeriod")]
+        public bool RecurringGracePeriod { get; set; } = false;
     }
 
     public class LoanLedger

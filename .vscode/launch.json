@@ -2,6 +2,23 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "name": "Launch Azure Functions",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "func: host start",
+      "program": "func",
+      "args": [
+        "host",
+        "start"
+      ],
+      "stopAtEntry": false,
+      "console": "internalConsole",
+      "cwd": "${workspaceFolder}/backend\\Ar.Loans.Api",
+      "env": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
+    },
+    {
       "name": "Attach to .NET Functions",
       "type": "coreclr",
       "request": "attach",

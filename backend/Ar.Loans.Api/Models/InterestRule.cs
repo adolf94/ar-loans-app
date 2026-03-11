@@ -36,5 +36,8 @@ namespace Ar.Loans.Api.Models
 
         [JsonPropertyName("partitionKey")]
         public string PartitionKey { get; set; } = "default";
+
+        [JsonPropertyName("recurringGracePeriod")]
+        public bool RecurringGracePeriod { get; set; } = false;
     }
 }

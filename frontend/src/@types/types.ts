@@ -28,6 +28,7 @@ export interface InterestRule {
     latePaymentPenalty: number;
     defaultTerms: number;
     interestBase: 'principal' | 'balance' | 'principalBalance';
+    recurringGracePeriod?: boolean;
 }
 
 export type LoanStatus = 'Pending' | 'Active' | 'Paid' | 'Defaulted' | 'Archived';
@@ -59,6 +60,7 @@ export interface Loan {
     sourceAcct?: string;
     fileId?: string;
     showAmortization?: boolean;
+    recurringGracePeriod?: boolean;
     transactions: LoanLedger[];
 }
 
