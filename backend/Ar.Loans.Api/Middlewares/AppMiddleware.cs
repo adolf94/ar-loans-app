@@ -41,7 +41,7 @@ namespace Ar.Loans.Api.Middlewares
 												httpContext.User = principal;
 												_user.UserId = Guid.Parse(userId!);
 												_user.Name = principal.FindFirstValue(ClaimTypes.Name)!;
-												_user.EmailAddress = principal.FindFirstValue(ClaimTypes.Email)!;
+												_user.EmailAddress = principal.FindFirstValue("name")!;
 												_user.IsAuthenticated = true;
 												_user.Roles = principal.Claims.Where(e => e.Type == ClaimTypes.Role).Select(e => e.Value).ToArray();
 												_user.App = principal.Claims.FirstOrDefault(e => e.Type == "app")?.Value ?? "";

@@ -1,4 +1,4 @@
-﻿using Ar.Loans.Api.Models;
+using Ar.Loans.Api.Models;
 using Ar.Loans.Api.Utilities;
 using Azure.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -32,6 +32,8 @@ namespace Ar.Loans.Api.Data.Cosmos
         public DbSet<UserBankAccount> BankAccounts { get; set; }
         public DbSet<BlobFile> Files { get; set; }
         public DbSet<InterestRule> InterestRules { get; set; }
+        public DbSet<Comment> Comments { get; set; } = null!;
+
 
 
         protected override void OnModelCreating(ModelBuilder builder)
@@ -91,6 +93,11 @@ namespace Ar.Loans.Api.Data.Cosmos
                     .ToContainer("InterestRules")
                     .HasPartitionKey(e => e.PartitionKey)
                     .HasKey(c => c.Id);
+            builder.Entity<Comment>()
+                    .ToContainer("Comments")
+                    .HasPartitionKey(e => e.PartitionKey)
+                    .HasKey(c => c.Id);
+
 
         }
     }
@@ -122,6 +129,8 @@ namespace Ar.Loans.Api.Data.Cosmos
             services.AddScoped<IAccountRepo, AccountRepo>();
             services.AddScoped<IEntryRepo, EntryRepo>();
             services.AddScoped<IInterestRuleRepo, InterestRuleRepo>();
+            services.AddScoped<ICommentRepo, CommentRepo>();
+
             return services;
         }
     }

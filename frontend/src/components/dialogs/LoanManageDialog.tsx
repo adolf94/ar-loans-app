@@ -21,7 +21,10 @@ import {
     Divider,
     Collapse
 } from '@mui/material';
-import { Trash2, Receipt, ArrowUpDown, Calendar, User as UserIcon, Wallet, Image as ImageIcon, ChevronDown, ChevronRight } from 'lucide-react';
+import { useIsMobile } from '../../theme';
+
+import { Trash2, Receipt, ArrowUpDown, Calendar, User as UserIcon, Wallet, Image as ImageIcon, ChevronDown, ChevronRight, X } from 'lucide-react';
+
 import type { Loan, User } from '../../@types/types';
 import dayjs from 'dayjs';
 import { useDeleteLoan } from '../../repositories/loan';
@@ -30,6 +33,8 @@ import { useConfirm } from 'material-ui-confirm';
 import { useDeleteEntry, useEntries } from '../../repositories/entry';
 import ImageViewerDialog from './ImageViewerDialog';
 import AmortizationSchedule from '../AmortizationSchedule';
+import CommentSection from '../CommentSection';
+
 
 interface LoanManageDialogProps {
     open: boolean;
@@ -49,6 +54,7 @@ const LoanManageDialog: React.FC<LoanManageDialogProps> = ({
     const deleteLoan = useDeleteLoan();
     const deleteEntry = useDeleteEntry();
     const confirm = useConfirm();
+    const isMobile = useIsMobile();
     const { data: entries = [] } = useEntries();
     const [showSchedule, setShowSchedule] = useState(false);
 
@@ -65,7 +71,7 @@ const LoanManageDialog: React.FC<LoanManageDialogProps> = ({
 
     const handleDeleteLoan = async () => {
         try {
-            var response = await confirm({
+            await confirm({
                 title: 'Confirm Loan Deletion',
                 description: 'WARNING: Are you sure you want to PERMANENTLY DELETE this loan and ALL associated transactions? This action will revert all financial effects and cannot be undone.',
                 confirmationText: 'Permanently Delete',
@@ -73,34 +79,36 @@ const LoanManageDialog: React.FC<LoanManageDialogProps> = ({
                 confirmationButtonProps: { color: 'error', variant: 'contained' },
             });
 
-            if (response.confirmed) {
-                await deleteLoan.mutateAsync(loan.id);
-                onClose();
-            }
+            await deleteLoan.mutateAsync(loan.id);
+            onClose();
         } catch (e) {
             // Cancelled
         }
     };
 
-    const handleDeleteEntry = async (entryId: string) => {
-        var response = await confirm({
-            title: 'Confirm Loan Deletion',
-            description: 'WARNING: Are you sure you want to PERMANENTLY DELETE this entry ? This action cannot be undone.',
-            confirmationText: 'Permanently Delete',
-            cancellationText: 'Cancel',
-            confirmationButtonProps: { color: 'error', variant: 'contained' },
-        });
 
-        if (response.confirmed) {
+    const handleDeleteEntry = async (entryId: string) => {
+        try {
+            await confirm({
+                title: 'Confirm Loan Deletion',
+                description: 'WARNING: Are you sure you want to PERMANENTLY DELETE this entry ? This action cannot be undone.',
+                confirmationText: 'Permanently Delete',
+                cancellationText: 'Cancel',
+                confirmationButtonProps: { color: 'error', variant: 'contained' },
+            });
+
             await deleteEntry.mutateAsync(entryId);
             onClose();
+        } catch (e) {
+            // Cancelled
         }
     }
 
 
 
+
     return (
-        <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+        <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth fullScreen={isMobile}>
             <DialogTitle sx={{ pb: 1 }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <Typography variant="h6" fontWeight={700}>
@@ -123,6 +131,8 @@ const LoanManageDialog: React.FC<LoanManageDialogProps> = ({
                     </Stack>
                 </Box>
             </DialogTitle>
+
+
             <DialogContent>
                 <Stack spacing={3} sx={{ mt: 1 }}>
                     {/* Loan Summary Header */}
@@ -242,6 +252,15 @@ const LoanManageDialog: React.FC<LoanManageDialogProps> = ({
                             </TableBody>
                         </Table>
                     </TableContainer>
+
+                    <Divider>
+                        <Typography variant="overline" color="text.secondary" fontWeight={700}>
+                            Comments & Notes
+                        </Typography>
+                    </Divider>
+
+                    <CommentSection loanId={loan.id} />
+
                 </Stack>
             </DialogContent>
             <DialogActions sx={{ px: 3, pb: 2 }}>
@@ -254,6 +273,9 @@ const LoanManageDialog: React.FC<LoanManageDialogProps> = ({
                     </PaymentDialog>
                 )}
             </DialogActions>
+
+
+
         </Dialog>
     );
 };
