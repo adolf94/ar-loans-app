@@ -17,7 +17,7 @@ namespace Ar.Loans.Api.Controllers
         public async Task<IActionResult> CreateComment([HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "comments")] HttpRequest req)
         {
             if (!_user.IsAuthenticated) return new UnauthorizedResult();
-            if (!_user.IsAuthorized("coop_guarantor,coop_admin")) return new ForbidResult();
+            if (!_user.IsAuthorized("guarantor,admin")) return new ForbidResult();
 
             
             var comment = await req.ReadFromJsonAsync<Comment>();
@@ -38,7 +38,7 @@ namespace Ar.Loans.Api.Controllers
         public async Task<IActionResult> GetCommentsByLoanId([HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "loans/{loanId}/comments")] HttpRequest req)
         {
             if (!_user.IsAuthenticated) return new UnauthorizedResult();
-            if (!_user.IsAuthorized("coop_guarantor,coop_admin")) return new ForbidResult();
+            if (!_user.IsAuthorized("guarantor,admin")) return new ForbidResult();
 
             
             var loanIdItem = req.RouteValues["loanId"]!.ToString();

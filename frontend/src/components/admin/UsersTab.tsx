@@ -13,9 +13,10 @@ import {
     Stack,
     Skeleton
 } from '@mui/material';
-import { Edit2, FileText } from 'lucide-react';
+import { Edit2, FileText, Link as LinkIcon } from 'lucide-react';
 import { useUsers } from '../../repositories/user';
 import { Link } from '@tanstack/react-router';
+import MagicLinkDialog from '../dialogs/MagicLinkDialog';
 
 interface UsersTabProps {
     onEditUser: (userId: string) => void;
@@ -25,6 +26,12 @@ const UsersTab: React.FC<UsersTabProps> = ({ onEditUser }) => {
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
     const { data: users = [], isLoading } = useUsers()
+
+    const [magicLinkDialog, setMagicLinkDialog] = React.useState({
+        open: false,
+        userId: '',
+        userName: ''
+    });
 
     return (
         <TableContainer sx={{ maxHeight: 'calc(100vh - 300px)', overflowX: 'auto' }}>
@@ -58,12 +65,28 @@ const UsersTab: React.FC<UsersTabProps> = ({ onEditUser }) => {
                         <TableRow key={user.id} hover>
                             <TableCell sx={{ fontWeight: 600 }}>{user.name}</TableCell>
                             <TableCell>
-                                <Chip label={user.role} size="small" variant="outlined" />
+                                <Chip 
+                                    label={user.role} 
+                                    size="small" 
+                                    variant={user.oidcUid ? "filled" : "outlined"} 
+                                    color={user.oidcUid ? "success" : "default"}
+                                />
                             </TableCell>
                             {!isMobile && <TableCell>{user.email}</TableCell>}
                             {!isMobile && <TableCell>{user.mobileNumber || '-'}</TableCell>}
                             <TableCell align="right">
                                 <Stack direction="row" spacing={1} justifyContent="flex-end">
+                                    {!user.oidcUid && (
+                                        <Button
+                                            size="small"
+                                            variant="text"
+                                            startIcon={<LinkIcon size={14} />}
+                                            onClick={() => setMagicLinkDialog({ open: true, userId: user.id, userName: user.name })}
+                                            color="primary"
+                                        >
+                                            Link
+                                        </Button>
+                                    )}
                                     <Button
                                         size="small"
                                         variant="text"
@@ -87,6 +110,12 @@ const UsersTab: React.FC<UsersTabProps> = ({ onEditUser }) => {
                     ))}
                 </TableBody>
             </Table>
+            <MagicLinkDialog
+                open={magicLinkDialog.open}
+                onClose={() => setMagicLinkDialog({ ...magicLinkDialog, open: false })}
+                userId={magicLinkDialog.userId}
+                userName={magicLinkDialog.userName}
+            />
         </TableContainer>
     );
 };

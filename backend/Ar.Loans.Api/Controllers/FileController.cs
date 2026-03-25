@@ -25,7 +25,7 @@ namespace Ar.Loans.Api.Controllers
             [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "files/identify_transaction")] HttpRequest req)
         {
             if (!_user.IsAuthenticated) return new UnauthorizedResult();
-            if (!_user.IsAuthorized("coop_guarantor,coop_admin")) return new ForbidResult();
+            if (!_user.IsAuthorized("guarantor,admin")) return new ForbidResult();
             try
             {
                 if (!req.HasFormContentType)

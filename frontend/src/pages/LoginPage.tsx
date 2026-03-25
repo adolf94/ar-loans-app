@@ -1,14 +1,7 @@
 import React, { useEffect } from 'react';
 import {
     Box,
-    Button,
-    Typography,
-    Container,
-    Paper,
-    Stack,
-    useTheme,
-    Dialog,
-    Modal
+    useTheme
 } from '@mui/material';
 import Login from '../components/login/Login';
 import { useNavigate } from '@tanstack/react-router';
@@ -22,12 +15,14 @@ const LoginPage: React.FC<LoginPageProps> = ({ }) => {
     const theme = useTheme();
     const navigate = useNavigate()
 
-    const handlePostLogin = (token, user) => {
+    const handlePostLogin = (token: string, user: any) => {
         const config = window.webConfig
-        if (user.role.indexOf(config.adminRole) > 0) {
+        const userRoles = user.scopes && user.scopes.length > 0 ? user.scopes : (Array.isArray(user.role) ? user.role : [user.role || 'user']);
+        
+        if (userRoles.includes(config.adminRole)) {
             return navigate({ to: "/admin" })
         }
-        if (user.role.indexOf(config.guarantorRole) > 0) {
+        if (userRoles.includes(config.guarantorRole)) {
             return navigate({ to: "/guarantor" })
         }
         return navigate({ to: "/client" })
@@ -36,8 +31,16 @@ const LoginPage: React.FC<LoginPageProps> = ({ }) => {
     useEffect(() => {
         const token = localStorage.getItem("id_token");
         const refreshToken = localStorage.getItem("refresh_token");
+        
+        // Only auto-login if both tokens exist
         if (refreshToken && token) {
-            handlePostLogin(token, jwtDecode<any>(token));
+            try {
+                handlePostLogin(token, jwtDecode<any>(token));
+            } catch (e) {
+                console.error("Failed to decode token on mount", e);
+                localStorage.removeItem("id_token");
+                localStorage.removeItem("refresh_token");
+            }
         }
     }, [])
 

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -19,11 +19,20 @@ namespace Ar.Loans.Api.Utilities
         public bool AllowAccountCreation { get; set; } = false;
 
         public JwtConfiguration JwtConfig { get; set; } = new();
+        public TelegramConfiguration Telegram { get; set; } = new();
+    }
+    public class TelegramConfiguration
+    {
+        public string ClientSecret { get; set; } = string.Empty;
     }
     public class JwtConfiguration
     {
-        public string Issuer { get; set; }
-        public string Audience { get; set; }
-        public string SecretKey { get; set; }
+        public string? Issuer { get; set; }
+        public string? Audience { get; set; }
+        public string? SecretKey { get; set; }
+        public string? Authority { get; set; }
+        public string? ClientId { get; set; }
+        public string? RedirectUri { get; set; }
+        public string? Scope { get; set; }
     }
 }

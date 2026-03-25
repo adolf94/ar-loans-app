@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -25,6 +25,8 @@ namespace Ar.Loans.Api.Models
         public List<UserBankAccount> Accounts { get; set; } = new List<UserBankAccount>();
         [JsonPropertyName("defaultInterestRuleId")]
         public Guid? DefaultInterestRuleId { get; set; }
+        [JsonPropertyName("oidcUid")]
+        public string? OidcUid { get; set; }
     }
 
 

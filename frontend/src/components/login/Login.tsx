@@ -7,49 +7,38 @@ import {
     Stack,
     useTheme,
     Backdrop,
-    CircularProgress
+    CircularProgress,
+    Button
 } from '@mui/material';
 import { Sparkles } from 'lucide-react';
-import { GoogleLogin, type CredentialResponse } from '@react-oauth/google';
-import axios from 'axios';
-import useUserInfo from '../useUserInfo';
-import type { User } from '../../@types/types';
+import { useAuth } from '@adolf94/ar-auth-client';
 
 interface LoginProps {
-    onLogin: (data: any, user: User) => void;
+    onLogin: (data: any, user: any) => void;
 }
 
 const Login: React.FC<LoginProps> = ({ onLogin }) => {
     const theme = useTheme();
-    const { setUserInfo } = useUserInfo()
+    const { login, user, isAuthenticated, accessToken } = useAuth();
     const [isLoggingIn, setIsLoggingIn] = React.useState(false);
 
-    const onGoogleSuccess = (data: CredentialResponse) => {
+    const handleLogin = async () => {
         setIsLoggingIn(true);
-        axios.post(`${window.webConfig.authUrl}auth/google_credential`, data, { preventAuth: true })
-            .then(e => {
-                window.localStorage.setItem("refresh_token", e.data.refresh_token);
-                window.localStorage.setItem("id_token", e.data.id_token);
-                window.sessionStorage.setItem("access_token", e.data.access_token);
+        try {
+            await login();
+        } catch (err) {
+            console.error("Login failed:", err);
+        } finally {
+            setIsLoggingIn(false);
+        }
+    };
 
-                let id = e.data.id_token.split(".")[1]
-                let decoded = JSON.parse(atob(id))
-                decoded.roles = Array.isArray(decoded.roles) ? decoded.roles : [decoded.roles]
-
-                setUserInfo({
-                    ...decoded,
-                    isAuthenticated: true
-                })
-
-                onLogin(e.data, decoded)
-            })
-            .catch(err => {
-                console.error("Login failed:", err);
-            })
-            .finally(() => {
-                setIsLoggingIn(false);
-            });
-    }
+    // Fallback sync if needed, though App.tsx handles it
+    React.useEffect(() => {
+        if (isAuthenticated && user && accessToken) {
+            onLogin({ access_token: accessToken }, user);
+        }
+    }, [isAuthenticated, user, accessToken, onLogin]);
 
     return (
         <Container maxWidth="sm">
@@ -89,7 +78,26 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                         Manage portfolios, analyze risk with Gemini 3 Flash, and streamline your accounting operations in one platform.
                     </Typography>
 
-                    <GoogleLogin onSuccess={onGoogleSuccess} />
+                    <Button
+                        variant="contained"
+                        size="large"
+                        onClick={handleLogin}
+                        disabled={isLoggingIn}
+                        sx={{
+                            borderRadius: '12px',
+                            px: 4,
+                            py: 1.5,
+                            fontSize: '1.1rem',
+                            fontWeight: 600,
+                            textTransform: 'none',
+                            background: 'linear-gradient(45deg, #2563eb 30%, #7c3aed 90%)',
+                            '&:hover': {
+                                background: 'linear-gradient(45deg, #1d4ed8 30%, #6d28d9 90%)',
+                            }
+                        }}
+                    >
+                        {isLoggingIn ? 'Connecting...' : 'Continue with Login'}
+                    </Button>
 
                     <Stack direction="row" spacing={1} alignItems="center">
                         <Sparkles size={16} color={theme.palette.primary.main} />

@@ -17,6 +17,7 @@ export interface User {
     role: UserRole;
     accounts?: UserAccount[];
     defaultInterestRuleId?: string;
+    oidcUid?: string;
 }
 
 export interface InterestRule {
@@ -110,4 +111,14 @@ export interface Payment {
     userId: string,
     date: string,
     description: string
-} 
+}
+
+export interface LogEntry {
+    id: string;
+    timestamp: string;
+    level: string;
+    source: string;
+    chatId?: string;
+    message: string;
+    data?: any;
+}

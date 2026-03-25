@@ -5,6 +5,11 @@ declare global {
         webConfig: {
             apiUrl: string;
             authUrl: string;
+            authority: string;
+            clientId: string;
+            apiClientId: string;
+            scope: string;
+            redirectUri: string;
             adminRole: string;
             guarantorRole: string;
             defaultLoanTemplate: string;
@@ -14,6 +19,10 @@ declare global {
     const webConfig: {
         apiUrl: string;
         authUrl: string;
+        authority: string;
+        clientId: string;
+        scope: string;
+        redirectUri: string;
         adminRole: string;
         guarantorRole: string;
         defaultLoanTemplate: string;

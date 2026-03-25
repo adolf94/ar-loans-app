@@ -24,7 +24,7 @@ namespace Ar.Loans.Api.Controllers
         public async Task<IActionResult> GetByBankAccountId([HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "bankaccounts")] HttpRequest req)
         {
             if (!_user.IsAuthenticated) return new UnauthorizedResult();
-            if (!_user.IsAuthorized("coop_guarantor,coop_admin")) return new ForbidResult();
+            if (!_user.IsAuthorized("guarantor,admin")) return new ForbidResult();
             string? accountId = req.Query["accountId"];
             if (string.IsNullOrEmpty(accountId))
             {
@@ -44,7 +44,7 @@ namespace Ar.Loans.Api.Controllers
         public async Task<IActionResult> PutBankAccount([HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "bankaccounts")] HttpRequest req)
         {
             if (!_user.IsAuthenticated) return new UnauthorizedResult();
-            if (!_user.IsAuthorized("coop_guarantor,coop_admin")) return new ForbidResult();
+            if (!_user.IsAuthorized("guarantor,admin")) return new ForbidResult();
 
             var dto = await req.ReadFromJsonAsync<UserBankAccount>();
 
@@ -69,7 +69,7 @@ namespace Ar.Loans.Api.Controllers
         public async Task<IActionResult> GetAccountsById([HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "user/{id}/bankaccounts")] HttpRequest req)
         {
             if (!_user.IsAuthenticated) return new UnauthorizedResult();
-            if (!_user.IsAuthorized("coop_guarantor,coop_admin")) return new ForbidResult();
+            if (!_user.IsAuthorized("guarantor,admin")) return new ForbidResult();
             if (!Guid.TryParse(req.RouteValues["id"]!.ToString(), out var id))
             {
                 return new BadRequestResult();

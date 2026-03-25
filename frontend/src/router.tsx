@@ -10,19 +10,14 @@ import ClientDashboard from './pages/ClientDashboard';
 import GuarantorDashboard from './pages/GuarantorDashboard';
 import LoginPage from './pages/LoginPage';
 import Layout from './components/Layout';
-import { mockUsers } from './mockData';
-import { useState } from 'react';
-import type { UserRole, User } from './@types/types';
-import { getTokenViaRefreshToken } from './services/api';
+import ClientStatementPage from './pages/ClientStatementPage';
 
 // Root component that handles state and layout wrapper
 const Root = () => {
-    const [currentUser, setCurrentUser] = useState<User>(mockUsers[0]);
-
 
 
     return (
-        <Layout currentUser={currentUser}>
+        <Layout>
             <Outlet />
         </Layout>
     );
@@ -31,7 +26,12 @@ const Root = () => {
 // Define the root route
 const rootRoute = createRootRoute({
     component: Root,
-
+    context: () => ({} as {
+        auth: {
+            user: any;
+            hasRole: (roles: string[]) => boolean;
+        }
+    })
 });
 
 // Define individual routes
@@ -45,7 +45,7 @@ const adminRoute = createRoute({
     getParentRoute: () => rootRoute,
     path: '/admin',
     beforeLoad: (ctx) => {
-        if (!ctx.context.auth.hasRole(["COOP_ADMIN"])) {
+        if (!ctx.context.auth.hasRole([window.webConfig.adminRole])) {
             throw redirect({ to: "/client" })
         }
     },
@@ -58,13 +58,12 @@ const clientRoute = createRoute({
     component: ClientDashboard,
 });
 
-import ClientStatementPage from './pages/ClientStatementPage';
 
 const guarantorRoute = createRoute({
     getParentRoute: () => rootRoute,
     path: '/guarantor',
     beforeLoad: (ctx) => {
-        if (!ctx.context.auth.hasRole(["COOP_GUARANTOR"])) {
+        if (!ctx.context.auth.hasRole([window.webConfig.guarantorRole])) {
             throw redirect({ to: "/client" })
         }
     },

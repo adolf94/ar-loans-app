@@ -5,6 +5,7 @@ using Ar.Loans.Api.Data.Cosmos;
 using Ar.Loans.Api.Data.GoogleAi;
 using Ar.Loans.Api.Middlewares;
 using Ar.Loans.Api.Utilities;
+using Ar.Loans.Api.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Builder;
@@ -19,8 +20,6 @@ var webapp = builder.ConfigureFunctionsWebApplication();
 
 var config = builder.Configuration;
 
-
-
 var appConfig = config.GetRequiredSection("AppConfig").Get<AppConfig>()!;
 builder.Services.AddSingleton<AppConfig>(appConfig);
 
@@ -31,16 +30,16 @@ builder.Services.AddAuthentication(options =>
 })
 .AddJwtBearer(options =>
 {
+    options.Authority = appConfig.JwtConfig.Authority; // From env var AppConfig__JwtConfig__Authority
+    options.Audience = appConfig.JwtConfig.Audience;
     options.TokenValidationParameters = new TokenValidationParameters
     {
         ValidateIssuer = true,
         ValidateAudience = true,
         ValidateLifetime = true,
-        ValidateIssuerSigningKey = true,
-        ValidIssuer = appConfig.JwtConfig.Issuer,
-        ValidAudience = appConfig.JwtConfig.Audience,
-        IssuerSigningKey = new SymmetricSecurityKey(
-            Encoding.UTF8.GetBytes(appConfig.JwtConfig.SecretKey))
+        ValidateIssuerSigningKey = true, // Uses Discovery to validate
+        ValidIssuer = appConfig.JwtConfig.Authority,
+        ValidAudience = appConfig.JwtConfig.Audience
     };
 });
 
@@ -53,9 +52,12 @@ builder.Services
 
 
 builder.Services.AddCosmosDbContext(config);
+builder.Services.AddHttpClient();
+builder.Services.AddScoped<LogService>();
+builder.Services.AddScoped<TelegramService>();
 builder.Services.AddSingleton<IAiService, AiService>();
 builder.Services.AddSingleton<AzureFileRepo>();
-
+builder.Services.AddMemoryCache();
 webapp.UseMiddleware<AppMiddleware>();
 
 builder.Build().Run();

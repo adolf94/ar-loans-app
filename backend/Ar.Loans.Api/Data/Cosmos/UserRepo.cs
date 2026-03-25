@@ -1,4 +1,4 @@
-﻿using Ar.Loans.Api.Models;
+using Ar.Loans.Api.Models;
 using Ar.Loans.Api.Utilities;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -27,6 +27,11 @@ namespace Ar.Loans.Api.Data.Cosmos
             return await _q.Where(e => e.Id == id).FirstOrDefaultAsync();
         }
 
+        public async Task<User?> GetUserByOidcUid(string oidcUid)
+        {
+            return await _q.Where(e => e.OidcUid == oidcUid).FirstOrDefaultAsync();
+        }
+
         public async Task<User[]> GetAllUsers()
         {
             return await _q.ToArrayAsync();
@@ -43,9 +48,9 @@ namespace Ar.Loans.Api.Data.Cosmos
 
             User? user = null;
 
-            if (!string.IsNullOrEmpty(item.MobileNumber) || !string.IsNullOrEmpty(item.EmailAddress))
+            if (!string.IsNullOrEmpty(item.OidcUid) || !string.IsNullOrEmpty(item.MobileNumber) || !string.IsNullOrEmpty(item.EmailAddress))
             {
-                user = await _q.Where(e => (!string.IsNullOrEmpty(item.EmailAddress) && e.EmailAddress == item.EmailAddress) || (item.MobileNumber != "" && e.MobileNumber == item.MobileNumber)).FirstOrDefaultAsync();
+                user = await _q.Where(e => (!string.IsNullOrEmpty(item.OidcUid) && e.OidcUid == item.OidcUid) || (!string.IsNullOrEmpty(item.EmailAddress) && e.EmailAddress == item.EmailAddress) || (item.MobileNumber != "" && e.MobileNumber == item.MobileNumber)).FirstOrDefaultAsync();
 
                 if (user != null)
                 {
@@ -78,7 +83,7 @@ namespace Ar.Loans.Api.Data.Cosmos
             return item;
         }
 
-        private async Task<User?> GetUserByEmailOrMobile(string email, string mobile)
+        public async Task<User?> GetUserByEmailOrMobile(string email, string mobile)
         {
             var client = _ctx.Database.GetCosmosClient();
             var container = client.GetContainer(_config.UsersDb, "User");

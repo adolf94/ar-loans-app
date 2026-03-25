@@ -22,7 +22,7 @@ namespace Ar.Loans.Api.Controllers
         public async Task<IActionResult> GetAccounts([HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "accounts")] HttpRequest req)
         {
             if (!_user.IsAuthenticated) return new UnauthorizedResult();
-            if (!_user.IsAuthorized("coop_guarantor,coop_admin")) return new ForbidResult();
+            if (!_user.IsAuthorized("guarantor,admin")) return new ForbidResult();
             var accounts = await _accountRepo.GetAllAccounts();
             return new OkObjectResult(accounts);
         }
@@ -31,7 +31,7 @@ namespace Ar.Loans.Api.Controllers
         public async Task<IActionResult> CreateLedgerAccount([HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "accounts")] HttpRequest req)
         {
             if (!_user.IsAuthenticated) return new UnauthorizedResult();
-            if (!_user.IsAuthorized("coop_admin")) return new ForbidResult();
+            if (!_user.IsAuthorized("admin")) return new ForbidResult();
 
             if (!_config.AllowAccountCreation)
             {

@@ -1,16 +1,15 @@
 import { ThemeProvider, CssBaseline } from '@mui/material';
 import theme from './theme';
-import { redirect, RouterProvider } from '@tanstack/react-router';
+import { RouterProvider } from '@tanstack/react-router';
 import { router } from './router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { use, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { defaultUserInfo, UserInfoContext } from './components/useUserInfo';
-import { GoogleOAuthProvider } from '@react-oauth/google';
 import { BackdropLoaderProvider } from './components/BackdropLoader';
 import LoginPrompt from './components/login/LoginPrompt';
-import { getTokenViaRefreshToken } from './services/api';
 import { jwtDecode } from 'jwt-decode'
 import { ConfirmProvider } from 'material-ui-confirm';
+import { syncUser } from './services/apiService';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -21,12 +20,82 @@ const queryClient = new QueryClient({
   }
 });
 
+import { AuthProvider, useAuth } from '@adolf94/ar-auth-client';
+
+const authConfig = {
+  authority: window.webConfig.authority,
+  clientId: window.webConfig.clientId,
+  redirectUri: window.webConfig.redirectUri || window.location.origin,
+  scope: window.webConfig.scope || 'openid profile email',
+};
+
+function AppContent({ userInfo, setUserInfo, init }: any) {
+  const { user, isAuthenticated, isLoading, hasScope } = useAuth();
+
+  const hasRole = (roleAny: string[]) => {
+    return roleAny.some(e => hasScope(e))
+  }
+
+
+  useEffect(() => {
+    const performSync = async () => {
+      if (!isLoading && isAuthenticated && user) {
+        try {
+          // Set initial OIDC state
+          setUserInfo({
+            ...user,
+            role: user.scopes.length > 0 ? user.scopes : (user.roles || []),
+            isAuthenticated: true
+          });
+
+          // Perform backend sync to get internal User object (with correct ID)
+          const urlParams = new URLSearchParams(window.location.search);
+          const state = urlParams.get('state') || undefined;
+
+          const dbUser = await syncUser(state);
+
+          setUserInfo((prev: any) => ({
+            ...prev,
+            ...dbUser,
+            userId: dbUser.id, // Map database ID to userId
+            role: dbUser.role ? [dbUser.role] : prev.role, // Use DB role if available
+            isAuthenticated: true
+          }));
+        } catch (error) {
+          console.error("Backend user sync failed", error);
+        }
+      } else if (!isLoading && !isAuthenticated) {
+        setUserInfo(defaultUserInfo);
+      }
+    };
+    performSync();
+  }, [user, isAuthenticated, isLoading, setUserInfo]);
+
+  useEffect(() => {
+    router.update({
+      context: {
+        auth: { user: userInfo, hasRole }
+      }
+    } as any)
+  }, [userInfo, hasRole]);
+
+  return (
+    <UserInfoContext.Provider value={{ userInfo, setUserInfo, hasRole }}>
+      <ConfirmProvider defaultOptions={{
+        confirmationButtonProps: { variant: 'contained' },
+        cancellationButtonProps: { variant: 'outlined' },
+      }}>
+        {init && !isLoading && <RouterProvider router={router} context={{ auth: { user: userInfo, hasRole } }} />}
+        <LoginPrompt />
+      </ConfirmProvider>
+    </UserInfoContext.Provider>
+  );
+}
+
 function App() {
   const [userInfo, setUserInfo] = useState(defaultUserInfo)
   const [init, setInit] = useState(false)
-  const hasRole = (roleAny: string[]) => {
-    return userInfo.role.some(e => roleAny.indexOf(e) > -1)
-  }
+
 
   useEffect(() => {
     const token = localStorage.getItem("id_token");
@@ -34,44 +103,31 @@ function App() {
     if (!token) {
       setInit(true)
       return
-
     }
 
     try {
       const decoded = jwtDecode<any>(token);
-
-      // Check if token is expired
       const currentTime = Date.now() / 1000;
       if (decoded.exp < currentTime) {
         localStorage.removeItem("id_token");
-        setInit(true)
       }
-
       setInit(true)
       setUserInfo(decoded);
     } catch (error) {
       console.error("Invalid token", error);
       localStorage.removeItem("id_token");
       setInit(true)
-      return null;
     }
   }, [])
+
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider theme={theme}>
         <CssBaseline />
         <BackdropLoaderProvider>
-          <GoogleOAuthProvider clientId={window.webConfig.clientId}>
-            <UserInfoContext.Provider value={{ userInfo, setUserInfo,hasRole }}>
-              <ConfirmProvider defaultOptions={{
-                confirmationButtonProps: { variant: 'contained' },
-                cancellationButtonProps: { variant: 'outlined' },
-              }}>
-                {init && <RouterProvider router={router} context={{ auth: { user: userInfo, hasRole } }} />}
-                <LoginPrompt />
-              </ConfirmProvider>
-            </UserInfoContext.Provider>
-          </GoogleOAuthProvider>
+          <AuthProvider config={authConfig}>
+            <AppContent userInfo={userInfo} setUserInfo={setUserInfo} init={init} />
+          </AuthProvider>
         </BackdropLoaderProvider>
       </ThemeProvider>
     </QueryClientProvider>

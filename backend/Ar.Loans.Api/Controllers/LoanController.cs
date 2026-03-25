@@ -30,7 +30,7 @@ namespace Ar.Loans.Api.Controllers
         public async Task<IActionResult> GetAllLoans([HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "loans")] HttpRequest req)
         {
             if (!_user.IsAuthenticated) return new UnauthorizedResult();
-            if (!_user.IsAuthorized("coop_guarantor,coop_admin")) return new ForbidResult();
+            if (!_user.IsAuthorized("guarantor,admin")) return new ForbidResult();
             var loans = await _loanRepo.GetAllLoans();
             return new OkObjectResult(loans);
         }
@@ -39,7 +39,7 @@ namespace Ar.Loans.Api.Controllers
         public async Task<IActionResult> GetLoansAsGuarantor([HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "guarantor/{userId}/loans")] HttpRequest req)
         {
             if (!_user.IsAuthenticated) return new UnauthorizedResult();
-            if (!_user.IsAuthorized("coop_guarantor")) return new ForbidResult();
+            if (!_user.IsAuthorized("guarantor")) return new ForbidResult();
             var userIdItem = req.RouteValues["userId"]!.ToString();
             Guid userId;
             if (!Guid.TryParse(userIdItem, out userId))
@@ -70,7 +70,7 @@ namespace Ar.Loans.Api.Controllers
         public async Task<IActionResult> DeleteLoan([HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "loans/{id}")] HttpRequest req)
         {
             if (!_user.IsAuthenticated) return new UnauthorizedResult();
-            if (!_user.IsAuthorized("coop_admin")) return new ForbidResult();
+            if (!_user.IsAuthorized("admin")) return new ForbidResult();
 
             var idItem = req.RouteValues["id"]!.ToString();
             if (!Guid.TryParse(idItem, out var loanId))

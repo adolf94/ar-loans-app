@@ -9,27 +9,27 @@ import {
     Menu,
     MenuItem,
     Avatar,
-    Chip,
-    Button
+    Chip
 } from '@mui/material';
 import { Shield, User as UserIcon, Briefcase, ChevronDown } from 'lucide-react';
-import {ArrowDropDown} from "@mui/icons-material"
-import type { UserRole, User } from '../@types/types';
+import { ArrowDropDown } from "@mui/icons-material"
+import type { UserRole } from '../@types/types';
 import { useNavigate, useLocation } from '@tanstack/react-router';
 import useUserInfo from './useUserInfo';
+import { useAuth } from '@adolf94/ar-auth-client';
 
 interface LayoutProps {
     children: React.ReactNode;
-    currentUser: User;
 }
 
-const Layout: React.FC<LayoutProps> = ({ children, currentUser }) => {
+const Layout: React.FC<LayoutProps> = ({ children }) => {
     const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
     const [userEl, setUserEl] = React.useState<null | HTMLElement>(null);
     const [role, setRole] = React.useState<UserRole>("Client");
     const navigate = useNavigate();
     const location = useLocation();
-    const {userInfo, hasRole} = useUserInfo()
+    const { userInfo, hasRole, setUserInfo } = useUserInfo()
+    const { logout } = useAuth();
     const isLoginPage = location.pathname === '/';
 
     const handleOpenMenu = (event: React.MouseEvent<HTMLElement>) => {
@@ -44,11 +44,11 @@ const Layout: React.FC<LayoutProps> = ({ children, currentUser }) => {
         setAnchorEl(null);
     };
 
-    useEffect(()=>{ 
-        if(location.href.toLowerCase().startsWith("/admin")) setRole("Admin")
-        if(location.href.toLowerCase().startsWith("/client")) setRole("Client")
-        if(location.href.toLowerCase().startsWith("/guarantor")) setRole("Guarantor")
-    },[location])
+    useEffect(() => {
+        if (location.href.toLowerCase().startsWith("/admin")) setRole("Admin")
+        if (location.href.toLowerCase().startsWith("/client")) setRole("Client")
+        if (location.href.toLowerCase().startsWith("/guarantor")) setRole("Guarantor")
+    }, [location])
 
 
     const handleRoleSelect = (role: UserRole) => {
@@ -68,13 +68,21 @@ const Layout: React.FC<LayoutProps> = ({ children, currentUser }) => {
             case 'Guarantor': return <Briefcase size={18} />;
         }
     };
-    
-    const handleLogout = ()=>{
+
+    const handleLogout = () => {
         setUserEl(null)
+        logout();
         sessionStorage.removeItem("access_token")
         localStorage.removeItem("id_token")
         localStorage.removeItem("refresh_token")
-        navigate({to:"/"})
+        setUserInfo({
+            userName: "",
+            userId: "",
+            isAuthenticated: false,
+            role: [],
+            name: ""
+        });
+        navigate({ to: "/" })
     }
 
 
@@ -124,34 +132,34 @@ const Layout: React.FC<LayoutProps> = ({ children, currentUser }) => {
                             <Box sx={{ display: 'flex', alignItems: 'center' }}>
                                 <IconButton sx={{ p: 0 }} onClick={handleOpenUserMenu}>
                                     <Avatar sx={{ bgcolor: 'primary.main', width: 32, height: 32, fontSize: '0.875rem' }}>
-                                        {currentUser.name.charAt(0)}
+                                        {userInfo.name ? userInfo.name.charAt(0) : 'U'}
                                     </Avatar>
                                     <ChevronDown size={16} style={{ marginLeft: 4 }} />
                                 </IconButton>
                                 <Menu
                                     anchorEl={anchorEl}
                                     open={Boolean(anchorEl)}
-                                    
+
                                     onClose={handleCloseMenu}
                                     PaperProps={{
                                         sx: { mt: 1, minWidth: 180, borderRadius: 2 }
                                     }}
                                 >
                                     {hasRole([window.webConfig.adminRole]) && <MenuItem onClick={() => handleRoleSelect('Admin')}>
-                                        <Shield size={16} style={{ marginRight: 8 }} /> Admin 
+                                        <Shield size={16} style={{ marginRight: 8 }} /> Admin
                                     </MenuItem>}
-                                    
+
                                     <MenuItem onClick={() => handleRoleSelect('Client')}>
-                                        <UserIcon size={16} style={{ marginRight: 8 }} /> Borrower 
+                                        <UserIcon size={16} style={{ marginRight: 8 }} /> Borrower
                                     </MenuItem>
                                     {hasRole([window.webConfig.guarantorRole]) && <MenuItem onClick={() => handleRoleSelect('Guarantor')}>
-                                        <Briefcase size={16} style={{ marginRight: 8 }} /> Guarantor 
+                                        <Briefcase size={16} style={{ marginRight: 8 }} /> Guarantor
                                     </MenuItem>}
                                 </Menu>
                                 <Menu
                                     anchorEl={userEl}
                                     open={Boolean(userEl)}
-                                    onClose={()=>setUserEl(null)}>
+                                    onClose={() => setUserEl(null)}>
                                     <MenuItem onClick={() => handleLogout()}>
                                         Logout
                                     </MenuItem>

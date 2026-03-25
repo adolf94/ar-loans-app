@@ -23,6 +23,7 @@ import UserDialog from '../components/dialogs/UserDialog';
 import LoanDialog from '../components/dialogs/LoanDialog';
 import PaymentDialog from '../components/dialogs/PaymentDialog';
 import LedgerDialog from '../components/dialogs/LedgerDialog';
+import MessagesTab from '../components/admin/MessagesTab';
 import {
     TrendingUp,
     CreditCard,
@@ -37,7 +38,8 @@ import {
     FilePlus,
     Wallet,
     Settings,
-    Users
+    Users,
+    MessageSquare
 } from 'lucide-react';
 import { calculateBalanceSheet } from '../logic/accounting';
 import { analyzePortfolio } from '../services/aiService';
@@ -249,6 +251,7 @@ const AdminDashboard: React.FC = () => {
                         <Tab label="Ledger" icon={<History size={18} />} iconPosition="start" />
                         <Tab label="Balance Sheet" icon={<PieChart size={18} />} iconPosition="start" />
                         <Tab label="Interest Rules" icon={<Settings size={18} />} iconPosition="start" />
+                        <Tab label="System Messages" icon={<MessageSquare size={18} />} iconPosition="start" />
                     </Tabs>
                     <Box sx={{
                         pr: { xs: 0, md: 2 },
@@ -299,6 +302,10 @@ const AdminDashboard: React.FC = () => {
 
                 <TabPanel value={tabValue} index={4}>
                     <InterestRulesTab />
+                </TabPanel>
+
+                <TabPanel value={tabValue} index={5}>
+                    <MessagesTab />
                 </TabPanel>
             </Paper>
 

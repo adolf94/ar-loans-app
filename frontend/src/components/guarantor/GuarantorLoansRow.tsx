@@ -1,11 +1,12 @@
 import React from 'react';
-import { Chip, Stack, TableCell, TableRow, Typography, useMediaQuery, useTheme } from "@mui/material"
-import { ArrowRight } from "lucide-react"
+import { Chip, Stack, TableCell, TableRow, Typography, useMediaQuery, useTheme, IconButton, Tooltip } from "@mui/material"
+import { ArrowRight, Link as LinkIcon } from "lucide-react"
 import numeral from "numeral"
 import { useGetUser } from "../../repositories/user"
 import type { Loan } from "../../@types/types"
 import dayjs from 'dayjs';
 import { Link } from '@tanstack/react-router';
+import MagicLinkDialog from '../dialogs/MagicLinkDialog';
 
 interface GuarantorLoansRowProps {
     loan: Loan;
@@ -18,20 +19,34 @@ const GuarantorLoansRow: React.FC<GuarantorLoansRowProps> = ({ loan, onSelect })
     const theme = useTheme()
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
+    const [magicLinkDialogOpen, setMagicLinkDialogOpen] = React.useState(false);
+
     if (isMobile) {
         return <TableRow hover onClick={onSelect} sx={{ cursor: 'pointer' }}>
             <TableCell>
                 <Stack spacing={0.25}>
-                    <Typography
-                        variant="body2"
-                        fontWeight={600}
-                        component={Link}
-                        to={`/client-statement/${loan.clientId}`}
-                        sx={{ color: 'primary.main', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}
-                        onClick={(e: React.MouseEvent) => e.stopPropagation()}
-                    >
-                        {user?.name || loan?.clientId}
-                    </Typography>
+                    <Stack direction="row" spacing={1} alignItems="center">
+                        <Typography
+                            variant="body2"
+                            fontWeight={600}
+                            component={Link}
+                            to={`/client-statement/${loan.clientId}`}
+                            sx={{ color: 'primary.main', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}
+                            onClick={(e: React.MouseEvent) => e.stopPropagation()}
+                        >
+                            {user?.name || loan?.clientId}
+                        </Typography>
+                        {user && !user.oidcUid && (
+                            <IconButton 
+                                size="small" 
+                                color="primary" 
+                                onClick={(e: React.MouseEvent) => { e.stopPropagation(); setMagicLinkDialogOpen(true); }}
+                                sx={{ p: 0.5 }}
+                            >
+                                <LinkIcon size={12} />
+                            </IconButton>
+                        )}
+                    </Stack>
                     <Typography variant="caption" color="text.secondary">{loan.alternateId}</Typography>
                     <Typography variant="caption" color="text.secondary">
                         {dayjs(loan.date).format("MMM DD")}
@@ -52,21 +67,43 @@ const GuarantorLoansRow: React.FC<GuarantorLoansRowProps> = ({ loan, onSelect })
                     />
                 </Stack>
             </TableCell>
+            {user && (
+                <MagicLinkDialog
+                    open={magicLinkDialogOpen}
+                    onClose={() => setMagicLinkDialogOpen(false)}
+                    userId={user.id}
+                    userName={user.name}
+                />
+            )}
         </TableRow>
     }
 
     return <TableRow hover>
         <TableCell>{loan.alternateId}</TableCell>
         <TableCell>
-            <Typography
-                variant="body2"
-                fontWeight={600}
-                component={Link}
-                to={`/client-statement/${loan.clientId}`}
-                sx={{ color: 'primary.main', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}
-            >
-                {user?.name || loan?.clientId}
-            </Typography>
+            <Stack direction="row" spacing={1} alignItems="center">
+                <Typography
+                    variant="body2"
+                    fontWeight={600}
+                    component={Link}
+                    to={`/client-statement/${loan.clientId}`}
+                    sx={{ color: 'primary.main', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}
+                >
+                    {user?.name || loan?.clientId}
+                </Typography>
+                {user && !user.oidcUid && (
+                    <Tooltip title="Link OIDC Account">
+                        <IconButton 
+                            size="small" 
+                            color="primary" 
+                            onClick={() => setMagicLinkDialogOpen(true)}
+                            sx={{ p: 0.5 }}
+                        >
+                            <LinkIcon size={14} />
+                        </IconButton>
+                    </Tooltip>
+                )}
+            </Stack>
         </TableCell>
         <TableCell>${loan.principal.toLocaleString()}</TableCell>
         <TableCell sx={{ color: 'error.main', fontWeight: 600 }}>
@@ -87,6 +124,14 @@ const GuarantorLoansRow: React.FC<GuarantorLoansRowProps> = ({ loan, onSelect })
                 style={{ cursor: 'pointer', opacity: 0.5 }}
                 onClick={onSelect}
             />
+            {user && (
+                <MagicLinkDialog
+                    open={magicLinkDialogOpen}
+                    onClose={() => setMagicLinkDialogOpen(false)}
+                    userId={user.id}
+                    userName={user.name}
+                />
+            )}
         </TableCell>
     </TableRow>
 }

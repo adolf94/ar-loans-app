@@ -17,7 +17,7 @@ namespace Ar.Loans.Api.Controllers
         public async Task<IActionResult> RecordPayment([HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "payments")] HttpRequest req)
         {
             if (!_user.IsAuthenticated) return new UnauthorizedResult();
-            if (!_user.IsAuthorized("coop_guarantor,coop_admin")) return new ForbidResult();
+            if (!_user.IsAuthorized("guarantor,admin")) return new ForbidResult();
             var payment = await req.ReadFromJsonAsync<Payment>();
             if (payment == null)
             {

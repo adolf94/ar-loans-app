@@ -18,7 +18,7 @@ namespace Ar.Loans.Api.Controllers
         public async Task<IActionResult> GetAllEntries([HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "entries")] HttpRequest req)
         {
             if (!_user.IsAuthenticated) return new UnauthorizedResult();
-            if (!_user.IsAuthorized("coop_guarantor,coop_admin")) return new ForbidResult();
+            if (!_user.IsAuthorized("guarantor,admin")) return new ForbidResult();
             var entries = await _entryRepo.GetAllEntries();
             return new OkObjectResult(entries);
         }
@@ -27,7 +27,7 @@ namespace Ar.Loans.Api.Controllers
         public async Task<IActionResult> CreateEntry([HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "entries")] HttpRequest req)
         {
             if (!_user.IsAuthenticated) return new UnauthorizedResult();
-            if (!_user.IsAuthorized("coop_guarantor,coop_admin")) return new ForbidResult();
+            if (!_user.IsAuthorized("guarantor,admin")) return new ForbidResult();
 
             var dto = await req.ReadFromJsonAsync<Entry>();
             if (dto == null) return new BadRequestResult();
@@ -40,7 +40,7 @@ namespace Ar.Loans.Api.Controllers
         public async Task<IActionResult> DeleteEntry([HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "entries/{id}")] HttpRequest req)
         {
             if (!_user.IsAuthenticated) return new UnauthorizedResult();
-            if (!_user.IsAuthorized("coop_admin")) return new ForbidResult();
+            if (!_user.IsAuthorized("admin")) return new ForbidResult();
 
             var idItem = req.RouteValues["id"]!.ToString();
             if (!Guid.TryParse(idItem, out var entryId))

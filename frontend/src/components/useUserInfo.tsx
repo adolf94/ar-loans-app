@@ -5,7 +5,8 @@ export const defaultUserInfo = {
     userName: "",
     userId: "",
     isAuthenticated: false,
-    role: [],
+    role: [] as string[],
+    scopes: [] as string[],
     name: ""
 }
 export const UserInfoContext = React.createContext({

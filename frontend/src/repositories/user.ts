@@ -62,3 +62,12 @@ export const useUpdateUser = () => {
         },
     });
 };
+
+export const useGenerateMagicLink = () => {
+    return useMutation({
+        mutationFn: async (userId: string) => {
+            const { data } = await api.get<{ url: string }>(`/users/link-magic-url?targetUserId=${userId}`);
+            return data.url;
+        }
+    });
+};

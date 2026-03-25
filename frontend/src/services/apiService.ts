@@ -7,6 +7,11 @@ export const updateUser = async (id: string, user: Partial<User>): Promise<User>
     return data;
 };
 
+export const syncUser = async (state?: string): Promise<User> => {
+    const { data } = await api.post<User>('/users/sync', { state });
+    return data;
+};
+
 // Loans API
 export const getLoans = async (): Promise<Loan[]> => {
     const { data } = await api.get<Loan[]>('/loans');

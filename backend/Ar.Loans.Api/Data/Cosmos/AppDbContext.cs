@@ -32,6 +32,7 @@ namespace Ar.Loans.Api.Data.Cosmos
         public DbSet<UserBankAccount> BankAccounts { get; set; }
         public DbSet<BlobFile> Files { get; set; }
         public DbSet<InterestRule> InterestRules { get; set; }
+        public DbSet<LogEntry> Logs { get; set; }
         public DbSet<Comment> Comments { get; set; } = null!;
 
 
@@ -40,6 +41,14 @@ namespace Ar.Loans.Api.Data.Cosmos
         {
 
 
+            builder.Entity<LogEntry>()
+                    .ToContainer("Logs")
+                    .HasPartitionKey(e => e.PartitionKey)
+                    .HasKey(c => c.Id);
+
+            builder.Entity<LogEntry>()
+                    .Property(e => e.Data)
+                    .ToJsonProperty("Data");
             builder.Entity<User>()
                     .ToContainer("Users")
                     .HasPartitionKey(e => e.PartitionKey)
