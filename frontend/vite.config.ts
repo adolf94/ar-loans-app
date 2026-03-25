@@ -31,9 +31,6 @@ export default defineConfig({
     })
   ],
   resolve: {
-    alias: {
-      '@adolf94/ar-auth-client': 'd:/Users/adolf/source/repos/ar-auth/ar-auth-client/src/index.ts'
-    }
   },
   server: {
     host: true,
