@@ -18,6 +18,9 @@ jobs:
           lfs: false
       - name: Install Dependencies
         run: npm install --legacy-peer-deps
+        env:
+          # This environment variable is used by the .npmrc
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         working-directory: frontend
           
       - name: Build React
