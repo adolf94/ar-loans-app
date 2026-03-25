@@ -16,6 +16,14 @@ jobs:
         with:
           submodules: true
           lfs: false
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          # This line automatically creates a temporary .npmrc for you
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@adolf94'
+          
       - name: Install Dependencies
         run: npm install --legacy-peer-deps
         env:
