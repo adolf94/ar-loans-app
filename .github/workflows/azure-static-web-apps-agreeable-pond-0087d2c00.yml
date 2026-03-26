@@ -39,10 +39,11 @@ jobs:
               "apiClientId": "${{ vars.API_CLIENT_ID }}",
               "redirectUri": "${{ vars.REDIRECT_URI }}",
               "authority": "${{ vars.AUTHORITY }}",
+              "scope": "openid profile email api://${{vars.API_CLIENT_ID}}/admin api://${{vars.API_CLIENT_ID}}/guarantor",
               "adminRole": "api://${{vars.API_CLIENT_ID}}/admin",
               "guarantorRole": "api://${{vars.API_CLIENT_ID}}/guarantor"
             }
-            
+
       - name: Move/Rename config.json to js
         run: |
               echo window.webConfig= > config.js

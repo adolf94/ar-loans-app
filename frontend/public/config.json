@@ -1,8 +1,10 @@
 {
     "apiUrl": "http://localhost:7071/api",
     "authUrl": "http://localhost:7071/api/",
+    "authority": "https://auth.adolfrey.com/api",
     "clientId": "929828408348-sq488sibic3oquur1ov5ke3jos7sgfmv.apps.googleusercontent.com",
     "apiClientId": "ar-loans-api",
+    "scope": "openid profile email api://ar-loans-api/admin api://ar-loans-api/guarantor",
     "redirectUri": "https://localhost:5173",
     "adminRole": "api://ar-loans-api/admin",
     "guarantorRole": "api://ar-loans-api/guarantor",
