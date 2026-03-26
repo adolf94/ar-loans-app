@@ -45,39 +45,21 @@ namespace Ar.Loans.Api.Data.Cosmos
 
         public async Task<User> CreateUser(User item)
         {
-
-            User? user = null;
-
-            if (!string.IsNullOrEmpty(item.OidcUid) || !string.IsNullOrEmpty(item.MobileNumber) || !string.IsNullOrEmpty(item.EmailAddress))
+            User? user = await GetUserByEmailOrMobile(item.EmailAddress, item.MobileNumber);
+            
+            if (user == null && !string.IsNullOrEmpty(item.OidcUid))
             {
-                user = await _q.Where(e => (!string.IsNullOrEmpty(item.OidcUid) && e.OidcUid == item.OidcUid) || (!string.IsNullOrEmpty(item.EmailAddress) && e.EmailAddress == item.EmailAddress) || (item.MobileNumber != "" && e.MobileNumber == item.MobileNumber)).FirstOrDefaultAsync();
-
-                if (user != null)
-                {
-                    user.Accounts = item.Accounts
-                                    .UnionBy(user.Accounts, a => a.AccountNumber)
-                                    .ToList();
-                    _ctx.Update(user);
-                    return user;
-                }
+                user = await GetUserByOidcUid(item.OidcUid);
             }
 
-
-
-
-            if (user == null)
+            if (user != null)
             {
-                var existingUser = await GetUserByEmailOrMobile(item.EmailAddress, item.MobileNumber);
-
-                if (existingUser != null)
-                {
-                    item.Id = existingUser.Id;
-                    item.Name = existingUser.Name ?? item.Name;
-                    item.EmailAddress = existingUser.EmailAddress ?? item.EmailAddress;
-                    item.MobileNumber = existingUser.MobileNumber ?? item.MobileNumber;
-                }
+                user.Accounts = item.Accounts
+                                .UnionBy(user.Accounts, a => a.AccountNumber)
+                                .ToList();
+                _ctx.Users.Update(user);
+                return user;
             }
-
 
             await _ctx.Users.AddAsync(item);
             return item;
@@ -85,44 +67,22 @@ namespace Ar.Loans.Api.Data.Cosmos
 
         public async Task<User?> GetUserByEmailOrMobile(string email, string mobile)
         {
-            var client = _ctx.Database.GetCosmosClient();
-            var container = client.GetContainer(_config.UsersDb, "User");
-
-            var query = new Microsoft.Azure.Cosmos.QueryDefinition("SELECT * FROM c WHERE (c.EmailAddress = @email AND @email != '') OR (c.MobileNumber = @mobile AND @mobile != '')")
-                    .WithParameter("@email", email ?? "")
-                    .WithParameter("@mobile", mobile ?? "");
-
-            using var iterator = container.GetItemQueryIterator<dynamic>(query);
-            if (iterator.HasMoreResults)
-            {
-                var response = await iterator.ReadNextAsync();
-                var item = response.FirstOrDefault();
-                if (item != null)
-                {
-                    return new User
-                    {
-                        Id = Guid.TryParse((string)item.id, out var id) ? id : Guid.Empty,
-                        Name = item.GoogleName,
-                        Role = "Client", // default mapping
-                        EmailAddress = (string)item.EmailAddress,
-                        MobileNumber = (string)item.MobileNumber
-                    };
-                }
-            }
-
-            return null;
+            return await _ctx.Users
+                .Where(e => (!string.IsNullOrEmpty(email) && e.EmailAddress == email) || (!string.IsNullOrEmpty(mobile) && e.MobileNumber == mobile))
+                .FirstOrDefaultAsync();
         }
 
         public async Task<User> UpdateUser(User item)
         {
-            var existing = await _ctx.Users.FindAsync(item.Id);
-            if (existing == null) throw new Exception("User not found");
+            var existing = await _ctx.Users.FindAsync(item.Id, item.PartitionKey ?? "default");
+            if (existing == null) throw new Exception($"User not found with ID: {item.Id} in partition: {item.PartitionKey}");
 
             existing.Name = item.Name;
             existing.Role = item.Role;
             existing.MobileNumber = item.MobileNumber;
             existing.EmailAddress = item.EmailAddress;
             existing.Accounts = item.Accounts;
+            existing.OidcUid = item.OidcUid;
             existing.DefaultInterestRuleId = item.DefaultInterestRuleId;
 
             _ctx.Users.Update(existing);

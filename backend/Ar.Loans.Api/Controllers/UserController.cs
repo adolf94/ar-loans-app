@@ -74,8 +74,8 @@ namespace Ar.Loans.Api.Controllers
 
             if (existingUser != null)
             {
-                // Update OIDC ID if it was missing or different (Linking)
-                if (existingUser.OidcUid != _user.OidcUid)
+                // Link account only if we have a valid OIDC UID and the profile is not already linked
+                if (!string.IsNullOrEmpty(_user.OidcUid) && existingUser.OidcUid != _user.OidcUid)
                 {
                     if (!string.IsNullOrEmpty(existingUser.OidcUid))
                     {

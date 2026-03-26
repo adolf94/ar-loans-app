@@ -27,6 +27,8 @@ namespace Ar.Loans.Api.Utilities
 				public string[] Scopes { get; set; } = Array.Empty<string>();
 				public string App { get; set; } = "";
 				public string Name { get; set; } = "";
+				public string Sid { get; set; } = "";
+				public string Jti { get; set; } = "";
 				public bool IsAuthenticated { get; set; } = false;
 				public string? AuthFailureReason { get; set; }
 

@@ -21,6 +21,8 @@ namespace Ar.Loans.Api.Middlewares
 				public string[] Roles { get; set; } = Array.Empty<string>();
 				public string[] Scopes { get; set; } = Array.Empty<string>();
 				public string App { get; set; } = "";
+				public string Sid { get; set; } = "";
+				public string Jti { get; set; } = "";
 		}
 		internal class AppMiddleware : IFunctionsWorkerMiddleware
 		{
@@ -51,8 +53,8 @@ namespace Ar.Loans.Api.Middlewares
 										// Extract sid (Session ID) or sub as the cache key
 										var tokenContent = JwtTokenHelper.ConvertJwtStringToJwtSecurityToken(bearer);
 										var sid = tokenContent.Claims.FirstOrDefault(e => e.Type == "sid")?.Value 
-                              ?? tokenContent.Subject 
-                              ?? tokenContent.Claims.FirstOrDefault(e => e.Type == "sub")?.Value;
+										?? tokenContent.Subject 
+										?? tokenContent.Claims.FirstOrDefault(e => e.Type == "sub")?.Value;
 
 										if (string.IsNullOrEmpty(sid)) {
 												await next(context);
@@ -68,11 +70,13 @@ namespace Ar.Loans.Api.Middlewares
 												{
 														cacheItem = new UserCacheItem
 														{
-																OidcUid = principal.FindFirstValue(ClaimTypes.NameIdentifier) ?? principal.FindFirstValue("sub") ?? sid,
-																Name = principal.FindFirstValue(ClaimTypes.Name) ?? principal.FindFirstValue("name") ?? "",
+																OidcUid = principal.FindFirstValue(ClaimTypes.NameIdentifier) ?? principal.FindFirstValue("sub") ?? "",
+																Name = principal.FindFirstValue(ClaimTypes.Name) ?? principal.FindFirstValue("name") ?? principal.FindFirstValue("preferred_username") ?? "",
 																EmailAddress = principal.FindFirstValue(ClaimTypes.Email) ?? principal.FindFirstValue("email") ?? "",
 																MobileNumber = principal.FindFirstValue(ClaimTypes.MobilePhone) ?? principal.FindFirstValue("phone_number") ?? principal.FindFirstValue("mobile") ?? "",
-																App = principal.Claims.FirstOrDefault(e => e.Type == "app")?.Value ?? ""
+																App = principal.FindFirstValue("app") ?? principal.FindFirstValue("azp") ?? principal.FindFirstValue("appid") ?? "",
+																Sid = principal.FindFirstValue("sid") ?? principal.FindFirstValue("sub") ?? sid,
+																Jti = principal.FindFirstValue("jti") ?? ""
 														};
 
 														var userIdClaim = principal.Claims.FirstOrDefault(e => e.Type == "userId")?.Value;
@@ -93,7 +97,8 @@ namespace Ar.Loans.Api.Middlewares
 														// Extract roles
 														cacheItem.Roles = principal.Claims
 																.Where(e => e.Type == ClaimTypes.Role || e.Type == "role" || e.Type == "roles" || e.Type == "http://schemas.microsoft.com/identity/claims/role")
-																.Select(e => e.Value)
+																.SelectMany(e => e.Value.Split(new[] { ' ', ',' }, StringSplitOptions.RemoveEmptyEntries))
+																.Distinct()
 																.ToArray();
 
 														// Extract scopes
@@ -124,6 +129,8 @@ namespace Ar.Loans.Api.Middlewares
 												_user.Roles = cacheItem.Roles;
 												_user.Scopes = cacheItem.Scopes;
 												_user.App = cacheItem.App;
+												_user.Sid = cacheItem.Sid;
+												_user.Jti = cacheItem.Jti;
 												_user.IsAuthenticated = true;
 										}
 								}
