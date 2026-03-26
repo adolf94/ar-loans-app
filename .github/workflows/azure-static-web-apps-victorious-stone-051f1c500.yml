@@ -7,14 +7,28 @@ jobs:
   build_and_deploy_job:
     runs-on: ubuntu-latest
     environment: AR_Loans
+    permissions:
+      contents: read
+      packages: read 
     name: Build and Deploy Job
     steps:
       - uses: actions/checkout@v3
         with:
           submodules: true
           lfs: false
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          # This line automatically creates a temporary .npmrc for you
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@adolf94'
+          
       - name: Install Dependencies
         run: npm install --legacy-peer-deps
+        env:
+          # This environment variable is used by the .npmrc
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         working-directory: frontend
           
       - name: Build React
