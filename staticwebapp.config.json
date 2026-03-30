@@ -1,6 +1,0 @@
-{
-    "mimeTypes": {
-        ".webmanifest": "application/manifest+json",
-        ".json": "application/json"
-    }
-}

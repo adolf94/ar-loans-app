@@ -19,7 +19,8 @@
 				"GET"
 			],
 			"allowedRoles": [
-				"registeredusers"
+				"registeredusers",
+				"administrator"
 			]
 		},
 		{
@@ -54,6 +55,6 @@
 	},
 	"mimeTypes": {
 		".webmanifest": "application/manifest+json",
-		".json": "text/json"
+		".json": "application/json"
 	}
 }
