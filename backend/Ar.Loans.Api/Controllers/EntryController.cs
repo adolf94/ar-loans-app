@@ -8,9 +8,10 @@ using System.Threading.Tasks;
 
 namespace Ar.Loans.Api.Controllers
 {
-    public class EntryController(IEntryRepo entryRepo, IDbHelper db, CurrentUser user)
+    public class EntryController(IEntryRepo entryRepo, ILoanRepo loanRepo, IDbHelper db, CurrentUser user)
     {
         private readonly IEntryRepo _entryRepo = entryRepo;
+        private readonly ILoanRepo _loanRepo = loanRepo;
         private readonly IDbHelper _db = db;
         private readonly CurrentUser _user = user;
 
@@ -49,6 +50,13 @@ namespace Ar.Loans.Api.Controllers
             }
 
             var result = await _entryRepo.DeleteEntry(entryId);
+            
+            // Orchestrate: If a loan's payments were affected, rebalance realizations
+            if (result != null && result.Loan != null)
+            {
+                await _loanRepo.RebalanceInterestRealizations(result.Loan);
+            }
+
             return new OkObjectResult(result);
         }
 

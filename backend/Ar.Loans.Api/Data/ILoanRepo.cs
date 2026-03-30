@@ -1,4 +1,4 @@
-﻿using Ar.Loans.Api.Models;
+using Ar.Loans.Api.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -17,6 +17,7 @@ namespace Ar.Loans.Api.Data
 				public Task<List<Loan>> GetGuaranteedLoans(Guid id);
 				public Task<List<Loan>> GetUserLoans(Guid id);
 				Task DeleteLoan(Guid id);
+				Task RebalanceInterestRealizations(Loan loan);
 
 
 		}

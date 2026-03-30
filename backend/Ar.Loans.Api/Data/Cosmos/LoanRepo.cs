@@ -1,4 +1,4 @@
-﻿using Ar.Loans.Api.Data;
+using Ar.Loans.Api.Data;
 using Ar.Loans.Api.Models;
 using Ar.Loans.Api.Utilities;
 using Microsoft.EntityFrameworkCore;
@@ -162,8 +162,13 @@ namespace Ar.Loans.Api.Data.Cosmos
                     loan.Transactions.Remove(tx);
                 }
 
-                // Reset NextInterestDate to the earliest removed date start or keep current if none removed
-                loan.NextInterestDate = futureTransactions.Min(t => t.DateStart);
+                // Reset NextInterestDate to the end of the last remaining interest transaction (or loan.Date if none)
+                var lastInterest = loan.Transactions
+                        .Where(t => t.Type == "interest" || t.Type == "penalty")
+                        .OrderByDescending(t => t.EndDate)
+                        .FirstOrDefault();
+
+                loan.NextInterestDate = lastInterest != null ? lastInterest.EndDate : loan.Date;
             }
 
             decimal oldBalance = loan.Balance;
@@ -233,6 +238,9 @@ namespace Ar.Loans.Api.Data.Cosmos
             // 4. Re-accrue interest from the reset point to Today
             DateTime referenceDateUTC8 = DateTime.UtcNow.AddHours(8);
             await AccrueInterestInternal(loan, referenceDateUTC8, true);
+
+            // 5. DEEP REBALANCE: Recalculate ALL realizations for this loan from scratch
+            await RebalanceInterestRealizations(loan);
 
             if (loan.Balance <= 0)
             {
@@ -424,5 +432,72 @@ namespace Ar.Loans.Api.Data.Cosmos
             await Task.CompletedTask;
         }
 
+        public async Task RebalanceInterestRealizations(Loan loan)
+        {
+            var client = await _context.Users.FirstOrDefaultAsync(l => l.Id == loan.ClientId);
+            
+            // 1. CLEAR: Remove all existing Interest Income Realization entries for this loan
+            var existingRealizations = await _context.Entries
+                .Where(e => e.LoanId == loan.Id && e.CreditId == AccountConstants.InterestIncome)
+                .ToListAsync();
+
+            foreach (var r in existingRealizations)
+            {
+                // Revert Account Balances for the old realizations
+                await _entry.AdjustAccountBalance(r.DebitId, r.Amount, true, false);
+                await _entry.AdjustAccountBalance(r.CreditId, r.Amount, false, false);
+                _context.Entries.Remove(r);
+            }
+
+            // 2. RE-SIMULATE: Iterate through ALL transactions chronologically to calculate realizations
+            decimal runningTotalAccrued = 0;
+            decimal runningTotalRealized = 0;
+            decimal currentSimBalance = loan.Principal;
+            
+            // Get all ledger transactions sorted by date
+            var allLedger = loan.Transactions.OrderBy(t => t.DateStart).ThenBy(t => t.Type == "payment" ? 1 : 0).ToList();
+
+            foreach (var tx in allLedger)
+            {
+                if (tx.Type == "interest" || tx.Type == "penalty")
+                {
+                    runningTotalAccrued += tx.Amount;
+                    currentSimBalance += tx.Amount;
+                }
+                else if (tx.Type == "payment")
+                {
+                    decimal unrealizedAtPoint = Math.Max(0, runningTotalAccrued - runningTotalRealized);
+                    decimal remPrinAtPoint = Math.Max(0, currentSimBalance - unrealizedAtPoint);
+                    
+                    decimal toRealize = Math.Max(0, Math.Min(unrealizedAtPoint, tx.Amount - remPrinAtPoint));
+
+                    if (toRealize > 0)
+                    {
+                        var realizationEntryId = Guid.CreateVersion7();
+                        var realizationEntry = new Entry
+                        {
+                            Id = realizationEntryId,
+                            Description = $"Interest Income Realization ({loan.AlternateId}) - {client!.Name} ",
+                            DebitId = AccountConstants.AccruedInterest,
+                            CreditId = AccountConstants.InterestIncome,
+                            Amount = toRealize,
+                            LoanId = loan.Id,
+                            Date = tx.DateStart, // Same date as payment
+                            AddedBy = _user.UserId
+                        };
+
+                        _context.Entries.Add(realizationEntry);
+                        
+                        // Update Account Balances
+                        await _entry.AdjustAccountBalance(realizationEntry.DebitId, toRealize, true, true);
+                        await _entry.AdjustAccountBalance(realizationEntry.CreditId, toRealize, false, true);
+
+                        runningTotalRealized += toRealize;
+                    }
+                    
+                    currentSimBalance -= tx.Amount;
+                }
+            }
+        }
     }
 }

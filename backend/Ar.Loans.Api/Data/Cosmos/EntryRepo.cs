@@ -1,5 +1,7 @@
 using Ar.Loans.Api.Models;
+using Ar.Loans.Api.Utilities;
 using Microsoft.EntityFrameworkCore;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -60,7 +62,7 @@ namespace Ar.Loans.Api.Data.Cosmos
 						_context.Accounts.Update(account);
 				}
 
-				public async Task<TransactionResult> DeleteEntry(Guid id)
+				public async Task<TransactionResult?> DeleteEntry(Guid id)
 				{
 						var entry = await _context.Entries.FindAsync(id);
 						if (entry == null) return null;
@@ -69,7 +71,7 @@ namespace Ar.Loans.Api.Data.Cosmos
 						await AdjustAccountBalance(entry.DebitId, entry.Amount, true, false);
 						await AdjustAccountBalance(entry.CreditId, entry.Amount, false, false);
 
-						Loan updatedLoan = null;
+						Loan? updatedLoan = null;
 
 						// 2. If it's a loan entry, update the loan balance and remove from transactions list
 						if (entry.LoanId.HasValue)
@@ -80,7 +82,7 @@ namespace Ar.Loans.Api.Data.Cosmos
 										var tx = loan.Transactions.FirstOrDefault(t => t.LedgerId == id);
 										if (tx != null)
 										{
-												if (tx.Type == "interest")
+												if (tx.Type == "interest" || tx.Type == "penalty")
 												{
 														loan.Balance -= tx.Amount;
 												}
@@ -89,6 +91,14 @@ namespace Ar.Loans.Api.Data.Cosmos
 														loan.Balance += tx.Amount;
 												}
 												loan.Transactions.Remove(tx);
+
+												// Recalculate NextInterestDate based on remaining transactions
+												var lastInterest = loan.Transactions
+														.Where(t => t.Type == "interest" || t.Type == "penalty")
+														.OrderByDescending(t => t.EndDate)
+														.FirstOrDefault();
+
+												loan.NextInterestDate = lastInterest != null ? lastInterest.EndDate : loan.Date;
 										}
 										if(loan.Balance > 0)
 										{
@@ -110,7 +120,7 @@ namespace Ar.Loans.Api.Data.Cosmos
 						return new TransactionResult 
 						{ 
 							DeletedEntryIds = new List<Guid> { id },
-							Loan = updatedLoan,
+							Loan = updatedLoan!,
 							Accounts = accounts
 						};
 				}
