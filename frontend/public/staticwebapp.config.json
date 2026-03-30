@@ -2,6 +2,14 @@
 	"trailingSlash": "auto",
 	"routes": [
 		{
+			"route": "/sw.js",
+			"headers": {
+				"cache-control": "no-cache, no-store, must-revalidate",
+				"pragma": "no-cache",
+				"expires": "0"
+			}
+		},
+		{
 			"route": "/manifest.webmanifest",
 			"headers": {
 				"cache-control": "must-revalidate, max-age=0"
@@ -47,10 +55,11 @@
 		"exclude": [
 			"/assets/*",
 			"/config.js",
-			"/images/*.{png,jpg,gif}",
+			"/images/**/*",
 			"/css/*",
 			"/sw.js",
-			"/manifest.webmanifest"
+			"/manifest.webmanifest",
+			"/*.{js,css,png,jpg,svg,ico,json}"
 		]
 	},
 	"mimeTypes": {
