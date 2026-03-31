@@ -53,14 +53,19 @@
 	"navigationFallback": {
 		"rewrite": "/index.html",
 		"exclude": [
-			"/**/*.js",
-			"/**/*.css",
-			"/**/*.png",
-			"/**/*.jpg",
-			"/**/*.svg",
-			"/**/*.ico",
-			"/**/*.json",
-			"/**/*.webmanifest"
+			"/assets/*",
+			"/images/*",
+			"/*.js",
+			"/*.css",
+			"/*.png",
+			"/*.jpg",
+			"/*.svg",
+			"/*.ico",
+			"/*.json",
+			"/*.webmanifest",
+			"/sw.js",
+			"/config.js",
+			"/generateSW.js"
 		]
 	},
 	"mimeTypes": {
