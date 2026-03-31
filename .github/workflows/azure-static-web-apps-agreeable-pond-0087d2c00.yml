@@ -4,12 +4,11 @@ on:
   workflow_dispatch:
 
 jobs:
-  build_and_deploy_job:
+  build_job:
     runs-on: ubuntu-latest
-    name: Build and Deploy Job
+    name: Build Job
     environment: Default
     permissions:
-      id-token: write
       contents: read
       packages: read
     steps:
@@ -21,21 +20,19 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-          # This line automatically creates a temporary .npmrc for you
           registry-url: 'https://npm.pkg.github.com'
           scope: '@adolf94'
           
       - name: Install Dependencies
         run: npm install --legacy-peer-deps
         env:
-          # This environment variable is used by the .npmrc
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         working-directory: frontend
           
       - name: Build React
         run: npm run build
         working-directory: frontend
- 
+  
       - name: Substitute JSON 
         uses: restackio/update-json-file-action@2.1
         with:
@@ -58,6 +55,23 @@ jobs:
               echo window.webConfig= > dist/config.js
               cat dist/config.json >> dist/config.js
         working-directory: frontend
+        
+      - name: Upload Build Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist/
+
+  deploy_job:
+    needs: build_job
+    runs-on: ubuntu-latest
+    name: Deploy Job
+    steps:
+      - name: Download Build Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: ./dist
 
       - name: Build And Deploy
         id: builddeploy
@@ -66,7 +80,7 @@ jobs:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_AGREEABLE_POND_0087D2C00 }}
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: "upload"
-          app_location: "./frontend/dist"
+          app_location: "./dist"
           api_location: ""
           skip_app_build: true
           skip_api_build: true
