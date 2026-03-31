@@ -16,17 +16,24 @@ jobs:
         with:
           submodules: true
           lfs: false
-      - name: Install OIDC Client from Core Package
-        run: npm install @actions/core@1.6.0 @actions/http-client
-           
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          # This line automatically creates a temporary .npmrc for you
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@adolf94'
+          
       - name: Install Dependencies
         run: npm install --legacy-peer-deps
+        env:
+          # This environment variable is used by the .npmrc
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         working-directory: frontend
           
       - name: Build React
         run: npm run build
         working-directory: frontend
-  
  
       - name: Substitute JSON 
         uses: restackio/update-json-file-action@2.1
@@ -44,11 +51,13 @@ jobs:
               "guarantorRole": "api://${{vars.API_CLIENT_ID}}/guarantor"
             }
 
-      - name: Move/Rename config.json to js
+      - name: Build And Deploy Preparation
         run: |
-              echo window.webConfig= > config.js
-              cat config.json >> config.js
-        working-directory: frontend/dist
+              cp public/staticwebapp.config.json dist/
+              echo window.webConfig= > dist/config.js
+              cat dist/config.json >> dist/config.js
+        working-directory: frontend
+
         
       - name: Get Id Token
         uses: actions/github-script@v6
@@ -65,14 +74,16 @@ jobs:
         with:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_AGREEABLE_POND_0087D2C00 }}
           action: "upload"
+           repo_token: ${{ secrets.GITHUB_TOKEN }} # Used for Github integrations (i.e. PR comments)
+          action: "upload"
           ###### Repository/Build Configurations - These values can be configured to match your app requirements. ######
           # For more information regarding Static Web App workflow configurations, please visit: https://aka.ms/swaworkflowconfig
           app_location: "./frontend/dist" # App source code path
           api_location: "" # Api source code path - optional
-          skip_app_build : true,
-          skip_api_build : true,
-          output_location: "dist" # Built app content directory - optional
-          github_id_token: ${{ steps.idtoken.outputs.result }}
+          skip_app_build: true
+          skip_api_build: true
+          output_location: "" # Built app content directory - optional
+
           ###### End of Repository/Build Configurations ######
 
   close_pull_request_job:
