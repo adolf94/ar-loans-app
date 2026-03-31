@@ -11,6 +11,7 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       injectRegister: 'auto',
+      filename: 'service-worker.js',
       includeAssets: ['vite.svg', 'config.js'],
       manifest: {
         name: 'LendFlow | AI Loan Management',

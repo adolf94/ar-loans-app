@@ -2,7 +2,23 @@
 	"trailingSlash": "never",
 	"routes": [
 		{
-			"route": "/sw.js",
+			"route": "/service-worker.js",
+			"headers": {
+				"cache-control": "no-cache, no-store, must-revalidate",
+				"pragma": "no-cache",
+				"expires": "0"
+			}
+		},
+		{
+			"route": "/register-sw.js",
+			"headers": {
+				"cache-control": "no-cache, no-store, must-revalidate",
+				"pragma": "no-cache",
+				"expires": "0"
+			}
+		},
+		{
+			"route": "/generateSW.js",
 			"headers": {
 				"cache-control": "no-cache, no-store, must-revalidate",
 				"pragma": "no-cache",
@@ -63,9 +79,10 @@
 			"/*.ico",
 			"/*.json",
 			"/*.webmanifest",
-			"/sw.js",
-			"/config.js",
-			"/generateSW.js"
+			"/service-worker.js",
+			"/register-sw.js",
+			"/generateSW.js",
+			"/config.js"
 		]
 	},
 	"mimeTypes": {
