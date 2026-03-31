@@ -1,5 +1,5 @@
 {
-	"trailingSlash": "auto",
+	"trailingSlash": "never",
 	"routes": [
 		{
 			"route": "/sw.js",
@@ -51,15 +51,16 @@
 		}
 	],
 	"navigationFallback": {
-		"rewrite": "index.html",
+		"rewrite": "/index.html",
 		"exclude": [
-			"/assets/*",
-			"/config.js",
-			"/images/**/*",
-			"/css/*",
-			"/sw.js",
-			"/manifest.webmanifest",
-			"/*.{js,css,png,jpg,svg,ico,json}"
+			"/**/*.js",
+			"/**/*.css",
+			"/**/*.png",
+			"/**/*.jpg",
+			"/**/*.svg",
+			"/**/*.ico",
+			"/**/*.json",
+			"/**/*.webmanifest"
 		]
 	},
 	"mimeTypes": {
