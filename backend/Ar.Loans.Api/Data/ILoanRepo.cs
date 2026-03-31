@@ -17,7 +17,7 @@ namespace Ar.Loans.Api.Data
 				public Task<List<Loan>> GetGuaranteedLoans(Guid id);
 				public Task<List<Loan>> GetUserLoans(Guid id);
 				Task DeleteLoan(Guid id);
-				Task RebalanceInterestRealizations(Loan loan);
+				Task<TransactionResult> RebalanceInterestRealizations(Loan loan);
 
 
 		}

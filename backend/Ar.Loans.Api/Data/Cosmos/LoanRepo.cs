@@ -207,40 +207,10 @@ namespace Ar.Loans.Api.Data.Cosmos
             await _entry.AdjustAccountBalance(paymentEntry.CreditId, paymentEntry.Amount, false, true);
 
 
-            // 3. Principal-First Interest Realization Logic (for all loans):
-            // Interest is only realized when the payment amount exceeds the outstanding principal portion of the balance.
-            decimal currentPrincipalRemainingBefore = Math.Min(oldBalance, loan.Principal);
-            decimal totalAccruedInterestBefore = Math.Max(0, oldBalance - loan.Principal);
-
-            decimal realizedInterest = Math.Max(0, Math.Min(totalAccruedInterestBefore, payment.Amount - currentPrincipalRemainingBefore));
-
-            if (realizedInterest > 0)
-            {
-                var interestEntryId = Guid.CreateVersion7();
-                var interestRealizationEntry = new Entry
-                {
-                    Id = interestEntryId,
-                    Description = $"Interest Income Realization ({loan.AlternateId}) - {client!.Name}",
-                    DebitId = AccountConstants.AccruedInterest,
-                    CreditId = AccountConstants.InterestIncome,
-                    Date = payment.Date,
-                    Amount = realizedInterest,
-                    LoanId = loan.Id,
-                    AddedBy = _user.UserId,
-                };
-                _context.Entries.Add(interestRealizationEntry);
-
-                // Transfer balance from Accrued to Realized
-                await _entry.AdjustAccountBalance(interestRealizationEntry.DebitId, realizedInterest, true, true);
-                await _entry.AdjustAccountBalance(interestRealizationEntry.CreditId, realizedInterest, false, true);
-            }
 
             // 4. Re-accrue interest from the reset point to Today
             DateTime referenceDateUTC8 = DateTime.UtcNow.AddHours(8);
             await AccrueInterestInternal(loan, referenceDateUTC8, true);
-
-            // 5. DEEP REBALANCE: Recalculate ALL realizations for this loan from scratch
-            await RebalanceInterestRealizations(loan);
 
             if (loan.Balance <= 0)
             {
@@ -249,16 +219,21 @@ namespace Ar.Loans.Api.Data.Cosmos
 
             _context.Loans.Update(loan);
 
-            var accounts = _context.ChangeTracker.Entries<Account>()
-                .Where(e => e.State == EntityState.Modified || e.State == EntityState.Added)
-                .Select(e => e.Entity).ToList();
-            var entries = _context.ChangeTracker.Entries<Entry>()
-                .Where(e => e.State == EntityState.Modified || e.State == EntityState.Added)
-                .Select(e => e.Entity).ToList();
+            // 5. DEEP REBALANCE: Recalculate ALL realizations for this loan from scratch AND capture final results
+            var rebalanceResult = await RebalanceInterestRealizations(loan);
 
-            await _context.SaveChangesAsync();
+            // Our final result should merge what rebalance saved with what we tracked here manually if necessary, 
+            // but since rebalanceResult already contains the saved entities, we just need to merge additional tracking from earlier if needed.
+            // Actually, because rebalanceResult.Accounts/Entries already includes saved changes from THIS tracker, it's fairly complete.
+            
+            rebalanceResult.Loan = loan;
+            rebalanceResult.Payment = payment;
+            foreach (var dId in deletedEntryIds)
+            {
+                if (!rebalanceResult.DeletedEntryIds.Contains(dId)) rebalanceResult.DeletedEntryIds.Add(dId);
+            }
 
-            return new TransactionResult { Loan = loan, Payment = payment, Accounts = accounts, Entries = entries, DeletedEntryIds = deletedEntryIds };
+            return rebalanceResult;
         }
 
         public async Task DeleteLoan(Guid id)
@@ -432,7 +407,7 @@ namespace Ar.Loans.Api.Data.Cosmos
             await Task.CompletedTask;
         }
 
-        public async Task RebalanceInterestRealizations(Loan loan)
+        public async Task<TransactionResult> RebalanceInterestRealizations(Loan loan)
         {
             var client = await _context.Users.FirstOrDefaultAsync(l => l.Id == loan.ClientId);
             
@@ -498,6 +473,24 @@ namespace Ar.Loans.Api.Data.Cosmos
                     currentSimBalance -= tx.Amount;
                 }
             }
+
+            var result = new TransactionResult
+            {
+                Accounts = _context.ChangeTracker.Entries<Account>()
+                    .Where(e => e.State == Microsoft.EntityFrameworkCore.EntityState.Modified)
+                    .Select(e => e.Entity).ToList(),
+
+                Entries = _context.ChangeTracker.Entries<Entry>()
+                    .Where(e => e.State == Microsoft.EntityFrameworkCore.EntityState.Modified || e.State == Microsoft.EntityFrameworkCore.EntityState.Added)
+                    .Select(e => e.Entity).ToList(),
+
+                DeletedEntryIds = _context.ChangeTracker.Entries<Entry>()
+                    .Where(e => e.State == Microsoft.EntityFrameworkCore.EntityState.Deleted)
+                    .Select(e => e.Entity.Id).ToList()
+            };
+
+            await _context.SaveChangesAsync();
+            return result;
         }
     }
 }

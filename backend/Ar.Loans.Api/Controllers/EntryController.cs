@@ -54,7 +54,20 @@ namespace Ar.Loans.Api.Controllers
             // Orchestrate: If a loan's payments were affected, rebalance realizations
             if (result != null && result.Loan != null)
             {
-                await _loanRepo.RebalanceInterestRealizations(result.Loan);
+                var additionalResult = await _loanRepo.RebalanceInterestRealizations(result.Loan);
+
+                // Merge into result
+                if (additionalResult != null)
+                {
+                    foreach (var acc in additionalResult.Accounts)
+                    {
+                        if (!result.Accounts.Any(a => a.Id == acc.Id)) result.Accounts.Add(acc);
+                    }
+                    foreach (var dId in additionalResult.DeletedEntryIds)
+                    {
+                        if (!result.DeletedEntryIds.Contains(dId)) result.DeletedEntryIds.Add(dId);
+                    }
+                }
             }
 
             return new OkObjectResult(result);

@@ -69,39 +69,41 @@ const LoanManageDialog: React.FC<LoanManageDialogProps> = ({
 
     if (!loan) return null;
 
-    const handleDeleteLoan = async () => {
-        try {
-            await confirm({
-                title: 'Confirm Loan Deletion',
-                description: 'WARNING: Are you sure you want to PERMANENTLY DELETE this loan and ALL associated transactions? This action will revert all financial effects and cannot be undone.',
-                confirmationText: 'Permanently Delete',
-                cancellationText: 'Cancel',
-                confirmationButtonProps: { color: 'error', variant: 'contained' },
+    const handleDeleteLoan = () => {
+        confirm({
+            title: 'Confirm Loan Deletion',
+            description: 'WARNING: Are you sure you want to PERMANENTLY DELETE this loan and ALL associated transactions? This action will revert all financial effects and cannot be undone.',
+            confirmationText: 'Permanently Delete',
+            cancellationText: 'Cancel',
+            confirmationButtonProps: { color: 'error', variant: 'contained' },
+        })
+            .then(async (res) => {
+                if (!res.confirmed) return;
+                await deleteLoan.mutateAsync(loan.id);
+                onClose();
+            })
+            .catch(() => {
+                /* Cancelled - do nothing */
             });
-
-            await deleteLoan.mutateAsync(loan.id);
-            onClose();
-        } catch (e) {
-            // Cancelled
-        }
     };
 
 
-    const handleDeleteEntry = async (entryId: string) => {
-        try {
-            await confirm({
-                title: 'Confirm Loan Deletion',
-                description: 'WARNING: Are you sure you want to PERMANENTLY DELETE this entry ? This action cannot be undone.',
-                confirmationText: 'Permanently Delete',
-                cancellationText: 'Cancel',
-                confirmationButtonProps: { color: 'error', variant: 'contained' },
+    const handleDeleteEntry = (entryId: string) => {
+        confirm({
+            title: 'Confirm Entry Deletion',
+            description: 'WARNING: Are you sure you want to PERMANENTLY DELETE this entry? This action cannot be undone and will affect account balances.',
+            confirmationText: 'Permanently Delete',
+            cancellationText: 'Cancel',
+            confirmationButtonProps: { color: 'error', variant: 'contained' },
+        })
+            .then(async () => {
+                if (!res.confirmed) return;
+                await deleteEntry.mutateAsync(entryId);
+                // No onClose() here - let the user stay and see updated list
+            })
+            .catch(() => {
+                /* Cancelled - do nothing */
             });
-
-            await deleteEntry.mutateAsync(entryId);
-            onClose();
-        } catch (e) {
-            // Cancelled
-        }
     }
 
 
