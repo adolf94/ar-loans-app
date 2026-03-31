@@ -4,11 +4,12 @@ on:
   workflow_dispatch:
 
 jobs:
-  build_job:
+  build_and_deploy_job:
     runs-on: ubuntu-latest
-    name: Build Job
+    name: Build and Deploy Job
     environment: Default
     permissions:
+      id-token: write
       contents: read
       packages: read
     steps:
@@ -16,6 +17,8 @@ jobs:
         with:
           submodules: true
           lfs: false
+      - name: Install OIDC Client from Core Package
+        run: npm install @actions/core@1.6.0 @actions/http-client
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -40,6 +43,7 @@ jobs:
           fields: |
             {
               "apiUrl": "${{ vars.API }}",
+              "authUrl": "${{ vars.AUTH_API }}",
               "clientId": "${{ vars.CLIENT_ID }}",
               "apiClientId": "${{ vars.API_CLIENT_ID }}",
               "redirectUri": "${{ vars.REDIRECT_URI }}",
@@ -55,23 +59,15 @@ jobs:
               echo window.webConfig= > dist/config.js
               cat dist/config.json >> dist/config.js
         working-directory: frontend
-        
-      - name: Upload Build Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: frontend-dist
-          path: frontend/dist/
 
-  deploy_job:
-    needs: build_job
-    runs-on: ubuntu-latest
-    name: Deploy Job
-    steps:
-      - name: Download Build Artifact
-        uses: actions/download-artifact@v4
+      - name: Get Id Token
+        uses: actions/github-script@v6
+        id: idtoken
         with:
-          name: frontend-dist
-          path: ./dist
+           script: |
+               const core = require('@actions/core')
+               return await core.getIDToken()
+           result-encoding: string
 
       - name: Build And Deploy
         id: builddeploy
@@ -80,11 +76,12 @@ jobs:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_AGREEABLE_POND_0087D2C00 }}
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: "upload"
-          app_location: "./dist"
+          app_location: "./frontend/dist"
           api_location: ""
           skip_app_build: true
           skip_api_build: true
-          output_location: ""
+          output_location: "dist"
+          github_id_token: ${{ steps.idtoken.outputs.result }}
 
   close_pull_request_job:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
