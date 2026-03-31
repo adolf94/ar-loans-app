@@ -8,8 +8,9 @@ jobs:
     runs-on: ubuntu-latest
     environment: AR_Loans
     permissions:
+      id-token: write
       contents: read
-      packages: read 
+      packages: read
     name: Build and Deploy Job
     steps:
       - uses: actions/checkout@v3
