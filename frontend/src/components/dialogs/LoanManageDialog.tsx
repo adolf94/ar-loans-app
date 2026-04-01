@@ -96,7 +96,7 @@ const LoanManageDialog: React.FC<LoanManageDialogProps> = ({
             cancellationText: 'Cancel',
             confirmationButtonProps: { color: 'error', variant: 'contained' },
         })
-            .then(async () => {
+            .then(async (res) => {
                 if (!res.confirmed) return;
                 await deleteEntry.mutateAsync(entryId);
                 // No onClose() here - let the user stay and see updated list

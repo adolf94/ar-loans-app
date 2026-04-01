@@ -130,9 +130,9 @@ namespace Ar.Loans.Api.Data.Cosmos
             var client = await _context.Users.FirstOrDefaultAsync(l => l.Id == payment.UserId);
             if (loan == null) throw new Exception("Loan not found");
 
-            // 1. Identify entries to remove (those after payment date)
+            // 1. Identify entries to remove (those after payment date or affected by it)
             var futureTransactions = loan.Transactions
-                    .Where(t => t.DateStart > payment.Date)
+                    .Where(t => t.DateStart > payment.Date || ((t.Type == "interest" || t.Type == "penalty") && t.EndDate > payment.Date))
                     .ToList();
 
             var deletedEntryIds = new List<Guid>();
@@ -278,12 +278,6 @@ namespace Ar.Loans.Api.Data.Cosmos
             var client = await _context.Users.FirstOrDefaultAsync(l => l.Id == loan.ClientId);
             while (true)
             {
-                if (loan.Balance <= 0)
-                {
-                    loan.Status = "Paid";
-                    break;
-                }
-
                 if (loan.Transactions.Count > 120) break; // Increased limit slightly to handle more separate entries
 
                 // We wait until the grace period is over to accrue the full interest
@@ -336,82 +330,90 @@ namespace Ar.Loans.Api.Data.Cosmos
                 {
                     // Make sure we advance dates even if 0 charge
                     loan.NextInterestDate = loan.NextInterestDate.AddMonths(1);
-                    continue;
                 }
-
-                var endDate = startDate.AddMonths(1);
-
-                if (monthlyInterest > 0)
+                else
                 {
-                    var interestEntryId = Guid.CreateVersion7();
-                    var interestEntry = new Entry
-                    {
-                        Id = interestEntryId,
-                        Description = $"Interest Accrual ({loan.AlternateId}) - {client!.Name} ",
-                        DebitId = AccountConstants.LoanReceivables,
-                        CreditId = AccountConstants.AccruedInterest,
-                        Amount = monthlyInterest,
-                        LoanId = loan.Id,
-                        Date = startDate,
-                        AddedBy = _user.UserId
-                    };
+                    var endDate = startDate.AddMonths(1);
 
-                    loan.Transactions.Add(new LoanLedger
+                    if (monthlyInterest > 0)
                     {
-                        LedgerId = interestEntryId,
-                        AltKey = $"interest|{startDate:yyyy-MM-dd}",
-                        Type = "interest",
-                        Amount = monthlyInterest,
-                        DateStart = startDate,
-                        EndDate = endDate
-                    });
+                        var interestEntryId = Guid.CreateVersion7();
+                        var interestEntry = new Entry
+                        {
+                            Id = interestEntryId,
+                            Description = $"Interest Accrual ({loan.AlternateId}) - {client!.Name} ",
+                            DebitId = AccountConstants.LoanReceivables,
+                            CreditId = AccountConstants.AccruedInterest,
+                            Amount = monthlyInterest,
+                            LoanId = loan.Id,
+                            Date = startDate,
+                            AddedBy = _user.UserId
+                        };
 
-                    loan.Balance += monthlyInterest;
+                        loan.Transactions.Add(new LoanLedger
+                        {
+                            LedgerId = interestEntryId,
+                            AltKey = $"interest|{startDate:yyyy-MM-dd}",
+                            Type = "interest",
+                            Amount = monthlyInterest,
+                            DateStart = startDate,
+                            EndDate = endDate
+                        });
 
-                    if (saveEntries)
-                    {
-                        _context.Entries.Add(interestEntry);
-                        await _entry.AdjustAccountBalance(interestEntry.DebitId, interestEntry.Amount, true, true);
-                        await _entry.AdjustAccountBalance(interestEntry.CreditId, interestEntry.Amount, false, true);
+                        loan.Balance += monthlyInterest;
+
+                        if (saveEntries)
+                        {
+                            _context.Entries.Add(interestEntry);
+                            await _entry.AdjustAccountBalance(interestEntry.DebitId, interestEntry.Amount, true, true);
+                            await _entry.AdjustAccountBalance(interestEntry.CreditId, interestEntry.Amount, false, true);
+                        }
                     }
-                }
 
-                if (penaltyInterest > 0)
+                    if (penaltyInterest > 0)
+                    {
+                        var penaltyEntryId = Guid.CreateVersion7();
+                        var penaltyEntry = new Entry
+                        {
+                            Id = penaltyEntryId,
+                            Description = $"Late Penalty Accrual ({loan.AlternateId}) - {client!.Name} ",
+                            DebitId = AccountConstants.LoanReceivables,
+                            CreditId = AccountConstants.AccruedInterest,
+                            Amount = penaltyInterest,
+                            LoanId = loan.Id,
+                            Date = startDate,
+                            AddedBy = _user.UserId
+                        };
+
+                        loan.Transactions.Add(new LoanLedger
+                        {
+                            LedgerId = penaltyEntryId,
+                            AltKey = $"penalty|{startDate:yyyy-MM-dd}",
+                            Type = "penalty",
+                            Amount = penaltyInterest,
+                            DateStart = startDate,
+                            EndDate = endDate
+                        });
+
+                        loan.Balance += penaltyInterest;
+
+                        if (saveEntries)
+                        {
+                            _context.Entries.Add(penaltyEntry);
+                            await _entry.AdjustAccountBalance(penaltyEntry.DebitId, penaltyEntry.Amount, true, true);
+                            await _entry.AdjustAccountBalance(penaltyEntry.CreditId, penaltyEntry.Amount, false, true);
+                        }
+                    }
+
+                    loan.NextInterestDate = endDate;
+                } // End of else (totalCharge > 0)
+
+                // Check for settlement after processing the period
+                if (loan.Balance <= 0)
                 {
-                    var penaltyEntryId = Guid.CreateVersion7();
-                    var penaltyEntry = new Entry
-                    {
-                        Id = penaltyEntryId,
-                        Description = $"Late Penalty Accrual ({loan.AlternateId}) - {client!.Name} ",
-                        DebitId = AccountConstants.LoanReceivables,
-                        CreditId = AccountConstants.AccruedInterest,
-                        Amount = penaltyInterest,
-                        LoanId = loan.Id,
-                        Date = startDate,
-                        AddedBy = _user.UserId
-                    };
-
-                    loan.Transactions.Add(new LoanLedger
-                    {
-                        LedgerId = penaltyEntryId,
-                        AltKey = $"penalty|{startDate:yyyy-MM-dd}",
-                        Type = "penalty",
-                        Amount = penaltyInterest,
-                        DateStart = startDate,
-                        EndDate = endDate
-                    });
-
-                    loan.Balance += penaltyInterest;
-
-                    if (saveEntries)
-                    {
-                        _context.Entries.Add(penaltyEntry);
-                        await _entry.AdjustAccountBalance(penaltyEntry.DebitId, penaltyEntry.Amount, true, true);
-                        await _entry.AdjustAccountBalance(penaltyEntry.CreditId, penaltyEntry.Amount, false, true);
-                    }
+                    loan.Status = "Paid";
+                    break;
                 }
-
-                loan.NextInterestDate = endDate;
             }
 
             await Task.CompletedTask;
