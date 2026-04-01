@@ -74,7 +74,7 @@ namespace Ar.Loans.Api.Data.Cosmos
 
         public async Task<User> UpdateUser(User item)
         {
-            var existing = await _ctx.Users.FindAsync(item.Id, item.PartitionKey ?? "default");
+            var existing = await _ctx.Users.FindAsync(item.Id);
             if (existing == null) throw new Exception($"User not found with ID: {item.Id} in partition: {item.PartitionKey}");
 
             existing.Name = item.Name;
