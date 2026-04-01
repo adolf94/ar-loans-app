@@ -241,22 +241,32 @@ namespace Ar.Loans.Api.Data.Cosmos
             var loan = await _context.Loans.FindAsync(id);
             if (loan == null) return;
 
-            // Find all related entries
-            //var entries = await _context.Entries.Where(e => e.LoanId == id).ToListAsync();
-
-            var entries = loan.Transactions;
-
-            foreach (var item in entries)
+            // 1. Find and remove all related entries (including interest realizations)
+            var entries = await _context.Entries.Where(e => e.LoanId == id).ToListAsync();
+            foreach (var entry in entries)
             {
-                // Revert Account Balances
-                var entry = await _context.Entries.Where(e => e.Id == item.LedgerId).FirstOrDefaultAsync();
-                await _entry.AdjustAccountBalance(entry.DebitId, entry.Amount, true, false);
+                // Revert Account Balancesteateab v      await _entry.AdjustAccountBalance(entry.DebitId, entry.Amount, true, false);
                 await _entry.AdjustAccountBalance(entry.CreditId, entry.Amount, false, false);
-
                 _context.Entries.Remove(entry);
             }
 
+            // 2. Find and remove associated Payments
+            var payments = await _context.Payment.Where(p => p.LoanId == id).ToListAsync();
+            foreach (var payment in payments)
+            {
+                _context.Payment.Remove(payment);
+            }
+
+            // 3. Find and remove associated Comments
+            var comments = await _context.Comments.Where(c => c.LoanId == id).ToListAsync();
+            foreach (var comment in comments)
+            {
+                _context.Comments.Remove(comment);
+            }
+
+            // 4. Remove the Loan itself
             _context.Loans.Remove(loan);
+
             await _context.SaveChangesAsync();
         }
 
