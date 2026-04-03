@@ -70,9 +70,27 @@ namespace Ar.Loans.Api.Services
                     Source = source,
                     Message = message,
                     ChatId = chatId,
-                    Data = finalData,
                     PartitionKey = "default"
                 };
+
+                if (finalData != null)
+                {
+                    // Map special properties to top-level fields if they exist in the incoming object
+                    if (finalData["Type"] != null) logEntry.Type = finalData["Type"]?.ToString();
+                    if (finalData["Status"] != null) logEntry.Status = finalData["Status"]?.Value<int>();
+                    if (finalData["Payload"] != null) logEntry.Payload = finalData["Payload"] as JObject;
+                    
+                    // If we have a 'Data' property inside the container, promote it to the top-level 'Data'
+                    // otherwise, keep the whole container as 'Data'
+                    if (finalData["Data"] != null)
+                    {
+                        logEntry.Data = finalData["Data"] is JObject obj ? obj : new JObject { ["Value"] = finalData["Data"] };
+                    }
+                    else
+                    {
+                        logEntry.Data = finalData;
+                    }
+                }
 
                 _context.Logs.Add(logEntry);
                 await _context.SaveChangesAsync();

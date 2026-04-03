@@ -33,7 +33,7 @@ namespace Ar.Loans.Api.Controllers
 
             var success = await _telegramService.SendMessageAsync(request.ChatId, request.Text);
 
-                 if (success)
+                if (success != null)
             {
                 //await _logService.LogInfoAsync("AdminDashboard", $"Outbound message to {request.ChatId}", new { request.ChatId, request.Text }, request.ChatId);
                 return new OkObjectResult(new { success = true });

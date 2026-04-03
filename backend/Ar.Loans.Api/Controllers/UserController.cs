@@ -1,6 +1,7 @@
 using Ar.Loans.Api.Data;
 using Ar.Loans.Api.Models;
 using Ar.Loans.Api.Utilities;
+using Ar.Loans.Api.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
@@ -14,13 +15,14 @@ using Microsoft.Extensions.Caching.Memory;
 
 namespace Ar.Loans.Api.Controllers
 {
-    public class UserController(IUserRepo repo, IDbHelper db, AppConfig config, CurrentUser user, IMemoryCache cache)
+    public class UserController(IUserRepo repo, IDbHelper db, AppConfig config, CurrentUser user, IMemoryCache cache, AuthorityService authorityService)
     {
         private readonly IDbHelper _db = db;
         private readonly IUserRepo _repo = repo;
         private readonly AppConfig _config = config;
         private readonly CurrentUser _user = user;
         private readonly IMemoryCache _cache = cache;
+        private readonly AuthorityService _authority = authorityService;
         
         [Function(nameof(SyncUser))]
         public async Task<IActionResult> SyncUser([HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "users/sync")] HttpRequest req)
@@ -35,13 +37,12 @@ namespace Ar.Loans.Api.Controllers
             {
                 try
                 {
-                    req.Body.Position = 0;
                     var body = await req.ReadFromJsonAsync<dynamic>();
                     state = body?.state;
                 }
                 catch { /* ignore */ }
             }
-
+ 
             if (!string.IsNullOrEmpty(state) && _cache.TryGetValue(state, out Guid targetUserId))
             {
                 existingUser = await _repo.GetUserById(targetUserId);
@@ -86,6 +87,32 @@ namespace Ar.Loans.Api.Controllers
                     await _repo.UpdateUser(existingUser);
                     await _db.SaveChangesAsync();
                 }
+                if (!string.IsNullOrEmpty(existingUser.OidcUid))
+                {
+                    try
+                    {
+
+												var authDetails = await _authority.GetUserDetailsAsync(existingUser.OidcUid);
+												if (authDetails != null)
+												{
+														existingUser.EmailAddress = authDetails.Email;
+														existingUser.MobileNumber = authDetails.MobileNumber ?? existingUser.MobileNumber;
+														existingUser.TelegramId = authDetails.GetTelegramId() ?? existingUser.TelegramId;
+														await _repo.UpdateUser(existingUser);
+														await _db.SaveChangesAsync();
+												}
+												else
+												{
+														existingUser.OidcUid = null;
+														await _repo.UpdateUser(existingUser);
+														await _db.SaveChangesAsync();
+												}
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine("");
+                    }
+								}
                 return new OkObjectResult(existingUser);
             }
 
@@ -93,13 +120,28 @@ namespace Ar.Loans.Api.Controllers
             Guid transientId = Guid.Empty;
             if (Guid.TryParse(_user.OidcUid, out var guidOidc)) transientId = guidOidc;
 
+            string transientEmail = _user.EmailAddress;
+            string transientMobile = _user.MobileNumber;
+            //string? transientTelegram = null;
+
+            //if (!string.IsNullOrEmpty(_user.OidcUid))
+            //{
+            //    var authDetails = await _authority.GetUserDetailsAsync(_user.OidcUid);
+            //    if (authDetails != null)
+            //    {
+            //        transientEmail = authDetails.Email;
+            //        transientMobile = authDetails.MobileNumber ?? transientMobile;
+            //        transientTelegram = authDetails.GetTelegramId();
+            //    }
+            //}
+
             var transientUser = new
             {
                 Id = transientId,
                 anonymous_id = _user.OidcUid,
                 Name = _user.Name,
-                EmailAddress = _user.EmailAddress,
-                MobileNumber = _user.MobileNumber,
+                EmailAddress = transientEmail,
+                MobileNumber = transientMobile,
                 OidcUid = _user.OidcUid,
                 Role = "Client"
             };
@@ -111,7 +153,7 @@ namespace Ar.Loans.Api.Controllers
         public async Task<IActionResult> GenerateMagicUrl([HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "users/link-magic-url")] HttpRequest req)
         {
             if (!_user.IsAuthenticated) return new UnauthorizedResult();
-            if (!_user.IsAuthorized(",coop_guarantor")) return new ForbidResult();
+            if (!_user.IsAuthorized("admin,guarantor")) return new ForbidResult();
 
             string? targetUserIdStr = req.Query["targetUserId"];
             if (!Guid.TryParse(targetUserIdStr, out var targetUserId)) return new BadRequestObjectResult("Invalid targetUserId");
@@ -122,16 +164,22 @@ namespace Ar.Loans.Api.Controllers
 
             // Create a signed token for the magic link (HMAC-SHA256)
             string token = JwtTokenHelper.CreateInternalToken(targetUserIdStr, _config.JwtConfig.SecretKey ?? "", "", "");
+            
+            // Persist token in the database for 24h
+            targetUser.MagicLinkToken = token;
+            targetUser.MagicLinkTokenExpiration = DateTime.UtcNow.AddHours(24);
+            await _repo.UpdateUser(targetUser);
+            await _db.SaveChangesAsync();
 
             var host = req.Headers["Host"];
             var scheme = req.Scheme ?? "https";
-            string magicUrl = $"{scheme}://{host}/api/users/m?token={token}";
+            string magicUrl = $"{scheme}://{host}/api/users/m?token={Uri.EscapeDataString(token)}";
 
             return new OkObjectResult(new { url = magicUrl });
         }
 
-        [Function(nameof(MagicRedirect))]
-        public async Task<IActionResult> MagicRedirect([HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "users/m")] HttpRequest req)
+        [Function(nameof(GetMagicRedirect))]
+        public async Task<IActionResult> GetMagicRedirect([HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "users/m")] HttpRequest req)
         {
             string? token = req.Query["token"];
             if (string.IsNullOrEmpty(token)) return new BadRequestObjectResult("Token is required");
@@ -140,34 +188,27 @@ namespace Ar.Loans.Api.Controllers
             if (string.IsNullOrEmpty(targetUserIdStr) || !Guid.TryParse(targetUserIdStr, out var targetUserId)) 
                 return new BadRequestObjectResult("Invalid or expired token");
 
-            // Generate state and store in memory
+            // Verify the token exists in DB and hasn't expired
+            var targetUser = await _repo.GetUserById(targetUserId);
+            if (targetUser == null || targetUser.MagicLinkToken != token || (targetUser.MagicLinkTokenExpiration.HasValue && targetUser.MagicLinkTokenExpiration < DateTime.UtcNow))
+            {
+                return new BadRequestObjectResult("This magic link has already been used or is expired.");
+            }
+
+            // Remove token from database immediately after use (one-time use)
+            targetUser.MagicLinkToken = null;
+            targetUser.MagicLinkTokenExpiration = null;
+            await _repo.UpdateUser(targetUser);
+            await _db.SaveChangesAsync();
+
+            // Generate state and store in memory for OIDC flow
             string state = Guid.NewGuid().ToString("N");
             _cache.Set(state, targetUserId, TimeSpan.FromMinutes(15));
 
-            // Discover and construct a formal OIDC authorize URL
-            string authority = _config.JwtConfig.Authority ?? "";
-            string? authorizeEndpoint = await JwtTokenHelper.GetAuthorizationEndpoint(authority);
-
-            if (!string.IsNullOrEmpty(authorizeEndpoint))
-            {
-                var queryParams = new Dictionary<string, string>
-                {
-                    { "client_id", _config.JwtConfig.ClientId ?? "" },
-                    { "response_type", "code" },
-                    { "scope", _config.JwtConfig.Scope ?? "openid profile email" },
-                    { "redirect_uri", _config.JwtConfig.RedirectUri ?? "" },
-                    { "state", state }
-                };
-
-                string queryString = string.Join("&", queryParams.Select(kv => $"{kv.Key}={Uri.EscapeDataString(kv.Value)}"));
-                string authorizeUrl = $"{authorizeEndpoint}{(authorizeEndpoint.Contains("?") ? "&" : "?")}{queryString}";
-
-                return new RedirectResult(authorizeUrl);
-            }
-
-            // Fallback (should not happen if discovery is working)
-            string authBaseUrl = _config.AuthUrl?.TrimEnd('/') ?? "";
-            string redirectUrl = $"{authBaseUrl}/api/auth/redirectSignIn?state={state}";
+            // Redirect to frontend instead of OIDC provider directly
+            // This allows the frontend auth-client to handle PKCE and state management correctly
+            string frontendUrl = _config.JwtConfig.RedirectUri ?? "";
+            string redirectUrl = $"{frontendUrl}{(frontendUrl.Contains("?") ? "&" : "?")}link_state={state}";
 
             return new RedirectResult(redirectUrl);
         }

@@ -24,7 +24,9 @@ namespace Ar.Loans.Api.Utilities
     public class TelegramConfiguration
     {
         public string ClientSecret { get; set; } = string.Empty;
-    }
+        public string GuarantorGroupChat { get; set; } = string.Empty;
+        public string GuarantorChannel { get; set; } = string.Empty;
+		}
     public class JwtConfiguration
     {
         public string? Issuer { get; set; }
@@ -32,6 +34,7 @@ namespace Ar.Loans.Api.Utilities
         public string? SecretKey { get; set; }
         public string? Authority { get; set; }
         public string? ClientId { get; set; }
+        public string? ClientSecret { get; set; }
         public string? RedirectUri { get; set; }
         public string? Scope { get; set; }
     }

@@ -31,7 +31,16 @@ const LoginPrompt = () => {
     }
 
 
-    return <Modal open={show} sx={{
+    const handleClose = () => {
+        setShow(false);
+        setBackdropLoading(false);
+        if (promise) {
+            promise.resolve(null);
+        }
+    };
+
+
+    return <Modal open={show} onClose={handleClose} sx={{
         minHeight: '100vh',
         display: 'flex',
         alignItems: 'center',

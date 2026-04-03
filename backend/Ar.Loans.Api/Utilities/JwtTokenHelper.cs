@@ -105,7 +105,7 @@ namespace Ar.Loans.Api.Utilities
 						if (parts.Length != 2) return null;
 
 						var userId = parts[0];
-						var providedSignature = parts[1];
+						var providedSignature = parts[1].Replace(" ", "+");
 
 						using var hmac = new System.Security.Cryptography.HMACSHA256(Encoding.UTF8.GetBytes(secretKey));
 						var hash = hmac.ComputeHash(Encoding.UTF8.GetBytes(userId));

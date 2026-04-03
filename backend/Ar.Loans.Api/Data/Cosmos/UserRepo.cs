@@ -84,6 +84,8 @@ namespace Ar.Loans.Api.Data.Cosmos
             existing.Accounts = item.Accounts;
             existing.OidcUid = item.OidcUid;
             existing.DefaultInterestRuleId = item.DefaultInterestRuleId;
+            existing.MagicLinkToken = item.MagicLinkToken;
+            existing.MagicLinkTokenExpiration = item.MagicLinkTokenExpiration;
 
             _ctx.Users.Update(existing);
             return existing;

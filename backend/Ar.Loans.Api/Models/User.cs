@@ -27,6 +27,12 @@ namespace Ar.Loans.Api.Models
         public Guid? DefaultInterestRuleId { get; set; }
         [JsonPropertyName("oidcUid")]
         public string? OidcUid { get; set; }
+        [JsonPropertyName("telegramId")]
+        public string? TelegramId { get; set; }
+        [JsonIgnore]
+        public string? MagicLinkToken { get; set; }
+        [JsonIgnore]
+        public DateTime? MagicLinkTokenExpiration { get; set; }
     }
 
 

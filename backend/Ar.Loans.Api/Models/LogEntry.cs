@@ -13,6 +13,9 @@ namespace Ar.Loans.Api.Models
         public string Source { get; set; } = string.Empty;
         public string? ChatId { get; set; }
         public string Message { get; set; } = string.Empty;
+        public string? Type { get; set; }
+        public int? Status { get; set; }
+        public JObject? Payload { get; set; }
         public JObject? Data { get; set; }
         public string PartitionKey { get; set; } = "default";
     }

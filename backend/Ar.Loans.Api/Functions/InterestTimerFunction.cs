@@ -1,7 +1,12 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using Ar.Loans.Api.Data;
 using Ar.Loans.Api.Models;
+using Ar.Loans.Api.Services;
+using Ar.Loans.Api.Utilities;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 
@@ -10,11 +15,22 @@ namespace Ar.Loans.Api.Functions
     public class InterestTimerFunction
     {
         private readonly ILoanRepo _loanRepo;
+        private readonly IUserRepo _userRepo;
+        private readonly TelegramService _telegramService;
+        private readonly AppConfig _appConfig;
         private readonly ILogger _logger;
 
-        public InterestTimerFunction(ILoanRepo loanRepo, ILoggerFactory loggerFactory)
+        public InterestTimerFunction(
+            ILoanRepo loanRepo, 
+            IUserRepo userRepo,
+            TelegramService telegramService,
+            AppConfig appConfig,
+            ILoggerFactory loggerFactory)
         {
             _loanRepo = loanRepo;
+            _userRepo = userRepo;
+            _telegramService = telegramService;
+            _appConfig = appConfig;
             _logger = loggerFactory.CreateLogger<InterestTimerFunction>();
         }
 
@@ -33,7 +49,39 @@ namespace Ar.Loans.Api.Functions
             {
                 try
                 {
-                    await _loanRepo.AccrueInterest(loan, referenceDateUTC8);
+                    var client = await _userRepo.GetUserById(loan.ClientId);
+                    var newTransactions = await _loanRepo.AccrueInterest(loan, referenceDateUTC8);
+                    
+                    if (newTransactions != null && newTransactions.Any())
+                    {
+                        bool hasNewTelegramIds = false;
+                        var runningBalance = loan.Balance - newTransactions.Sum(t => t.Amount);
+                        foreach (var tx in newTransactions)
+                        {
+                            runningBalance += tx.Amount;
+                            var message = new StringBuilder();
+                            message.AppendLine("📈 *New Interest Accrued*");
+                            message.AppendLine($"*ID*: {loan.AlternateId}");
+                            message.AppendLine($"*Name*: {client?.Name ?? "Unknown"}");
+                            message.AppendLine($"*Type*: {(tx.Type == "interest" ? "Interest" : "Penalty")}");
+                            message.AppendLine($"*Amount*: {tx.Amount:N2}");
+                            message.AppendLine($"*Until*: {tx.EndDate:MMM dd}");
+                            message.AppendLine($"*Balance*: {runningBalance:N2}");
+
+                            var msgId = await _telegramService.SendMessageAsync(_appConfig.Telegram.GuarantorChannel, message.ToString());
+                            if (msgId.HasValue)
+                            {
+                                tx.TelegramMessageId = msgId;
+                                hasNewTelegramIds = true;
+                            }
+                        }
+
+                        if (hasNewTelegramIds)
+                        {
+                            await _loanRepo.UpdateLoan(loan);
+                        }
+                    }
+
                     _logger.LogInformation($"Accrued interest for loan {loan.Id}");
                 }
                 catch (Exception ex)

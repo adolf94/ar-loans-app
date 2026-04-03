@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "@adolf94/ar-auth-client": "^1.1.1"
+  }
+}

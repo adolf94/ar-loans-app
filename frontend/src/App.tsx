@@ -5,7 +5,7 @@ import { router } from './router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { defaultUserInfo, UserInfoContext } from './components/useUserInfo';
-import { BackdropLoaderProvider } from './components/BackdropLoader';
+import { BackdropLoaderProvider, useBackdropLoader } from './components/BackdropLoader';
 import LoginPrompt from './components/login/LoginPrompt';
 import { jwtDecode } from 'jwt-decode'
 import { ConfirmProvider } from 'material-ui-confirm';
@@ -30,12 +30,37 @@ const authConfig = {
 };
 
 function AppContent({ userInfo, setUserInfo, init }: any) {
-  const { user, isAuthenticated, isLoading, hasScope } = useAuth();
+  const { user, isAuthenticated, isLoading, hasScope, login } = useAuth();
 
   const hasRole = (roleAny: string[]) => {
     return roleAny.some(e => hasScope(e))
   }
 
+  const setLoading = useBackdropLoader();
+
+  // Capture link_state once during component initialization
+  const [capturedLinkState] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    const ls = params.get('link_state');
+    console.log("Captured link_state on mount:", ls);
+    return ls;
+  });
+
+  useEffect(() => {
+    if (capturedLinkState && !isLoading) {
+      console.log("Triggering magic login for:", capturedLinkState);
+      setLoading(true);
+
+      // Clean the URL if it hasn't been cleaned yet
+      if (window.location.search.includes('link_state')) {
+        window.history.replaceState({}, '', window.location.pathname);
+      }
+
+      login({ state: capturedLinkState, useRedirect: true })
+        .catch((err) => console.log("Universal login cancelled or failed", err))
+        .finally(() => setLoading(false));
+    }
+  }, [capturedLinkState, isLoading, login, setLoading]);
 
   useEffect(() => {
     const performSync = async () => {

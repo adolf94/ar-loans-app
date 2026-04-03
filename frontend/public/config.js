@@ -8,6 +8,6 @@ webConfig = {
     "redirectUri": "https://localhost:5173",
     "adminRole": "api://ar-loans-api/admin",
     "guarantorRole": "api://ar-loans-api/guarantor",
-    defaultLoanTemplate: "019cbbab-e1dd-7e68-b501-f2962425d11d",
+    defaultLoanTemplate: "019cf9a0-ded3-73ae-bb7d-c14d9d24560e",
     allowAccountCreation: true
 }

@@ -22,18 +22,18 @@ namespace Ar.Loans.Api.Functions
         private readonly ILogger<TelegramWebhookFunction> _logger;
         private readonly LogService _logService;
         private readonly AppConfig _appConfig;
-        private readonly IHttpClientFactory _httpClientFactory;
+        private readonly TelegramService _telegramService;
 
         public TelegramWebhookFunction(
             ILogger<TelegramWebhookFunction> logger, 
             LogService logService,
             AppConfig appConfig,
-            IHttpClientFactory httpClientFactory)
+            TelegramService telegramService)
         {
             _logger = logger;
             _logService = logService;
             _appConfig = appConfig;
-            _httpClientFactory = httpClientFactory;
+            _telegramService = telegramService;
         }
 
         [Function("TelegramWebhook")]
@@ -57,7 +57,16 @@ namespace Ar.Loans.Api.Functions
             var user = message?["from"]?["username"]?.ToString() ?? message?["from"]?["first_name"]?.ToString();
 
             // Log the incoming message to CosmosDB (including ChatId)
-            await _logService.LogInfoAsync("TelegramWebhook", $"Message from {user}", json, chatId);
+            await _logService.LogInfoAsync(
+                "TelegramWebhook", 
+                $"Webhook message from {user}", 
+                new 
+                { 
+                    Type = "webhook", 
+                    Status = 100,
+                    Data = json 
+                }, 
+                chatId);
 
             // Respond to "/" command
             if (text != null && text.Trim() == "/")
@@ -80,37 +89,11 @@ namespace Ar.Loans.Api.Functions
                     }
                 }
 
-                await SendTelegramMessage(chatId, sb.ToString());
+                await _telegramService.SendMessageAsync(chatId, sb.ToString());
             }
             
             return new OkResult();
         }
 
-        private async Task SendTelegramMessage(string chatId, string text)
-        {
-            var botToken = _appConfig.Telegram.ClientSecret;
-            if (string.IsNullOrEmpty(botToken))
-            {
-                _logger.LogError("Telegram Bot Token (ClientSecret) is missing in configuration.");
-                return;
-            }
-
-            var url = $"https://api.telegram.org/bot{botToken}/sendMessage";
-            var payload = new
-            {
-                chat_id = chatId,
-                text = text,
-                parse_mode = "Markdown"
-            };
-
-            var httpClient = _httpClientFactory.CreateClient();
-            var response = await httpClient.PostAsJsonAsync(url, payload);
-
-            if (!response.IsSuccessStatusCode)
-            {
-                var error = await response.Content.ReadAsStringAsync();
-                _logger.LogError("Failed to send Telegram message: {Error}", error);
-            }
-        }
     }
 }

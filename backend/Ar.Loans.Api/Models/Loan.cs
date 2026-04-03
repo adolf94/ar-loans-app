@@ -1,4 +1,4 @@
-﻿using System.Text.Json.Serialization;
+using System.Text.Json.Serialization;
 
 namespace Ar.Loans.Api.Models
 {
@@ -89,5 +89,8 @@ namespace Ar.Loans.Api.Models
 
         [JsonPropertyName("endDate")]
         public DateOnly EndDate { get; set; }
+
+        [JsonPropertyName("telegramMessageId")]
+        public long? TelegramMessageId { get; set; }
     }
 }
