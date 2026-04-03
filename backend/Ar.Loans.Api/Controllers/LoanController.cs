@@ -67,7 +67,8 @@ namespace Ar.Loans.Api.Controllers
                         runningBalance += tx.Amount;
                         var msg = $"📈 *New Interest Accrued*\n" +
                                      $"*ID*: {result.Loan.AlternateId}\n" +
-                                     ( tx.Type == "interest" ? "": "*Type*:Penalty\n") +
+                                     $"*Name*: {client?.Name ?? "Unknown"}\n" +
+                                     ( tx.Type == "interest" ? "": "*Type*: Penalty\n") +
                                      $"*Amount*: {tx.Amount:N2}\n" +
                                      $"*Until*: {tx.EndDate:MMM dd}\n" +
                                      $"*Balance*: {runningBalance:N2}\n";
@@ -152,6 +153,7 @@ namespace Ar.Loans.Api.Controllers
 
             if (loan != null)
             {
+                var client = await _userRepo.GetUser(loan.ClientId);
                 // Send strikethrough for all Telegram messages in the ledger
                 foreach (var tx in loan.Transactions)
                 {
@@ -162,6 +164,7 @@ namespace Ar.Loans.Api.Controllers
                         {
                             strikeMsg = $"||~🏦 *New Loan Created* (Deleted)~\n" +
                                         $"~*ID*: {loan.AlternateId}~\n" +
+                                        $"~*Name*: {client?.Name ?? "Unknown"}~\n" +
                                         $"~*Amount*: {loan.Principal:N2}~||\n" +
                                         $"_Loan Record Deleted_";
                         }
@@ -169,6 +172,7 @@ namespace Ar.Loans.Api.Controllers
                         {
                             strikeMsg = $"||~🏦 *Payment Received* (Removed)~\n" +
                                         $"~*ID*: {loan.AlternateId}~\n" +
+                                        $"~*Name*: {client?.Name ?? "Unknown"}~\n" +
                                         $"~*Amount*: {tx.Amount:N2}~||\n" +
                                         $"_Payment Record Removed_";
                         }
@@ -176,6 +180,7 @@ namespace Ar.Loans.Api.Controllers
                         {
                             strikeMsg = $"||~📈 *New Interest Accrued* (Voided)~\n" +
                                         $"~*ID*: {loan.AlternateId}~\n" +
+                                        $"~*Name*: {client?.Name ?? "Unknown"}~\n" +
                                         (tx.Type == "interest" ? "" : $"~*Type*: Penalty~\n") +
                                         $"~*Amount*: {tx.Amount:N2}~\n" +
                                         $"~*Until*: {tx.EndDate:MMM dd}~||\n" +

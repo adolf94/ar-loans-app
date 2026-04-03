@@ -12,5 +12,6 @@ namespace Ar.Loans.Api.Models
         public List<Guid> DeletedEntryIds { get; set; } = new List<Guid>();
         public List<LoanLedger> NewTransactions { get; set; } = new List<LoanLedger>();
         public List<LoanLedger> DeletedTransactions { get; set; } = new List<LoanLedger>();
+        public string? ClientName { get; set; }
     }
 }

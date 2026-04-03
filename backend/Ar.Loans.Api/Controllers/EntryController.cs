@@ -72,6 +72,7 @@ namespace Ar.Loans.Api.Controllers
                             {
                                 strikeMsg = $"||~🏦 *Payment Received* (Removed)~\n" +
                                             $"~*ID*: {result.Loan.AlternateId}~\n" +
+                                            $"~*Name*: {result.ClientName ?? "Unknown"}~\n" +
                                             $"~*Amount*: {tx.Amount:N2}~||\n" +
                                             $"_Payment Record Removed_";
                             }
@@ -79,6 +80,7 @@ namespace Ar.Loans.Api.Controllers
                             {
                                 strikeMsg = $"||~📈 *New Interest Accrued* (Voided)~\n" +
                                             $"~*ID*: {result.Loan.AlternateId}~\n" +
+                                            $"~*Name*: {result.ClientName ?? "Unknown"}~\n" +
                                             (tx.Type == "interest" ? "" : $"~*Type*: Penalty~\n") +
                                             $"~*Amount*: {tx.Amount:N2}~\n" +
                                             $"~*Until*: {tx.EndDate:MMM dd}~||\n" +
@@ -103,6 +105,7 @@ namespace Ar.Loans.Api.Controllers
                         currentBal += tx.Amount;
                         var msg = $"📈 *New Interest Accrued*\n" +
                                      $"*ID*: {result.Loan.AlternateId}\n" +
+                                     $"*Name*: {result.ClientName ?? "Unknown"}\n" +
                                      (tx.Type == "interest" ? "" : "*Type*: Penalty\n") +
                                      $"*Amount*: {tx.Amount:N2}\n" +
                                      $"*Until*: {tx.EndDate:MMM dd}\n" +

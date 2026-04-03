@@ -238,6 +238,7 @@ namespace Ar.Loans.Api.Data.Cosmos
             
             rebalanceResult.Loan = loan;
             rebalanceResult.Payment = payment;
+            rebalanceResult.ClientName = client?.Name;
             rebalanceResult.DeletedTransactions = futureTransactions;
             foreach (var dId in deletedEntryIds)
             {
@@ -311,6 +312,10 @@ namespace Ar.Loans.Api.Data.Cosmos
             _context.Loans.Update(loan);
             
             var result = await RebalanceInterestRealizations(loan);
+            
+            var client = await _context.Users.FirstOrDefaultAsync(u => u.Id == loan.ClientId);
+            result.ClientName = client?.Name;
+
             result.NewTransactions = reaccruedTransactions;
             result.DeletedTransactions = futureTransactions;
             foreach (var dId in deletedEntryIds)
