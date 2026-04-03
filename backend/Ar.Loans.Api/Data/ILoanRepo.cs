@@ -15,6 +15,7 @@ namespace Ar.Loans.Api.Data
         Task<TransactionResult> RecordPayment(Payment payment);
         Task<TransactionResult> DeletePayment(Guid paymentId);
         Task<Payment?> GetPaymentByLedgerId(Guid ledgerId);
+				public Task<List<Loan>> GetActiveLoans();
 				public Task<List<Loan>> GetAllLoans();
 				public Task<List<Loan>> GetGuaranteedLoans(Guid id);
 				public Task<List<Loan>> GetUserLoans(Guid id);

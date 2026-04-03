@@ -29,11 +29,11 @@ namespace Ar.Loans.Api.Services
         {
             if (string.IsNullOrEmpty(text)) return text;
             // Characters to escape: [ ] ( ) # + - = { } . !
-            char[] specialChars = { '[', ']', '(', ')', '#', '+', '-', '=', '{', '}', '.', '!' };
+            char[] specialChars = { '[', ']', '(', ')', '#', '+', '-', '=', '{', '}', '.', '!', '|'};
             var sb = new StringBuilder();
             foreach (var c in text)
             {
-                if (specialChars.Contains(c)) sb.Append('\\');
+                if (specialChars.Contains(c)) sb.Append("\\");
                 sb.Append(c);
             }
             return sb.ToString();

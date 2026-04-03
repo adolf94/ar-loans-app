@@ -97,6 +97,11 @@ namespace Ar.Loans.Api.Data.Cosmos
                    .ToListAsync();
         }
 
+        public async Task<List<Loan>> GetActiveLoans()
+        {
+            return await _context.Loans.Where(l => l.Status == "Active").ToListAsync();
+        }
+
         public async Task<List<Loan>> GetAllLoans()
         {
             return await _context.Loans.ToListAsync();

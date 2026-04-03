@@ -35,7 +35,7 @@ namespace Ar.Loans.Api.Functions
         }
 
         [Function("InterestTimerFunction")]
-        public async Task Run([TimerTrigger("0 0 16 * * *")] TimerInfo myTimer)
+        public async Task Run([TimerTrigger("0 0 16 * * *", RunOnStartup = true)] TimerInfo myTimer)
         {
             _logger.LogInformation($"InterestTimerFunction executed at: {DateTime.Now}");
 
@@ -88,6 +88,51 @@ namespace Ar.Loans.Api.Functions
                 {
                     _logger.LogError($"Error accruing interest for loan {loan.Id}: {ex.Message}");
                 }
+            }
+
+            // Summary of Upcoming Accruals
+            try
+            {
+                var activeLoans = await _loanRepo.GetActiveLoans();
+                var refDateOnly = DateOnly.FromDateTime(referenceDateUTC8);
+                var targetDays = new[] { 0, 1, 3, 7 };
+                var summaryList = new List<string>();
+
+                foreach (var loan in activeLoans.OrderBy(l => l.NextInterestDate))
+                {
+                    var daysRemaining = loan.NextInterestDate.DayNumber - refDateOnly.DayNumber;
+                    if (targetDays.Contains(daysRemaining))
+                    {
+                        var client = await _userRepo.GetUserById(loan.ClientId);
+                        // Determine if Grace Period (🛡️) or Regular (⚡)
+                        // Simple check: Days from start loan date to next interest date
+                        var totalDaysFromStart = loan.NextInterestDate.DayNumber - loan.Date.DayNumber;
+                        bool isGrace = totalDaysFromStart <= loan.GracePeriodDays;
+                        
+                        var typeEmoji = isGrace ? "🛡️" : "⚡";
+
+                        summaryList.Add($"`{daysRemaining,-2}` | {loan.NextInterestDate:MMM dd} | {typeEmoji} | {client?.Name ?? "Unknown"}");
+                    }
+                }
+
+                if (summaryList.Any())
+                {
+                    var summaryMsg = new StringBuilder();
+                    summaryMsg.AppendLine($"⏳ *Upcoming Interest Accruals Summary* - {referenceDateUTC8:MMM dd, yyyy}");
+                    summaryMsg.AppendLine("`Days` | `Day   ` | ` ` | `Client` ");
+                    summaryMsg.AppendLine("-----------------------------");
+                    foreach (var line in summaryList)
+                    {
+                        summaryMsg.AppendLine(line);
+                    }
+                    
+                    await _telegramService.SendMessageAsync(_appConfig.Telegram.GuarantorChannel, summaryMsg.ToString());
+                }
+            }
+            catch (Exception ex)
+            {
+                await _telegramService.SendMessageAsync(_appConfig.Telegram.GuarantorChannel, $"Error generating interest summary");
+                _logger.LogError($"Error generating interest summary: {ex.Message}");
             }
         }
     }
