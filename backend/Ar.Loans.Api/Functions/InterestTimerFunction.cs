@@ -9,11 +9,6 @@ using Ar.Loans.Api.Services;
 using Ar.Loans.Api.Utilities;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Processing;
-using SixLabors.ImageSharp.Drawing.Processing;
-using SixLabors.Fonts;
-using SixLabors.ImageSharp.PixelFormats;
 
 namespace Ar.Loans.Api.Functions
 {
@@ -79,6 +74,31 @@ namespace Ar.Loans.Api.Functions
                                 tx.TelegramMessageId = msgId;
                                 hasNewTelegramIds = true;
                             }
+
+                            // Direct Notification to Client
+                            if (client != null && !string.IsNullOrWhiteSpace(client.TelegramId))
+                            {
+                                bool isGrace = (tx.DateStart == loan.Date) || loan.RecurringGracePeriod;
+                                var emoji = isGrace ? "🛡️" : "📈";
+                                var title = isGrace ? (tx.Type == "interest" ? "Grace Interest Accrued" : "Grace Penalty Applied") 
+                                                    : (tx.Type == "interest" ? "Interest Accrued" : "Penalty Applied");
+
+                                var userMsg = new StringBuilder();
+                                userMsg.AppendLine($"{emoji} *{title}*");
+                                userMsg.AppendLine($"Loan ID: {loan.AlternateId}");
+                                userMsg.AppendLine($"Amount: {tx.Amount:N2}");
+                                userMsg.AppendLine($"Balance: {runningBalance:N2}");
+                                userMsg.AppendLine();
+                                userMsg.AppendLine($"_This amount covers the period from {tx.DateStart:MMM dd} until {tx.EndDate:MMM dd, yyyy}._");
+
+                                if (isGrace && !loan.RecurringGracePeriod)
+                                {
+                                    userMsg.AppendLine();
+                                    userMsg.AppendLine($"🔔 *Grace Period Ended*: Your one-time grace period has concluded with this accrual. Starting next month, the regular interest rate of *{loan.InterestRate:N2}%* will apply.");
+                                }
+                                
+                                await _telegramService.SendMessageAsync(client.TelegramId, userMsg.ToString());
+                            }
                         }
 
                         if (hasNewTelegramIds)
@@ -92,120 +112,6 @@ namespace Ar.Loans.Api.Functions
                 catch (Exception ex)
                 {
                     _logger.LogError($"Error accruing interest for loan {loan.Id}: {ex.Message}");
-                }
-            }
-
-            // Summary of Upcoming Accruals
-            try
-            {
-                var activeLoans = await _loanRepo.GetActiveLoans();
-                var refDateOnly = DateOnly.FromDateTime(referenceDateUTC8);
-                var targetDays = new[] { 0, 1, 3, 7 };
-                var summaryList = new List<string>();
-
-                foreach (var loan in activeLoans.OrderBy(l => l.NextInterestDate))
-                {
-                    var daysRemaining = loan.NextInterestDate.DayNumber - refDateOnly.DayNumber;
-                    if (targetDays.Contains(daysRemaining))
-                    {
-                        var client = await _userRepo.GetUserById(loan.ClientId);
-                        // Determine if Grace Period (🛡️) or Regular (⚡)
-                        var totalDaysFromStart = loan.NextInterestDate.DayNumber - loan.Date.DayNumber;
-                        bool isGrace = totalDaysFromStart <= loan.GracePeriodDays;
-                        var typeEmoji = isGrace ? "🛡️" : "⚡";
-
-                        summaryList.Add($"{daysRemaining}|{loan.NextInterestDate:MMM dd}|{typeEmoji}|{client?.Name ?? "Unknown"}");
-                    }
-                }
-
-                if (summaryList.Any())
-                {
-                    // Generate Image using ImageSharp (Cross-platform)
-                    var imageBytes = DrawInterestSummaryTable(summaryList, referenceDateUTC8);
-
-                    await _telegramService.SendPhotoAsync(
-                        _appConfig.Telegram.GuarantorChannel, 
-                        imageBytes,
-                        $"InterestSummary_{referenceDateUTC8:yyyyMMdd}.png",
-                        $"⏳ *Upcoming Interest Accruals Summary* - {referenceDateUTC8:MMM dd, yyyy}");
-                }
-            }
-            catch (Exception ex)
-            {
-                await _telegramService.SendMessageAsync(_appConfig.Telegram.GuarantorGroupChat, $"Error generating interest summary: {ex.Message}");
-                _logger.LogError($"Error generating interest summary: {ex.Message}");
-            }
-        }
-
-        private byte[] DrawInterestSummaryTable(List<string> summaryList, DateTime referenceDate)
-        {
-            int rowHeight = 40;
-            int headerHeight = 80;
-            int width = 500;
-            int height = headerHeight + (summaryList.Count * rowHeight) + 20;
-
-            using (var image = new Image<Rgba32>(width, height))
-            {
-                image.Mutate(ctx =>
-                {
-                    ctx.Fill(Color.White);
-
-                    // Header Background
-                    ctx.Fill(Color.FromRgb(44, 62, 80), new RectangleF(0, 0, width, headerHeight));
-
-                    // Font selection
-                    var family = SystemFonts.Families.FirstOrDefault(f => f.Name == "Arial");
-                    if (string.IsNullOrEmpty(family.Name))
-                    {
-                        family = SystemFonts.Families.First();
-                    }
-                    
-                    var titleFont = family.CreateFont(24, FontStyle.Bold);
-                    var headerFont = family.CreateFont(16, FontStyle.Bold);
-                    var rowFont = family.CreateFont(14, FontStyle.Regular);
-
-                    // Title
-                    ctx.DrawText($"Upcoming Interest Accruals", titleFont, Color.White, new PointF(20, 15));
-                    ctx.DrawText($"{referenceDate:MMMM dd, yyyy}", rowFont, Color.LightGray, new PointF(20, 45));
-
-                    // Column Setup
-                    float[] colX = { 20, 100, 200, 270 };
-                    string[] headers = { "Days", "Date", "Mat", "Client" };
-
-                    // Sub-header bg
-                    ctx.Fill(Color.FromRgb(52, 73, 94), new RectangleF(0, headerHeight - 35, width, 35));
-                    for (int i = 0; i < headers.Length; i++)
-                    {
-                        ctx.DrawText(headers[i], headerFont, Color.White, new PointF(colX[i], headerHeight - 30));
-                    }
-
-                    // Draw Rows
-                    for (int i = 0; i < summaryList.Count; i++)
-                    {
-                        int y = headerHeight + (i * rowHeight);
-                        var parts = summaryList[i].Split('|');
-
-                        // Alternating background
-                        if (i % 2 != 0)
-                        {
-                            ctx.Fill(Color.GhostWhite, new RectangleF(0, y, width, rowHeight));
-                        }
-
-                        // Row Border
-                        ctx.DrawLine(Color.LightGray, 1, new PointF(0, y + rowHeight), new PointF(width, y + rowHeight));
-
-                        for (int j = 0; j < parts.Length; j++)
-                        {
-                            if (j < parts.Length)
-                                ctx.DrawText(parts[j], rowFont, Color.Black, new PointF(colX[j], y + 10));
-                        }
-                    }
-                });
-
-                using (var ms = new MemoryStream())
-                {
-                    image.SaveAsPng(ms);
-                    return ms.ToArray();
                 }
             }
         }

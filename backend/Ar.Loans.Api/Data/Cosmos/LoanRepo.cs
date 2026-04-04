@@ -457,7 +457,7 @@ namespace Ar.Loans.Api.Data.Cosmos
                                 TelegramMessageId = matched.TelegramMessageId
                             };
                             loan.Transactions.Add(reused);
-                            existingPool.Remove(matched);
+                            existingPool?.Remove(matched);
                             loan.Balance += monthlyInterest;
                         }
                         else
@@ -515,7 +515,7 @@ namespace Ar.Loans.Api.Data.Cosmos
                                 TelegramMessageId = matched.TelegramMessageId
                             };
                             loan.Transactions.Add(reused);
-                            existingPool.Remove(matched);
+                            existingPool?.Remove(matched);
                             loan.Balance += penaltyInterest;
                         }
                         else
