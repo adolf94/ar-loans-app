@@ -57,6 +57,29 @@ namespace Ar.Loans.Api.Controllers
                     }
                 }
 
+                // Notify User Directly
+                if (client != null && !string.IsNullOrWhiteSpace(client.TelegramId))
+                {
+                    var userMessage = $"🏦 *New Loan Created*\n" +
+                                      $"Hello {client.Name},\n\n" +
+                                      $"A new loan has been registered under your account:\n" +
+                                      $"*ID*: {result.Loan.AlternateId}\n" +
+                                      $"*Date*: {result.Loan.Date}\n" +
+                                      $"*Principal*: {result.Loan.Principal:N2}\n" +
+                                      $"*Interest Rate*: {rateMsg}\n\n" +
+                                      $"_Thank you for your business!_";
+                    var userMsgId = await _telegramService.SendMessageAsync(client.TelegramId, userMessage);
+                    if (userMsgId.HasValue)
+                    {
+                        var ledgerItem = result.Loan.Transactions.FirstOrDefault(t => t.Type == "principal");
+                        if (ledgerItem != null)
+                        {
+                            ledgerItem.UserMessageId = $"{client.TelegramId}|{userMsgId.Value}";
+                            await _loanRepo.UpdateLoan(result.Loan);
+                        }
+                    }
+                }
+
                 // Send notifications for any newly accrued interest/penalties during creation
                 if (result.NewTransactions != null && result.NewTransactions.Any())
                 {
@@ -78,6 +101,23 @@ namespace Ar.Loans.Api.Controllers
                         {
                             tx.TelegramMessageId = interestMsgId;
                             hasNewTelegramIds = true;
+                        }
+
+                        // Notify User Directly
+                        if (client != null && !string.IsNullOrWhiteSpace(client.TelegramId))
+                        {
+                            var userIntTitle = tx.Type == "interest" ? "Interest Accrued" : "Penalty Applied";
+                            var userIntMsg = $"📈 *{userIntTitle}*\n" +
+                                             $"Loan ID: {result.Loan.AlternateId}\n" +
+                                             $"Amount: {tx.Amount:N2}\n" +
+                                             $"Balance: {runningBalance:N2}\n" +
+                                             $"_For period until {tx.EndDate:MMM dd}_";
+                            var userIntMsgId = await _telegramService.SendMessageAsync(client.TelegramId, userIntMsg);
+                            if (userIntMsgId.HasValue)
+                            {
+                                tx.UserMessageId = $"{client.TelegramId}|{userIntMsgId.Value}";
+                                hasNewTelegramIds = true;
+                            }
                         }
                     }
 
@@ -160,6 +200,7 @@ namespace Ar.Loans.Api.Controllers
                     if (tx.TelegramMessageId.HasValue)
                     {
                         var strikeMsg = "";
+                        var userStrikeMsg = "";
                         if (tx.Type == "principal")
                         {
                             strikeMsg = $"||~🏦 *New Loan Created* (Deleted)~\n" +
@@ -167,6 +208,10 @@ namespace Ar.Loans.Api.Controllers
                                         $"~*Name*: {client?.Name ?? "Unknown"}~\n" +
                                         $"~*Amount*: {loan.Principal:N2}~||\n" +
                                         $"_Loan Record Deleted_";
+
+                            userStrikeMsg = $"||~Loan Deleted~\n" +
+                                            $"~ID: {loan.AlternateId}~\n" +
+                                            $"~amount:{loan.Principal:N2}~||";
                         }
                         else if (tx.Type == "payment")
                         {
@@ -175,6 +220,10 @@ namespace Ar.Loans.Api.Controllers
                                         $"~*Name*: {client?.Name ?? "Unknown"}~\n" +
                                         $"~*Amount*: {tx.Amount:N2}~||\n" +
                                         $"_Payment Record Removed_";
+
+                            userStrikeMsg = $"||~Payment~\n" +
+                                            $"~ID: {loan.AlternateId}~\n" +
+                                            $"~amount:{tx.Amount:N2}~||";
                         }
                         else
                         {
@@ -185,11 +234,25 @@ namespace Ar.Loans.Api.Controllers
                                         $"~*Amount*: {tx.Amount:N2}~\n" +
                                         $"~*Until*: {tx.EndDate:MMM dd}~||\n" +
                                         $"_Interest Voided_";
+
+                            userStrikeMsg = $"||~Interest~\n" +
+                                            $"~ID: {loan.AlternateId}~\n" +
+                                            $"~amount:{tx.Amount:N2}~||";
                         }
 
                         if (!string.IsNullOrEmpty(strikeMsg))
                         {
                             await _telegramService.EditMessageAsync(_appConfig.Telegram.GuarantorChannel, tx.TelegramMessageId.Value, strikeMsg);
+
+                            // Also update User Direct Message
+                            if (!string.IsNullOrEmpty(tx.UserMessageId))
+                            {
+                                var parts = tx.UserMessageId.Split('|');
+                                if (parts.Length == 2 && long.TryParse(parts[1], out var uMsgId))
+                                {
+                                    await _telegramService.EditMessageAsync(parts[0], uMsgId, userStrikeMsg);
+                                }
+                            }
                         }
                     }
                 }

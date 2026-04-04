@@ -97,7 +97,12 @@ namespace Ar.Loans.Api.Functions
                                     userMsg.AppendLine($"🔔 *Grace Period Ended*: Your one-time grace period has concluded with this accrual. Starting next month, the regular interest rate of *{loan.InterestRate:N2}%* will apply.");
                                 }
                                 
-                                await _telegramService.SendMessageAsync(client.TelegramId, userMsg.ToString());
+                                var userMsgId = await _telegramService.SendMessageAsync(client.TelegramId, userMsg.ToString());
+                                if (userMsgId.HasValue)
+                                {
+                                    tx.UserMessageId = $"{client.TelegramId}|{userMsgId.Value}";
+                                    hasNewTelegramIds = true;
+                                }
                             }
                         }
 

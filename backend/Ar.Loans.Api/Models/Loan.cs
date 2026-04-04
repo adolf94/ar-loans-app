@@ -92,5 +92,8 @@ namespace Ar.Loans.Api.Models
 
         [JsonPropertyName("telegramMessageId")]
         public long? TelegramMessageId { get; set; }
+
+        [JsonPropertyName("userMessageId")]
+        public string? UserMessageId { get; set; }
     }
 }

@@ -68,6 +68,7 @@ namespace Ar.Loans.Api.Controllers
                         if (tx.TelegramMessageId.HasValue)
                         {
                             var strikeMsg = "";
+                            var userStrikeMsg = "";
                             if (tx.Type == "payment")
                             {
                                 strikeMsg = $"||~🏦 *Payment Received* (Removed)~\n" +
@@ -75,6 +76,10 @@ namespace Ar.Loans.Api.Controllers
                                             $"~*Name*: {result.ClientName ?? "Unknown"}~\n" +
                                             $"~*Amount*: {tx.Amount:N2}~||\n" +
                                             $"_Payment Record Removed_";
+
+                                userStrikeMsg = $"||~Payment Reversed~\n" +
+                                                $"~ID: {result.Loan.AlternateId}~\n" +
+                                                $"~amount:{tx.Amount:N2}~||";
                             }
                             else
                             {
@@ -85,11 +90,25 @@ namespace Ar.Loans.Api.Controllers
                                             $"~*Amount*: {tx.Amount:N2}~\n" +
                                             $"~*Until*: {tx.EndDate:MMM dd}~||\n" +
                                             $"_Rebalanced due to payment removal_";
+
+                                userStrikeMsg = $"||~Interest Voided~\n" +
+                                                $"~ID: {result.Loan.AlternateId}~\n" +
+                                                $"~amount:{tx.Amount:N2}~||";
                             }
 
                             if (!string.IsNullOrEmpty(strikeMsg))
                             {
                                 await _telegramService.EditMessageAsync(_appConfig.Telegram.GuarantorChannel, tx.TelegramMessageId.Value, strikeMsg);
+
+                                // Update User Direct Message
+                                if (!string.IsNullOrEmpty(tx.UserMessageId))
+                                {
+                                    var parts = tx.UserMessageId.Split('|');
+                                    if (parts.Length == 2 && long.TryParse(parts[1], out var uMsgId))
+                                    {
+                                        await _telegramService.EditMessageAsync(parts[0], uMsgId, userStrikeMsg);
+                                    }
+                                }
                             }
                         }
                     }
