@@ -82,6 +82,81 @@ namespace Ar.Loans.Api.Services
             return true;
         }
 
+        public async Task<long?> SendPhotoAsync(string chatId, byte[] photoData, string fileName, string? caption = null)
+        {
+            var botToken = _appConfig.Telegram.ClientSecret;
+            if (string.IsNullOrEmpty(botToken)) return null;
+
+            var url = $"https://api.telegram.org/bot{botToken}/sendPhoto";
+            using var content = new MultipartFormDataContent();
+            content.Add(new StringContent(chatId), "chat_id");
+            content.Add(new ByteArrayContent(photoData), "photo", fileName);
+
+            if (!string.IsNullOrEmpty(caption))
+            {
+                content.Add(new StringContent(EscapeMarkdownV2(caption)), "caption");
+                content.Add(new StringContent("MarkdownV2"), "parse_mode");
+            }
+
+            var response = await _httpClient.PostAsync(url, content);
+            var responseContent = await response.Content.ReadAsStringAsync();
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogError("Failed to upload Photo: {Error}", responseContent);
+                return null;
+            }
+
+            try
+            {
+                var parsedResponse = JObject.Parse(responseContent);
+                return parsedResponse["result"]?["message_id"]?.Value<long>();
+            }
+            catch { }
+
+            return null;
+        }
+
+        public async Task<long?> SendPhotoAsync(string chatId, string photoUrl, string? caption = null)
+        {
+            var botToken = _appConfig.Telegram.ClientSecret;
+            if (string.IsNullOrEmpty(botToken))
+            {
+                _logger.LogError("Telegram Token is missing.");
+                return null;
+            }
+
+            var url = $"https://api.telegram.org/bot{botToken}/sendPhoto";
+            var payload = new
+            {
+                chat_id = chatId,
+                photo = photoUrl,
+                caption = string.IsNullOrEmpty(caption) ? null : EscapeMarkdownV2(caption),
+                parse_mode = "MarkdownV2"
+            };
+
+            var response = await _httpClient.PostAsJsonAsync(url, payload);
+            var responseContent = await response.Content.ReadAsStringAsync();
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogError("Failed to send Photo: {Error}", responseContent);
+                return null;
+            }
+
+            try
+            {
+                var parsedResponse = JObject.Parse(responseContent);
+                return parsedResponse["result"]?["message_id"]?.Value<long>();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to parse message_id from photo response.");
+            }
+
+            return null;
+        }
+
         public async Task<long?> SendMessageAsync(string chatId, string text)
         {
             var botToken = _appConfig.Telegram.ClientSecret;

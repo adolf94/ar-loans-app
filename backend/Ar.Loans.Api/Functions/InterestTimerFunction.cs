@@ -9,6 +9,11 @@ using Ar.Loans.Api.Services;
 using Ar.Loans.Api.Utilities;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Drawing.Processing;
+using SixLabors.Fonts;
+using SixLabors.ImageSharp.PixelFormats;
 
 namespace Ar.Loans.Api.Functions
 {
@@ -105,34 +110,103 @@ namespace Ar.Loans.Api.Functions
                     {
                         var client = await _userRepo.GetUserById(loan.ClientId);
                         // Determine if Grace Period (🛡️) or Regular (⚡)
-                        // Simple check: Days from start loan date to next interest date
                         var totalDaysFromStart = loan.NextInterestDate.DayNumber - loan.Date.DayNumber;
                         bool isGrace = totalDaysFromStart <= loan.GracePeriodDays;
-                        
                         var typeEmoji = isGrace ? "🛡️" : "⚡";
 
-                        summaryList.Add($"`{daysRemaining,-2}` | {loan.NextInterestDate:MMM dd} | {typeEmoji} | {client?.Name ?? "Unknown"}");
+                        summaryList.Add($"{daysRemaining}|{loan.NextInterestDate:MMM dd}|{typeEmoji}|{client?.Name ?? "Unknown"}");
                     }
                 }
 
                 if (summaryList.Any())
                 {
-                    var summaryMsg = new StringBuilder();
-                    summaryMsg.AppendLine($"⏳ *Upcoming Interest Accruals Summary* - {referenceDateUTC8:MMM dd, yyyy}");
-                    summaryMsg.AppendLine("`Days` | `Day   ` | ` ` | `Client` ");
-                    summaryMsg.AppendLine("-----------------------------");
-                    foreach (var line in summaryList)
-                    {
-                        summaryMsg.AppendLine(line);
-                    }
-                    
-                    await _telegramService.SendMessageAsync(_appConfig.Telegram.GuarantorChannel, summaryMsg.ToString());
+                    // Generate Image using ImageSharp (Cross-platform)
+                    var imageBytes = DrawInterestSummaryTable(summaryList, referenceDateUTC8);
+
+                    await _telegramService.SendPhotoAsync(
+                        _appConfig.Telegram.GuarantorChannel, 
+                        imageBytes,
+                        $"InterestSummary_{referenceDateUTC8:yyyyMMdd}.png",
+                        $"⏳ *Upcoming Interest Accruals Summary* - {referenceDateUTC8:MMM dd, yyyy}");
                 }
             }
             catch (Exception ex)
             {
-                await _telegramService.SendMessageAsync(_appConfig.Telegram.GuarantorChannel, $"Error generating interest summary");
+                await _telegramService.SendMessageAsync(_appConfig.Telegram.GuarantorGroupChat, $"Error generating interest summary: {ex.Message}");
                 _logger.LogError($"Error generating interest summary: {ex.Message}");
+            }
+        }
+
+        private byte[] DrawInterestSummaryTable(List<string> summaryList, DateTime referenceDate)
+        {
+            int rowHeight = 40;
+            int headerHeight = 80;
+            int width = 500;
+            int height = headerHeight + (summaryList.Count * rowHeight) + 20;
+
+            using (var image = new Image<Rgba32>(width, height))
+            {
+                image.Mutate(ctx =>
+                {
+                    ctx.Fill(Color.White);
+
+                    // Header Background
+                    ctx.Fill(Color.FromRgb(44, 62, 80), new RectangleF(0, 0, width, headerHeight));
+
+                    // Font selection
+                    var family = SystemFonts.Families.FirstOrDefault(f => f.Name == "Arial");
+                    if (string.IsNullOrEmpty(family.Name))
+                    {
+                        family = SystemFonts.Families.First();
+                    }
+                    
+                    var titleFont = family.CreateFont(24, FontStyle.Bold);
+                    var headerFont = family.CreateFont(16, FontStyle.Bold);
+                    var rowFont = family.CreateFont(14, FontStyle.Regular);
+
+                    // Title
+                    ctx.DrawText($"Upcoming Interest Accruals", titleFont, Color.White, new PointF(20, 15));
+                    ctx.DrawText($"{referenceDate:MMMM dd, yyyy}", rowFont, Color.LightGray, new PointF(20, 45));
+
+                    // Column Setup
+                    float[] colX = { 20, 100, 200, 270 };
+                    string[] headers = { "Days", "Date", "Mat", "Client" };
+
+                    // Sub-header bg
+                    ctx.Fill(Color.FromRgb(52, 73, 94), new RectangleF(0, headerHeight - 35, width, 35));
+                    for (int i = 0; i < headers.Length; i++)
+                    {
+                        ctx.DrawText(headers[i], headerFont, Color.White, new PointF(colX[i], headerHeight - 30));
+                    }
+
+                    // Draw Rows
+                    for (int i = 0; i < summaryList.Count; i++)
+                    {
+                        int y = headerHeight + (i * rowHeight);
+                        var parts = summaryList[i].Split('|');
+
+                        // Alternating background
+                        if (i % 2 != 0)
+                        {
+                            ctx.Fill(Color.GhostWhite, new RectangleF(0, y, width, rowHeight));
+                        }
+
+                        // Row Border
+                        ctx.DrawLine(Color.LightGray, 1, new PointF(0, y + rowHeight), new PointF(width, y + rowHeight));
+
+                        for (int j = 0; j < parts.Length; j++)
+                        {
+                            if (j < parts.Length)
+                                ctx.DrawText(parts[j], rowFont, Color.Black, new PointF(colX[j], y + 10));
+                        }
+                    }
+                });
+
+                using (var ms = new MemoryStream())
+                {
+                    image.SaveAsPng(ms);
+                    return ms.ToArray();
+                }
             }
         }
     }
