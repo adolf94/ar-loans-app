@@ -109,7 +109,7 @@ namespace Ar.Loans.Api.Functions
                                 if (isGrace && !loan.RecurringGracePeriod)
                                 {
                                     userMessage.AppendLine();
-                                    userMessage.AppendLine($"⚠️ *One-time Perk*: This is your final grace period. After this cycle, the regular interest rate of *{loan.InterestRate:N2}%* will apply.");
+                                    userMessage.AppendLine($"⚠️ *One-time Perk*: After this cycle, the regular interest rate of *{loan.InterestRate:N2}%* will apply.");
                                 }
 
                                 if (graceDaysForPeriod > 0)
