@@ -7,12 +7,14 @@ export const defaultUserInfo = {
     isAuthenticated: false,
     role: [] as string[],
     scopes: [] as string[],
-    name: ""
+    name: "",
+    picture: "",
+    profile: ""
 }
 export const UserInfoContext = React.createContext({
     userInfo: defaultUserInfo,
-    setUserInfo: (data) => { },
-    hasRole : (data : string[])=>true
+    setUserInfo: (data: any) => { },
+    hasRole: (data: string[]): boolean => false
 })
 
 

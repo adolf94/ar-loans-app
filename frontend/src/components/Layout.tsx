@@ -11,7 +11,7 @@ import {
     Avatar,
     Chip
 } from '@mui/material';
-import { Shield, User as UserIcon, Briefcase, ChevronDown } from 'lucide-react';
+import { Shield, User as UserIcon, Briefcase, ChevronDown, Settings } from 'lucide-react';
 import { ArrowDropDown } from "@mui/icons-material"
 import type { UserRole } from '../@types/types';
 import { useNavigate, useLocation } from '@tanstack/react-router';
@@ -131,8 +131,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                             />
                             <Box sx={{ display: 'flex', alignItems: 'center' }}>
                                 <IconButton sx={{ p: 0 }} onClick={handleOpenUserMenu}>
-                                    <Avatar sx={{ bgcolor: 'primary.main', width: 32, height: 32, fontSize: '0.875rem' }}>
-                                        {userInfo.name ? userInfo.name.charAt(0) : 'U'}
+                                    <Avatar 
+                                        src={userInfo.picture || userInfo.profile}
+                                        sx={{ bgcolor: 'primary.main', width: 32, height: 32, fontSize: '0.875rem' }}
+                                    >
+                                        {(userInfo.picture || userInfo.profile) ? null : (userInfo.name ? userInfo.name.charAt(0) : 'U')}
                                     </Avatar>
                                     <ChevronDown size={16} style={{ marginLeft: 4 }} />
                                 </IconButton>
@@ -160,6 +163,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                                     anchorEl={userEl}
                                     open={Boolean(userEl)}
                                     onClose={() => setUserEl(null)}>
+                                    <MenuItem onClick={() => { setUserEl(null); window.open(window.webConfig.authority, "_blank") }}>
+                                        <Settings size={16} style={{ marginRight: 8 }} /> Account
+                                    </MenuItem>
                                     <MenuItem onClick={() => handleLogout()}>
                                         Logout
                                     </MenuItem>

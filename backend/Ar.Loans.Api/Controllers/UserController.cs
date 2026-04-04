@@ -37,8 +37,11 @@ namespace Ar.Loans.Api.Controllers
             {
                 try
                 {
-                    var body = await req.ReadFromJsonAsync<dynamic>();
-                    state = body?.state;
+                    var body = await req.ReadFromJsonAsync<Dictionary<string, string>>();
+                    if (body != null && body.TryGetValue("state", out var bodyState))
+                    {
+                        state = bodyState;
+                    }
                 }
                 catch { /* ignore */ }
             }
@@ -208,7 +211,7 @@ namespace Ar.Loans.Api.Controllers
             // Redirect to frontend instead of OIDC provider directly
             // This allows the frontend auth-client to handle PKCE and state management correctly
             string frontendUrl = _config.JwtConfig.RedirectUri ?? "";
-            string redirectUrl = $"{frontendUrl}{(frontendUrl.Contains("?") ? "&" : "?")}link_state={state}";
+            string redirectUrl = $"{frontendUrl}/m{(frontendUrl.Contains("?") ? "&" : "?")}link_state={state}";
 
             return new RedirectResult(redirectUrl);
         }

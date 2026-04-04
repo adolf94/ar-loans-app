@@ -11,6 +11,8 @@ import GuarantorDashboard from './pages/GuarantorDashboard';
 import LoginPage from './pages/LoginPage';
 import Layout from './components/Layout';
 import ClientStatementPage from './pages/ClientStatementPage';
+import CallbackPage from './pages/CallbackPage';
+import MagicLinkPage from './pages/MagicLinkPage';
 
 // Root component that handles state and layout wrapper
 const Root = () => {
@@ -76,12 +78,26 @@ const clientStatementRoute = createRoute({
     component: ClientStatementPage,
 });
 
+const callbackRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: '/callback',
+    component: CallbackPage,
+});
+
+const magicRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: '/m',
+    component: MagicLinkPage,
+});
+
 // Create the router instance
 const routeTree = rootRoute.addChildren([
     indexRoute,
     adminRoute,
     clientRoute,
     guarantorRoute,
+    callbackRoute,
+    magicRoute,
     clientStatementRoute
 ]);
 

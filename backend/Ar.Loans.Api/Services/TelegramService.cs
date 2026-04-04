@@ -29,7 +29,7 @@ namespace Ar.Loans.Api.Services
         {
             if (string.IsNullOrEmpty(text)) return text;
             // Characters to escape: [ ] ( ) # + - = { } . !
-            char[] specialChars = { '[', ']', '(', ')', '#', '+', '-', '=', '{', '}', '.', '!', '|'};
+            char[] specialChars = { '[', ']', '(', ')', '#', '+', '-', '=', '{', '}', '.', '!'};
             var sb = new StringBuilder();
             foreach (var c in text)
             {

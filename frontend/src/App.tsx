@@ -1,11 +1,11 @@
-import { ThemeProvider, CssBaseline } from '@mui/material';
+import { ThemeProvider, CssBaseline, Snackbar, Alert } from '@mui/material';
 import theme from './theme';
 import { RouterProvider } from '@tanstack/react-router';
 import { router } from './router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { defaultUserInfo, UserInfoContext } from './components/useUserInfo';
-import { BackdropLoaderProvider, useBackdropLoader } from './components/BackdropLoader';
+import { BackdropLoaderProvider } from './components/BackdropLoader';
 import LoginPrompt from './components/login/LoginPrompt';
 import { jwtDecode } from 'jwt-decode'
 import { ConfirmProvider } from 'material-ui-confirm';
@@ -30,37 +30,16 @@ const authConfig = {
 };
 
 function AppContent({ userInfo, setUserInfo, init }: any) {
-  const { user, isAuthenticated, isLoading, hasScope, login } = useAuth();
+  const { user, isAuthenticated, isLoading, hasScope, loginState } = useAuth();
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState('');
+  const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error'>('success');
 
   const hasRole = (roleAny: string[]) => {
     return roleAny.some(e => hasScope(e))
   }
 
-  const setLoading = useBackdropLoader();
 
-  // Capture link_state once during component initialization
-  const [capturedLinkState] = useState(() => {
-    const params = new URLSearchParams(window.location.search);
-    const ls = params.get('link_state');
-    console.log("Captured link_state on mount:", ls);
-    return ls;
-  });
-
-  useEffect(() => {
-    if (capturedLinkState && !isLoading) {
-      console.log("Triggering magic login for:", capturedLinkState);
-      setLoading(true);
-
-      // Clean the URL if it hasn't been cleaned yet
-      if (window.location.search.includes('link_state')) {
-        window.history.replaceState({}, '', window.location.pathname);
-      }
-
-      login({ state: capturedLinkState, useRedirect: true })
-        .catch((err) => console.log("Universal login cancelled or failed", err))
-        .finally(() => setLoading(false));
-    }
-  }, [capturedLinkState, isLoading, login, setLoading]);
 
   useEffect(() => {
     const performSync = async () => {
@@ -73,11 +52,15 @@ function AppContent({ userInfo, setUserInfo, init }: any) {
             isAuthenticated: true
           });
 
-          // Perform backend sync to get internal User object (with correct ID)
-          const urlParams = new URLSearchParams(window.location.search);
-          const state = urlParams.get('state') || undefined;
+          // Perform backend sync using recovered state (loginState)
+          const dbUser = await syncUser(loginState);
 
-          const dbUser = await syncUser(state);
+          // If a state was provided, it means it was a magic link flow
+          if (loginState) {
+            setSnackbarMessage("Link Successful");
+            setSnackbarSeverity("success");
+            setSnackbarOpen(true);
+          }
 
           setUserInfo((prev: any) => ({
             ...prev,
@@ -88,6 +71,11 @@ function AppContent({ userInfo, setUserInfo, init }: any) {
           }));
         } catch (error) {
           console.error("Backend user sync failed", error);
+          if (loginState) {
+            setSnackbarMessage("Failed to link account");
+            setSnackbarSeverity("error");
+            setSnackbarOpen(true);
+          }
         }
       } else if (!isLoading && !isAuthenticated) {
         setUserInfo(defaultUserInfo);
@@ -112,6 +100,16 @@ function AppContent({ userInfo, setUserInfo, init }: any) {
       }}>
         {init && !isLoading && <RouterProvider router={router} context={{ auth: { user: userInfo, hasRole } }} />}
         <LoginPrompt />
+        <Snackbar 
+          open={snackbarOpen} 
+          autoHideDuration={10000} 
+          onClose={() => setSnackbarOpen(false)}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        >
+          <Alert onClose={() => setSnackbarOpen(false)} severity={snackbarSeverity} sx={{ width: '100%' }}>
+            {snackbarMessage}
+          </Alert>
+        </Snackbar>
       </ConfirmProvider>
     </UserInfoContext.Provider>
   );
