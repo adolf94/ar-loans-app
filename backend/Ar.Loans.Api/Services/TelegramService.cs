@@ -20,23 +20,12 @@ namespace Ar.Loans.Api.Services
         private readonly ILogger<TelegramService> _logger;
         private readonly LogService _logService;
 
-        public TelegramService(HttpClient httpClient, AppConfig appConfig, ILogger<TelegramService> logger, LogService logService)
+        public TelegramService(ITelegramBotClient botClient, AppConfig appConfig, ILogger<TelegramService> logger, LogService logService)
         {
+            BotClient = botClient;
             _appConfig = appConfig;
             _logger = logger;
             _logService = logService;
-
-            var botToken = _appConfig.Telegram.ClientSecret;
-            if (string.IsNullOrEmpty(botToken))
-            {
-                _logger.LogError("Telegram Token is missing.");
-                // We initialize with a dummy if missing to avoid NullRef, but log big error
-                BotClient = new TelegramBotClient("MISSING_TOKEN");
-            }
-            else
-            {
-                BotClient = new TelegramBotClient(botToken, httpClient);
-            }
         }
 
         private string EscapeMarkdownV2(string text)

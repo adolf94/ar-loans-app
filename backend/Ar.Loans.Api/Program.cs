@@ -13,6 +13,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.IdentityModel.Tokens;
+using Telegram.Bot;
+
 
 var builder = FunctionsApplication.CreateBuilder(args);
 
@@ -58,7 +60,19 @@ builder.Services.AddScoped<LogService>();
 builder.Services.AddScoped<TelegramService>();
 builder.Services.AddSingleton<IAiService, AiService>();
 builder.Services.AddSingleton<AzureFileRepo>();
+
+builder.Services.AddSingleton<ITelegramBotClient>(sp => 
+{
+    string? webhookUrl = !string.IsNullOrEmpty(appConfig.BaseUrl) 
+        ? $"{appConfig.BaseUrl.TrimEnd('/')}/telegram/webhook"
+        : appConfig.Telegram.WebhookUrl;
+
+    var bot = new TelegramBotClient(appConfig.Telegram.ClientSecret);
+    bot.SetWebhook(webhookUrl, allowedUpdates: []).Wait();
+    return bot;
+});
 builder.Services.AddMemoryCache();
+
 webapp.UseMiddleware<AppMiddleware>();
 
 builder.Build().Run();

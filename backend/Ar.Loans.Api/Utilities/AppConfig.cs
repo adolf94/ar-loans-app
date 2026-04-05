@@ -14,6 +14,7 @@ namespace Ar.Loans.Api.Utilities
         public string CosmosEndpoint { get; set; }
         public string CosmosKey { get; set; } = "";
         public string AuthUrl { get; set; }
+        public string BaseUrl { get; set; } = string.Empty;
         public string AzureStorage { get; set; }
         public string StorageContainer { get; set; }
         public bool AllowAccountCreation { get; set; } = false;
@@ -24,6 +25,7 @@ namespace Ar.Loans.Api.Utilities
     public class TelegramConfiguration
     {
         public string ClientSecret { get; set; } = string.Empty;
+        public string WebhookUrl { get; set; } = string.Empty;
         public string GuarantorGroupChat { get; set; } = string.Empty;
         public string GuarantorChannel { get; set; } = string.Empty;
 		}
