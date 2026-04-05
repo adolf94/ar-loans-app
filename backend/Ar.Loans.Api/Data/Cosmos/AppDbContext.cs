@@ -1,4 +1,5 @@
 using Ar.Loans.Api.Models;
+using Ar.Loans.Api.Services;
 using Ar.Loans.Api.Utilities;
 using Azure.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -6,7 +7,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Generic;
-using System.Configuration;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -34,6 +34,8 @@ namespace Ar.Loans.Api.Data.Cosmos
         public DbSet<InterestRule> InterestRules { get; set; }
         public DbSet<LogEntry> Logs { get; set; }
         public DbSet<Comment> Comments { get; set; } = null!;
+        public DbSet<TelegramMessage> TelegramMessages { get; set; }
+        public DbSet<ConversationState> ConversationStates { get; set; }
 
 
 
@@ -49,6 +51,9 @@ namespace Ar.Loans.Api.Data.Cosmos
             builder.Entity<LogEntry>()
                     .Property(e => e.Data)
                     .ToJsonProperty("Data");
+            builder.Entity<LogEntry>()
+                    .Property(e => e.Payload)
+                    .ToJsonProperty("Payload");
             builder.Entity<User>()
                     .ToContainer("Users")
                     .HasPartitionKey(e => e.PartitionKey)
@@ -107,6 +112,23 @@ namespace Ar.Loans.Api.Data.Cosmos
                     .HasPartitionKey(e => e.PartitionKey)
                     .HasKey(c => c.Id);
 
+            builder.Entity<TelegramMessage>()
+                    .ToContainer("TelegramMessages")
+                    .HasPartitionKey(e => new { e.ChatId, e.ConvoId })
+                    .HasKey(c => c.Id);
+
+            builder.Entity<TelegramMessage>()
+                    .Property(e => e.Sender)
+                    .ToJsonProperty("Sender");
+
+            builder.Entity<TelegramMessage>()
+                    .OwnsMany(e => e.Entities);
+
+            builder.Entity<ConversationState>()
+                    .ToContainer("ConversationStates")
+                    .HasPartitionKey(e => e.PartitionKey)
+                    .HasKey(c => c.Id);
+
 
         }
     }
@@ -139,6 +161,10 @@ namespace Ar.Loans.Api.Data.Cosmos
             services.AddScoped<IEntryRepo, EntryRepo>();
             services.AddScoped<IInterestRuleRepo, InterestRuleRepo>();
             services.AddScoped<ICommentRepo, CommentRepo>();
+            services.AddScoped<ITelegramMessageRepo, TelegramMessageRepo>();
+            services.AddScoped<IConversationStateRepo, ConversationStateRepo>();
+            services.AddScoped<TelegramWorkflowService>();
+            services.AddScoped<LoanService>();
 
             return services;
         }
