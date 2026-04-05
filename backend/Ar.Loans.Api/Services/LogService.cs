@@ -23,7 +23,7 @@ namespace Ar.Loans.Api.Services
             _logger = logger;
         }
 
-        public async Task LogAsync(string level, string source, string message, object? data = null, string? chatId = null)
+        public async Task<string?> LogAsync(string level, string source, string message, object? data = null, string? chatId = null)
         {
             try
             {
@@ -94,17 +94,19 @@ namespace Ar.Loans.Api.Services
 
                 _context.Logs.Add(logEntry);
                 await _context.SaveChangesAsync();
+                return logEntry.Id;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to write log entry to CosmosDB: {Source} - {Message}", source, message);
+                return null;
             }
         }
 
-        public async Task LogInfoAsync(string source, string message, object? data = null, string? chatId = null)
+        public async Task<string?> LogInfoAsync(string source, string message, object? data = null, string? chatId = null)
             => await LogAsync("Information", source, message, data, chatId);
 
-        public async Task LogErrorAsync(string source, string message, object? data = null, string? chatId = null)
+        public async Task<string?> LogErrorAsync(string source, string message, object? data = null, string? chatId = null)
             => await LogAsync("Error", source, message, data, chatId);
 
         public async Task<List<LogEntry>> GetRecentLogsByChatIdAsync(string chatId, int count = 10)

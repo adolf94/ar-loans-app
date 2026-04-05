@@ -7,22 +7,36 @@ using System.Threading.Tasks;
 using Ar.Loans.Api.Utilities;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
+using Telegram.Bot;
+using Telegram.Bot.Types;
+using Telegram.Bot.Types.Enums;
 
 namespace Ar.Loans.Api.Services
 {
     public class TelegramService
     {
-        private readonly HttpClient _httpClient;
+        public ITelegramBotClient BotClient { get; }
         private readonly AppConfig _appConfig;
         private readonly ILogger<TelegramService> _logger;
         private readonly LogService _logService;
 
         public TelegramService(HttpClient httpClient, AppConfig appConfig, ILogger<TelegramService> logger, LogService logService)
         {
-            _httpClient = httpClient;
             _appConfig = appConfig;
             _logger = logger;
             _logService = logService;
+
+            var botToken = _appConfig.Telegram.ClientSecret;
+            if (string.IsNullOrEmpty(botToken))
+            {
+                _logger.LogError("Telegram Token is missing.");
+                // We initialize with a dummy if missing to avoid NullRef, but log big error
+                BotClient = new TelegramBotClient("MISSING_TOKEN");
+            }
+            else
+            {
+                BotClient = new TelegramBotClient(botToken, httpClient);
+            }
         }
 
         private string EscapeMarkdownV2(string text)
@@ -41,179 +55,104 @@ namespace Ar.Loans.Api.Services
 
         public async Task<bool> EditMessageAsync(string chatId, long messageId, string text)
         {
-            var botToken = _appConfig.Telegram.ClientSecret;
-            if (string.IsNullOrEmpty(botToken))
+            try
             {
-                _logger.LogError("Telegram Bot Token (ClientSecret) is missing in configuration.");
+                var escapedText = EscapeMarkdownV2(text);
+                await BotClient.EditMessageText(
+                    chatId: chatId,
+                    messageId: (int)messageId,
+                    text: escapedText,
+                    parseMode: ParseMode.MarkdownV2
+                );
+
+                await _logService.LogInfoAsync(
+                    "TelegramService.EditAsync",
+                    $"Edited Telegram message {messageId} in {chatId}",
+                    new { Text = text },
+                    chatId);
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to edit Telegram message: {MessageId}", messageId);
                 return false;
             }
-
-            var escapedText = EscapeMarkdownV2(text);
-            var url = $"https://api.telegram.org/bot{botToken}/editMessageText";
-            var payload = new
-            {
-                chat_id = chatId,
-                message_id = messageId,
-                text = escapedText,
-                parse_mode = "MarkdownV2"
-            };
-
-            var response = await _httpClient.PostAsJsonAsync(url, payload);
-            var responseContent = await response.Content.ReadAsStringAsync();
-
-            await _logService.LogInfoAsync(
-                "TelegramService.EditAsync",
-                $"Editing Telegram message {messageId} in {chatId}",
-                new
-                {
-                    Type = "editMessage",
-                    Status = (int)response.StatusCode,
-                    Payload = JObject.FromObject(payload),
-                    Data = responseContent
-                },
-                chatId);
-
-            if (!response.IsSuccessStatusCode)
-            {
-                _logger.LogError("Failed to edit Telegram message: {Error}", responseContent);
-                return false;
-            }
-
-            return true;
         }
 
         public async Task<long?> SendPhotoAsync(string chatId, byte[] photoData, string fileName, string? caption = null)
         {
-            var botToken = _appConfig.Telegram.ClientSecret;
-            if (string.IsNullOrEmpty(botToken)) return null;
-
-            var url = $"https://api.telegram.org/bot{botToken}/sendPhoto";
-            using var content = new MultipartFormDataContent();
-            content.Add(new StringContent(chatId), "chat_id");
-            content.Add(new ByteArrayContent(photoData), "photo", fileName);
-
-            if (!string.IsNullOrEmpty(caption))
-            {
-                content.Add(new StringContent(EscapeMarkdownV2(caption)), "caption");
-                content.Add(new StringContent("MarkdownV2"), "parse_mode");
-            }
-
-            var response = await _httpClient.PostAsync(url, content);
-            var responseContent = await response.Content.ReadAsStringAsync();
-
-            if (!response.IsSuccessStatusCode)
-            {
-                _logger.LogError("Failed to upload Photo: {Error}", responseContent);
-                return null;
-            }
-
             try
             {
-                var parsedResponse = JObject.Parse(responseContent);
-                return parsedResponse["result"]?["message_id"]?.Value<long>();
-            }
-            catch { }
+                using var ms = new System.IO.MemoryStream(photoData);
+                var photoFile = InputFile.FromStream(ms, fileName);
+                
+                var message = await BotClient.SendPhoto(
+                    chatId: chatId,
+                    photo: photoFile,
+                    caption: string.IsNullOrEmpty(caption) ? null : EscapeMarkdownV2(caption),
+                    parseMode: ParseMode.MarkdownV2
+                );
 
-            return null;
+                return message.Id;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to upload Photo to {ChatId}", chatId);
+                return null;
+            }
         }
 
         public async Task<long?> SendPhotoAsync(string chatId, string photoUrl, string? caption = null)
         {
-            var botToken = _appConfig.Telegram.ClientSecret;
-            if (string.IsNullOrEmpty(botToken))
-            {
-                _logger.LogError("Telegram Token is missing.");
-                return null;
-            }
-
-            var url = $"https://api.telegram.org/bot{botToken}/sendPhoto";
-            var payload = new
-            {
-                chat_id = chatId,
-                photo = photoUrl,
-                caption = string.IsNullOrEmpty(caption) ? null : EscapeMarkdownV2(caption),
-                parse_mode = "MarkdownV2"
-            };
-
-            var response = await _httpClient.PostAsJsonAsync(url, payload);
-            var responseContent = await response.Content.ReadAsStringAsync();
-
-            if (!response.IsSuccessStatusCode)
-            {
-                _logger.LogError("Failed to send Photo: {Error}", responseContent);
-                return null;
-            }
-
             try
             {
-                var parsedResponse = JObject.Parse(responseContent);
-                return parsedResponse["result"]?["message_id"]?.Value<long>();
+                var message = await BotClient.SendPhoto(
+                    chatId: chatId,
+                    photo: InputFile.FromUri(photoUrl),
+                    caption: string.IsNullOrEmpty(caption) ? null : EscapeMarkdownV2(caption),
+                    parseMode: ParseMode.MarkdownV2
+                );
+
+                return message.Id;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to parse message_id from photo response.");
+                return null;
             }
-
-            return null;
         }
 
         public async Task<long?> SendMessageAsync(string chatId, string text)
         {
-            var botToken = _appConfig.Telegram.ClientSecret;
-            if (string.IsNullOrEmpty(botToken))
-            {
-                _logger.LogError("Telegram Bot Token (ClientSecret) is missing in configuration.");
-                return null;
-            }
-
-            var escapedText = EscapeMarkdownV2(text);
-            var url = $"https://api.telegram.org/bot{botToken}/sendMessage";
-            var payload = new
-            {
-                chat_id = chatId,
-                text = escapedText,
-                parse_mode = "MarkdownV2"
-            };
-
-            var response = await _httpClient.PostAsJsonAsync(url, payload);
-            var responseContent = await response.Content.ReadAsStringAsync();
-            
-            JObject? parsedResponse = null;
-            try { parsedResponse = JObject.Parse(responseContent); } catch { }
-
-            // Log the outbound message (Success or Failure)
-            await _logService.LogInfoAsync(
-                "TelegramService.LogAsync", 
-                $"Outbound Telegram message to {chatId}", 
-                new 
-                { 
-                    Type = "sendMessage", 
-                    Status = (int)response.StatusCode,
-                    Payload = JObject.FromObject(payload), 
-                    Data = parsedResponse ?? (object)responseContent 
-                }, 
-                chatId);
-
-            if (!response.IsSuccessStatusCode)
-            {
-                _logger.LogError("Failed to send Telegram message: {Error}", responseContent);
-                return null;
-            }
-
             try
             {
-                if (parsedResponse != null && 
-                    parsedResponse["result"]?["message_id"] != null)
-                {
-                    return parsedResponse["result"]!["message_id"]!.Value<long>();
-                }
+                var escapedText = EscapeMarkdownV2(text);
+                Message message = await BotClient.SendMessage(
+                    chatId: chatId,
+                    text: escapedText,
+                    parseMode: ParseMode.MarkdownV2
+                );
+
+            // Log the outbound message (Success or Failure)
+                await _logService.LogInfoAsync(
+                    "TelegramService.SendMessageAsync", 
+                    $"Outbound Telegram message to {chatId}", 
+                    new 
+                    { 
+                        Type = "sendMessage", 
+                        Text = text,
+                        Data = message
+                    }, 
+                    chatId);
+
+                return message.Id;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to parse Telegram message_id from: {Response}", responseContent);
+                _logger.LogError(ex, "Failed to send Telegram message to {ChatId}", chatId);
+                return null;
             }
-
-            return null;
         }
     }
 }
