@@ -24,15 +24,14 @@ jobs:
           registry-url: 'https://npm.pkg.github.com'
           scope: '@adolf94'
           
-      - name: Install OIDC Client from Core Package
-        run: npm install @actions/core@1.6.0 @actions/http-client
         
       - name: Install Dependencies
         run: npm install --legacy-peer-deps
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         working-directory: frontend
-          
+
+        
       - name: Build React
         run: npm run build
         working-directory: frontend
