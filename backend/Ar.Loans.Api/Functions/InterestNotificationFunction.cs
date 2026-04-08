@@ -52,13 +52,12 @@ namespace Ar.Loans.Api.Functions
             try
             {
                 var activeLoans = await _loanRepo.GetActiveLoans();
-                var targetDays = new[] { 0, 1, 3, 7 };
                 var summaryList = new List<string>();
 
                 foreach (var loan in activeLoans.OrderBy(l => l.NextInterestDate))
                 {
                     var daysRemaining = loan.NextInterestDate.DayNumber - refDateOnly.DayNumber;
-                    if (targetDays.Contains(daysRemaining))
+                    if (daysRemaining >= 0 && daysRemaining <= 7)
                     {
                         var client = await _userRepo.GetUserById(loan.ClientId);
                         // Determine if Grace Period (🛡️) or Regular (⚡)
@@ -204,6 +203,10 @@ namespace Ar.Loans.Api.Functions
                         }
                         await _telegramService.SendMessageAsync(_appConfig.Telegram.GuarantorChannel, sb.ToString());
                     }
+                }
+                else
+                {
+                    await _telegramService.SendMessageAsync(_appConfig.Telegram.GuarantorChannel, "✅ No upcoming interest accruals found for the next 7 days.");
                 }
             }
             catch (Exception ex)
