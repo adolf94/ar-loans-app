@@ -165,14 +165,45 @@ namespace Ar.Loans.Api.Functions
 
                 if (summaryList.Any())
                 {
-                    // Generate Image using ImageSharp (Cross-platform)
-                    var imageBytes = DrawInterestSummaryTable(summaryList, referenceDateUTC8);
+                    byte[]? imageBytes = null;
+                    try
+                    {
+                        // Generate Image using ImageSharp (Cross-platform)
+                        imageBytes = DrawInterestSummaryTable(summaryList, referenceDateUTC8);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning($"Failed to generate interest summary image: {ex.Message}. Falling back to text summary.");
+                    }
 
-                    await _telegramService.SendPhotoAsync(
-                        _appConfig.Telegram.GuarantorChannel, 
-                        imageBytes,
-                        $"InterestSummary_{referenceDateUTC8:yyyyMMdd}.png",
-                        $"⏳ *Upcoming Interest Accruals Summary* - {referenceDateUTC8:MMM dd, yyyy}");
+                    if (imageBytes != null)
+                    {
+                        await _telegramService.SendPhotoAsync(
+                            _appConfig.Telegram.GuarantorChannel, 
+                            imageBytes,
+                            $"InterestSummary_{referenceDateUTC8:yyyyMMdd}.png",
+                            $"⏳ *Upcoming Interest Accruals Summary* - {referenceDateUTC8:MMM dd, yyyy}");
+                    }
+                    else
+                    {
+                        // Fallback to text message
+                        var sb = new StringBuilder();
+                        sb.AppendLine($"⏳ *Upcoming Interest Accruals Summary*");
+                        sb.AppendLine($"{referenceDateUTC8:MMM dd, yyyy}");
+                        sb.AppendLine();
+                        sb.AppendLine("`Days | Date   | M | Client` ");
+                        sb.AppendLine("`--------------------------` ");
+                        foreach (var item in summaryList)
+                        {
+                            var parts = item.Split('|');
+                            // Ensure parts length to avoid IndexOutOfRangeException
+                            if (parts.Length >= 4)
+                            {
+                                sb.AppendLine($"`{parts[0],4} | {parts[1],6} | {parts[2]} | {parts[3]}`");
+                            }
+                        }
+                        await _telegramService.SendMessageAsync(_appConfig.Telegram.GuarantorChannel, sb.ToString());
+                    }
                 }
             }
             catch (Exception ex)
@@ -198,11 +229,35 @@ namespace Ar.Loans.Api.Functions
                     // Header Background
                     ctx.Fill(Color.FromRgb(44, 62, 80), new RectangleF(0, 0, width, headerHeight));
 
-                    // Font selection
-                    var family = SystemFonts.Families.FirstOrDefault(f => f.Name == "Arial");
+                    // Font selection: Prefer bundled font, fallback to system fonts
+                    var fontCollection = new FontCollection();
+                    FontFamily family = default;
+                    
+                    string fontPath = Path.Combine(AppContext.BaseDirectory, "Fonts", "Roboto.ttf");
+                    if (File.Exists(fontPath))
+                    {
+                        try
+                        {
+                            family = fontCollection.Add(fontPath);
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogWarning($"Failed to load bundled font: {ex.Message}");
+                        }
+                    }
+
                     if (string.IsNullOrEmpty(family.Name))
                     {
-                        family = SystemFonts.Families.First();
+                        family = SystemFonts.Families.FirstOrDefault(f => f.Name == "Arial");
+                        if (string.IsNullOrEmpty(family.Name) && SystemFonts.Families.Any())
+                        {
+                            family = SystemFonts.Families.First();
+                        }
+                    }
+
+                    if (string.IsNullOrEmpty(family.Name))
+                    {
+                        throw new InvalidOperationException("No fonts found on the system or in the bundled assets.");
                     }
                     
                     var titleFont = family.CreateFont(24, FontStyle.Bold);
