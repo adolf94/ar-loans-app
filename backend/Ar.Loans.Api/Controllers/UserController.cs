@@ -15,14 +15,16 @@ using Microsoft.Extensions.Caching.Memory;
 
 namespace Ar.Loans.Api.Controllers
 {
-    public class UserController(IUserRepo repo, IDbHelper db, AppConfig config, CurrentUser user, IMemoryCache cache, AuthorityService authorityService)
+    public class UserController(IUserRepo repo, IDbHelper db, AppConfig config, CurrentUser user, IMemoryCache cache, AuthorityService authorityService, ArGoService arGoService)
     {
         private readonly IDbHelper _db = db;
         private readonly IUserRepo _repo = repo;
         private readonly AppConfig _config = config;
+        private readonly IUserRepo _userRepo = repo;
         private readonly CurrentUser _user = user;
         private readonly IMemoryCache _cache = cache;
         private readonly AuthorityService _authority = authorityService;
+        private readonly ArGoService _arGo = arGoService;
         
         [Function(nameof(SyncUser))]
         public async Task<IActionResult> SyncUser([HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "users/sync")] HttpRequest req)
@@ -178,7 +180,13 @@ namespace Ar.Loans.Api.Controllers
             var scheme = req.Scheme ?? "https";
             string magicUrl = $"{scheme}://{host}/api/users/m?token={Uri.EscapeDataString(token)}";
 
-            return new OkObjectResult(new { url = magicUrl });
+            string shortenedUrl = await _arGo.ShortenUrlAsync(
+                magicUrl, 
+                $"Magic Link for {targetUser.Name}", 
+                targetUserIdStr
+            );
+
+            return new OkObjectResult(new { url = shortenedUrl });
         }
 
         [Function(nameof(GetMagicRedirect))]

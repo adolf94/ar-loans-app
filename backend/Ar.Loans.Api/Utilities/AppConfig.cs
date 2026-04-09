@@ -21,6 +21,12 @@ namespace Ar.Loans.Api.Utilities
 
         public JwtConfiguration JwtConfig { get; set; } = new();
         public TelegramConfiguration Telegram { get; set; } = new();
+        public ArGoConfiguration ArGo { get; set; } = new();
+    }
+    public class ArGoConfiguration
+    {
+        public string BaseUrl { get; set; } = string.Empty;
+        public string Scope { get; set; } = "api://ar-go/links:create api://ar-go/links:on_behalf";
     }
     public class TelegramConfiguration
     {

@@ -56,6 +56,7 @@ builder.Services
 builder.Services.AddCosmosDbContext(config);
 builder.Services.AddHttpClient();
 builder.Services.AddHttpClient<AuthorityService>();
+builder.Services.AddHttpClient<ArGoService>();
 builder.Services.AddScoped<LogService>();
 builder.Services.AddScoped<TelegramService>();
 builder.Services.AddSingleton<IAiService, AiService>();

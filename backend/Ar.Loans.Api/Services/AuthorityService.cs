@@ -19,9 +19,11 @@ namespace Ar.Loans.Api.Services
         private readonly IMemoryCache _cache = cache;
         private readonly ILogger<AuthorityService> _logger = logger;
 
-        public async Task<string?> GetAccessTokenAsync()
+        public async Task<string?> GetAccessTokenAsync(string? scope = null)
         {
-            string cacheKey = "authority_access_token";
+            scope ??= "api://ar-auth-management/users:read:all";
+            string cacheKey = $"authority_access_token_{scope.Replace(":", "_").Replace("/", "_")}";
+            
             if (_cache.TryGetValue(cacheKey, out string? token)) return token;
 
             var authority = _config.JwtConfig.Authority?.TrimEnd('/');
@@ -32,7 +34,7 @@ namespace Ar.Loans.Api.Services
                 { "grant_type", "client_credentials" },
                 { "client_id", _config.JwtConfig.Audience ?? "" },
                 { "client_secret", _config.JwtConfig.ClientSecret ?? "" },
-                { "scope", "api://ar-auth-management/users:read:all" }
+                { "scope", scope }
             });
 
             try 
@@ -41,7 +43,7 @@ namespace Ar.Loans.Api.Services
                 if (!response.IsSuccessStatusCode)
                 {
                     var error = await response.Content.ReadAsStringAsync();
-                    _logger.LogError("Failed to get access token from authority: {Error}", error);
+                    _logger.LogError("Failed to get access token from authority for scope {Scope}: {Error}", scope, error);
                     return null;
                 }
 
@@ -54,7 +56,7 @@ namespace Ar.Loans.Api.Services
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Exception while getting access token from authority.");
+                _logger.LogError(ex, "Exception while getting access token from authority for scope {Scope}.", scope);
             }
 
             return null;
