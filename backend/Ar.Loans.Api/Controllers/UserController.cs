@@ -54,6 +54,8 @@ namespace Ar.Loans.Api.Controllers
                 if (existingUser != null)
                 {
                     existingUser.OidcUid = _user.OidcUid;
+                    existingUser.MagicLinkToken = null;
+                    existingUser.MagicLinkTokenExpiration = null;
                     await _repo.UpdateUser(existingUser);
                     await _db.SaveChangesAsync();
                     _cache.Remove(state);
@@ -195,6 +197,9 @@ namespace Ar.Loans.Api.Controllers
             string? token = req.Query["token"];
             if (string.IsNullOrEmpty(token)) return new BadRequestObjectResult("Token is required");
 
+            // Normalize token (handle potential + vs space issues from URL decoding)
+            token = token.Replace(" ", "+");
+
             string? targetUserIdStr = JwtTokenHelper.ValidateInternalToken(token, _config.JwtConfig.SecretKey ?? "", "", "");
             if (string.IsNullOrEmpty(targetUserIdStr) || !Guid.TryParse(targetUserIdStr, out var targetUserId)) 
                 return new BadRequestObjectResult("Invalid or expired token");
@@ -206,11 +211,13 @@ namespace Ar.Loans.Api.Controllers
                 return new BadRequestObjectResult("This magic link has already been used or is expired.");
             }
 
-            // Remove token from database immediately after use (one-time use)
-            targetUser.MagicLinkToken = null;
-            targetUser.MagicLinkTokenExpiration = null;
-            await _repo.UpdateUser(targetUser);
-            await _db.SaveChangesAsync();
+            // DO NOT Remove token from database immediately after use.
+            // Some services (like URL shorteners or social crawlers) visit the link once to check headers.
+            // If we clear it now, the actual user click will fail.
+            // targetUser.MagicLinkToken = null;
+            // targetUser.MagicLinkTokenExpiration = null;
+            // await _repo.UpdateUser(targetUser);
+            // await _db.SaveChangesAsync();
 
             // Generate state and store in memory for OIDC flow
             string state = Guid.NewGuid().ToString("N");
