@@ -11,7 +11,8 @@ import {
     IconButton,
     InputAdornment,
     Tooltip,
-    Alert
+    Alert,
+    Stack
 } from '@mui/material';
 import { Copy, Check, Link as LinkIcon } from 'lucide-react';
 import { useGenerateMagicLink } from '../../repositories/user';
@@ -43,8 +44,14 @@ const MagicLinkDialog: React.FC<MagicLinkDialogProps> = ({ open, onClose, userId
         setTimeout(() => setCopied(false), 2000);
     };
 
+    const handleClose = () => {
+        setMagicLink('');
+        setCopied(false);
+        onClose();
+    };
+
     return (
-        <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+        <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
             <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <LinkIcon size={20} />
                 Link Account for {userName}
@@ -95,13 +102,10 @@ const MagicLinkDialog: React.FC<MagicLinkDialogProps> = ({ open, onClose, userId
                 </Box>
             </DialogContent>
             <DialogActions>
-                <Button onClick={onClose}>Close</Button>
+                <Button onClick={handleClose}>Close</Button>
             </DialogActions>
         </Dialog>
     );
 };
-
-// Need this to fix an issue with Stack not being imported from MUI in my thought process
-import { Stack } from '@mui/material';
 
 export default MagicLinkDialog;

@@ -37,6 +37,22 @@ namespace Ar.Loans.Api.Middlewares
 				public async Task Invoke(FunctionContext context, FunctionExecutionDelegate next)
 				{
 						var httpContext = context.GetHttpContext();
+						if (httpContext != null)
+						{
+								httpContext.Response.OnStarting(() =>
+								{
+										if (httpContext.Response.StatusCode == 401 || httpContext.Response.StatusCode == 403)
+										{
+												var user = httpContext.RequestServices.GetService<CurrentUser>();
+												if (!string.IsNullOrEmpty(user?.AuthFailureReason))
+												{
+														httpContext.Response.Headers["AuthReason"] = user.AuthFailureReason;
+												}
+										}
+										return Task.CompletedTask;
+								});
+						}
+
 						if (httpContext != null && httpContext.Request.Headers.ContainsKey("Authorization"))
 						{
 								var _userRepo = httpContext.RequestServices.GetRequiredService<IUserRepo>();
@@ -57,6 +73,7 @@ namespace Ar.Loans.Api.Middlewares
 										?? tokenContent.Claims.FirstOrDefault(e => e.Type == "sub")?.Value;
 
 										if (string.IsNullOrEmpty(sid)) {
+												_user.AuthFailureReason = "Token missing sid or sub claim.";
 												await next(context);
 												return;
 										}
@@ -65,7 +82,9 @@ namespace Ar.Loans.Api.Middlewares
 
 										if (!_cache.TryGetValue<UserCacheItem>(cacheKey, out var cacheItem))
 										{
-												var principal = await JwtTokenHelper.ReadClaimsFromJwt(bearer, authority, audience, authority);
+												var (principal, error) = await JwtTokenHelper.ReadClaimsFromJwt(bearer, authority, audience, authority);
+												_user.AuthFailureReason = error;
+
 												if (principal != null && (principal.Identity?.IsAuthenticated == true || principal.Claims.Any()))
 												{
 														cacheItem = new UserCacheItem
@@ -134,6 +153,15 @@ namespace Ar.Loans.Api.Middlewares
 												_user.IsAuthenticated = true;
 										}
 								}
+								else
+								{
+										_user.AuthFailureReason = "Authorization header must be Bearer token.";
+								}
+						}
+						else if (httpContext != null)
+						{
+								var _user = httpContext.RequestServices.GetRequiredService<CurrentUser>();
+								_user.AuthFailureReason = "Missing Authorization header.";
 						}
 
 						await next(context);

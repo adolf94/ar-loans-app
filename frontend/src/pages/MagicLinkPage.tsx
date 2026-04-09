@@ -12,10 +12,14 @@ const MagicLinkPage: React.FC = () => {
     const { login, isLoading: authLoading } = useAuth();
     const [initiated, setInitiated] = useState(false);
 
-    useEffect(() => {
-        const params = new URLSearchParams(window.location.search);
-        const linkState = params.get('link_state');
+    const params = new URLSearchParams(window.location.search);
+    const linkState = params.get('link_state');
 
+    useEffect(() => {
+        setInitiated(false);
+    }, [linkState]);
+
+    useEffect(() => {
         if (linkState && !authLoading && !initiated) {
             setInitiated(true);
             console.log("MagicLinkPage: Initiating redirect for state:", linkState);
@@ -25,9 +29,10 @@ const MagicLinkPage: React.FC = () => {
             login({ state: linkState, useRedirect: true })
                 .catch((err) => {
                     console.error("Magic login redirection failed:", err);
+                    setInitiated(false);
                 });
         }
-    }, [authLoading, initiated, login]);
+    }, [authLoading, initiated, login, linkState]);
 
     return (
         <Box

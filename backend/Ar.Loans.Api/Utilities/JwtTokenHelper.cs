@@ -45,7 +45,7 @@ namespace Ar.Loans.Api.Utilities
 						}
 				}
 
-				public static async Task<ClaimsPrincipal?> ReadClaimsFromJwt(string token, string validIssuer, string validAudience, string? authority = null)
+				public static async Task<(ClaimsPrincipal? principal, string? error)> ReadClaimsFromJwt(string token, string validIssuer, string validAudience, string? authority = null)
 				{
 						var tokenHandler = new JwtSecurityTokenHandler();
 						var tokenValidationParameters = new TokenValidationParameters
@@ -73,18 +73,16 @@ namespace Ar.Loans.Api.Utilities
 								}
 								catch (Exception ex)
 								{
-										Console.WriteLine($"OIDC Discovery failed for {authority}: {ex.Message}");
-										return null;
+										return (null, $"OIDC Discovery failed: {ex.Message}");
 								}
 						try
 						{
 								var principal = tokenHandler.ValidateToken(token, tokenValidationParameters, out SecurityToken validatedToken);
-								return principal;
+								return (principal, null);
 						}
 						catch (Exception ex)
 						{
-								Console.WriteLine($"Token validation failed: {ex.Message}");
-								return null;
+								return (null, ex.Message);
 						}
 				}
 

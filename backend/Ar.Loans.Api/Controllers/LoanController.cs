@@ -22,6 +22,9 @@ namespace Ar.Loans.Api.Controllers
         [Function("CreateLoan")]
         public async Task<IActionResult> CreateLoan([HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "loans")] HttpRequest req)
         {
+            if (!_user.IsAuthenticated) return new UnauthorizedResult();
+            if (!_user.IsAuthorized("guarantor,admin")) return new ForbidResult();
+
             var loan = await req.ReadFromJsonAsync<Loan>();
             if (loan == null)
             {
