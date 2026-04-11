@@ -30,7 +30,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     const location = useLocation();
     const { userInfo, hasRole, setUserInfo } = useUserInfo()
     const { logout } = useAuth();
-    const isLoginPage = location.pathname === '/';
+    const isSpecialPage = location.pathname === '/' || location.pathname === '/m' || location.pathname === '/callback';
 
     const handleOpenMenu = (event: React.MouseEvent<HTMLElement>) => {
         setAnchorEl(event.currentTarget);
@@ -94,7 +94,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         }
     };
 
-    if (isLoginPage) return <>{children}</>;
+    if (isSpecialPage) return <>{children}</>;
 
     return (
         <Box sx={{ flexGrow: 1, minHeight: '100vh', bgcolor: 'background.default' }}>

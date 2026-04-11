@@ -52,14 +52,16 @@ function AppContent({ userInfo, setUserInfo, init }: any) {
             isAuthenticated: true
           });
 
-          // Perform backend sync using recovered state (loginState)
-          const dbUser = await syncUser(loginState);
+          // Perform backend sync using recovered state (loginState) or manual session recovery
+          const magicState = loginState || sessionStorage.getItem("magic_link_state");
+          const dbUser = await syncUser(magicState || undefined);
 
           // If a state was provided, it means it was a magic link flow
-          if (loginState) {
-            setSnackbarMessage("Link Successful");
+          if (magicState) {
+            setSnackbarMessage("Account Linked Successfully");
             setSnackbarSeverity("success");
             setSnackbarOpen(true);
+            sessionStorage.removeItem("magic_link_state");
           }
 
           setUserInfo((prev: any) => ({
@@ -82,7 +84,7 @@ function AppContent({ userInfo, setUserInfo, init }: any) {
       }
     };
     performSync();
-  }, [user, isAuthenticated, isLoading, setUserInfo]);
+  }, [user, isAuthenticated, isLoading, setUserInfo, loginState]);
 
   useEffect(() => {
     router.update({

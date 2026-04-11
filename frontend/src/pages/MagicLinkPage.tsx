@@ -24,6 +24,9 @@ const MagicLinkPage: React.FC = () => {
             setInitiated(true);
             console.log("MagicLinkPage: Initiating redirect for state:", linkState);
             
+            // Persist the state manually to ensure it survives redirects
+            if (linkState) sessionStorage.setItem("magic_link_state", linkState);
+
             // Immediate redirect to OIDC provider
             // We use useRedirect: true to ensure a full page transition
             login({ state: linkState, useRedirect: true })
