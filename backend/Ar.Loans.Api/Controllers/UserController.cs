@@ -11,11 +11,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Caching.Memory;
 
 namespace Ar.Loans.Api.Controllers
 {
-    public class UserController(IUserRepo repo, IDbHelper db, AppConfig config, CurrentUser user, IMemoryCache cache, AuthorityService authorityService, ArGoService arGoService)
+    public class UserController(IUserRepo repo, IDbHelper db, AppConfig config, CurrentUser user, IMemoryCache cache, AuthorityService authorityService, ArGoService arGoService, ILogger<UserController> logger)
     {
         private readonly IDbHelper _db = db;
         private readonly IUserRepo _repo = repo;
@@ -25,11 +26,17 @@ namespace Ar.Loans.Api.Controllers
         private readonly IMemoryCache _cache = cache;
         private readonly AuthorityService _authority = authorityService;
         private readonly ArGoService _arGo = arGoService;
+        private readonly ILogger<UserController> _logger = logger;
         
         [Function(nameof(SyncUser))]
         public async Task<IActionResult> SyncUser([HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "users/sync")] HttpRequest req)
         {
-            if (!_user.IsAuthenticated) return new UnauthorizedResult();
+            _logger.LogInformation("SyncUser started for OIDC Subject: {OidcUid}, Name: {Name}", _user.OidcUid, _user.Name);
+            if (!_user.IsAuthenticated)
+            {
+                _logger.LogWarning("SyncUser failed: User is not authenticated.");
+                return new UnauthorizedResult();
+            }
 
             User? existingUser = null;
 
@@ -47,12 +54,14 @@ namespace Ar.Loans.Api.Controllers
                 }
                 catch { /* ignore */ }
             }
- 
+
             if (!string.IsNullOrEmpty(state) && _cache.TryGetValue(state, out Guid targetUserId))
             {
+                _logger.LogInformation("Retrieving magic link target user from cache for state: {State}. Target User ID: {TargetUserId}", state, targetUserId);
                 existingUser = await _repo.GetUserById(targetUserId);
                 if (existingUser != null)
                 {
+                    _logger.LogInformation("Linking OIDC UID {OidcUid} to Target User {TargetUserId} found from cache state.", _user.OidcUid, targetUserId);
                     existingUser.OidcUid = _user.OidcUid;
                     existingUser.MagicLinkToken = null;
                     existingUser.MagicLinkTokenExpiration = null;
@@ -65,18 +74,21 @@ namespace Ar.Loans.Api.Controllers
             // 1. Try to find user by internal ID from token
             if (existingUser == null && _user.UserId != Guid.Empty)
             {
+                _logger.LogInformation("Attempting to map user internally by ID from token: {UserId}", _user.UserId);
                 existingUser = await _repo.GetUserById(_user.UserId);
             }
 
             // 2. Fallback: Find by OIDC subject (sub)
             if (existingUser == null && !string.IsNullOrEmpty(_user.OidcUid))
             {
+                _logger.LogInformation("Attempting to map user by OIDC Subject: {OidcUid}", _user.OidcUid);
                 existingUser = await _repo.GetUserByOidcUid(_user.OidcUid);
             }
 
             // 3. Fallback: Find by Email or Mobile (linking existing records)
             if (existingUser == null)
             {
+                _logger.LogInformation("Attempting to map user by Email/Mobile fallback: {Email}/{Mobile}", _user.EmailAddress, _user.MobileNumber);
                 existingUser = await _repo.GetUserByEmailOrMobile(_user.EmailAddress, _user.MobileNumber);
             }
 
@@ -90,36 +102,39 @@ namespace Ar.Loans.Api.Controllers
                         return new BadRequestObjectResult("This profile is already linked to another OIDC account.");
                     }
 
+                    _logger.LogInformation("Linking OIDC UID {OidcUid} to existing internal profile {UserId}", _user.OidcUid, existingUser.Id);
                     existingUser.OidcUid = _user.OidcUid;
                     await _repo.UpdateUser(existingUser);
                     await _db.SaveChangesAsync();
                 }
+
                 if (!string.IsNullOrEmpty(existingUser.OidcUid))
                 {
                     try
                     {
-
-												var authDetails = await _authority.GetUserDetailsAsync(existingUser.OidcUid);
-												if (authDetails != null)
-												{
-														existingUser.EmailAddress = authDetails.Email;
-														existingUser.MobileNumber = authDetails.MobileNumber ?? existingUser.MobileNumber;
-														existingUser.TelegramId = authDetails.GetTelegramId() ?? existingUser.TelegramId;
-														await _repo.UpdateUser(existingUser);
-														await _db.SaveChangesAsync();
-												}
-												else
-												{
-														existingUser.OidcUid = null;
-														await _repo.UpdateUser(existingUser);
-														await _db.SaveChangesAsync();
-												}
+                        var authDetails = await _authority.GetUserDetailsAsync(existingUser.OidcUid);
+                        if (authDetails != null)
+                        {
+                            _logger.LogInformation("Fetched external user details for OIDC UID {OidcUid}. Updating profile.", existingUser.OidcUid);
+                            existingUser.EmailAddress = authDetails.Email;
+                            existingUser.MobileNumber = authDetails.MobileNumber ?? existingUser.MobileNumber;
+                            existingUser.TelegramId = authDetails.GetTelegramId() ?? existingUser.TelegramId;
+                            await _repo.UpdateUser(existingUser);
+                            await _db.SaveChangesAsync();
+                        }
+                        else
+                        {
+                            _logger.LogWarning("Authority service returned no details for OIDC UID {OidcUid}. Clearing OIDC link.", existingUser.OidcUid);
+                            existingUser.OidcUid = null;
+                            await _repo.UpdateUser(existingUser);
+                            await _db.SaveChangesAsync();
+                        }
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine("");
+                        _logger.LogError(ex, "Error syncing user details from authority for OIDC UID {OidcUid}", existingUser.OidcUid);
                     }
-								}
+                }
                 return new OkObjectResult(existingUser);
             }
 
@@ -129,18 +144,6 @@ namespace Ar.Loans.Api.Controllers
 
             string transientEmail = _user.EmailAddress;
             string transientMobile = _user.MobileNumber;
-            //string? transientTelegram = null;
-
-            //if (!string.IsNullOrEmpty(_user.OidcUid))
-            //{
-            //    var authDetails = await _authority.GetUserDetailsAsync(_user.OidcUid);
-            //    if (authDetails != null)
-            //    {
-            //        transientEmail = authDetails.Email;
-            //        transientMobile = authDetails.MobileNumber ?? transientMobile;
-            //        transientTelegram = authDetails.GetTelegramId();
-            //    }
-            //}
 
             var transientUser = new
             {
