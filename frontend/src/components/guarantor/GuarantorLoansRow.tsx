@@ -105,7 +105,7 @@ const GuarantorLoansRow: React.FC<GuarantorLoansRowProps> = ({ loan, onSelect })
                 )}
             </Stack>
         </TableCell>
-        <TableCell>${loan.principal.toLocaleString()}</TableCell>
+        <TableCell>P {loan.principal.toLocaleString()}</TableCell>
         <TableCell sx={{ color: 'error.main', fontWeight: 600 }}>
             {numeral(loan.balance).format("0,0.00")}
         </TableCell>

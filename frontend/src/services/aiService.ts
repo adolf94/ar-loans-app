@@ -13,13 +13,13 @@ export const analyzePortfolio = async (loans: Loan[], stats: PortfolioStats) => 
       Analyze the following micro-lending portfolio and provide financial advice:
       
       Portfolio Metrics:
-      - Total Principal Outstanding: $${stats.totalPrincipal}
-      - Total Interest Receivable: $${stats.totalInterestReceivable}
-      - Total Risk Exposure: $${stats.totalRiskExposure}
+      - Total Principal Outstanding: P ${stats.totalPrincipal}
+      - Total Interest Receivable: P ${stats.totalInterestReceivable}
+      - Total Risk Exposure: P ${stats.totalRiskExposure}
       - Portfolio Health Score: ${stats.healthScore}/100
       
       Individual Loans:
-      ${loans.map(l => `- Loan ${l.id}: $${l.principal} at ${l.interestRate}% APR, Status: ${l.status}`).join('\n')}
+      ${loans.map(l => `- Loan ${l.id}: P ${l.principal} at ${l.interestRate}% APR, Status: ${l.status}`).join('\n')}
       
       Provide a concise 3-point summary of risk trends and specific health metrics.
     `;

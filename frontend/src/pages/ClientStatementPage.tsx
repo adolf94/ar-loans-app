@@ -22,7 +22,7 @@ import {
 } from '@mui/material';
 import {
     User as UserIcon,
-    DollarSign,
+    Coins,
     CreditCard,
     TrendingUp,
     ChevronLeft,
@@ -100,7 +100,7 @@ const ClientStatementPage: React.FC = () => {
             {/* Summary Cards */}
             <Grid container spacing={{ xs: 1.5, sm: 3 }} sx={{ mb: 4 }}>
                 {[
-                    { label: 'Total Principal', value: clientSummary.totalPrincipal, icon: <DollarSign size={20} />, color: 'primary.main' },
+                    { label: 'Total Principal', value: clientSummary.totalPrincipal, icon: <Coins size={20} />, color: 'primary.main' },
                     { label: 'Outstanding Balance', value: clientSummary.totalBalance, icon: <CreditCard size={20} />, color: 'error.main' },
                     { label: 'Accrued Interest', value: clientSummary.totalInterest, icon: <TrendingUp size={20} />, color: 'warning.main' },
                     { label: 'Active Agreements', value: clientSummary.activeLoans, icon: <Landmark size={20} />, color: 'info.main', isCount: true },
@@ -115,7 +115,7 @@ const ClientStatementPage: React.FC = () => {
                                     <Typography variant="caption" color="text.secondary" fontWeight={700} sx={{ lineHeight: 1.2 }}>{item.label}</Typography>
                                 </Stack>
                                 <Typography variant={isMobile ? "h6" : "h5"} fontWeight={800}>
-                                    {item.isCount ? item.value : `$${numeral(item.value).format('0,0.0')}`}
+                                    {item.isCount ? item.value : `P ${numeral(item.value).format('0,0.0')}`}
                                 </Typography>
                             </CardContent>
                         </Card>
@@ -156,11 +156,11 @@ const ClientStatementPage: React.FC = () => {
                                             <Stack direction="row" spacing={{ xs: 2, sm: 3 }} justifyContent={{ xs: 'space-between', sm: 'flex-end' }}>
                                                 <Box>
                                                     <Typography variant="caption" color="text.secondary" display="block">Principal</Typography>
-                                                    <Typography variant="body2" fontWeight={700}>${numeral(loan.principal).format('0,0')}</Typography>
+                                                    <Typography variant="body2" fontWeight={700}>P {numeral(loan.principal).format('0,0')}</Typography>
                                                 </Box>
                                                 <Box>
                                                     <Typography variant="caption" color="text.secondary" display="block">Balance</Typography>
-                                                    <Typography variant="body2" fontWeight={700} color="error.main">${numeral(loan.balance).format('0,0')}</Typography>
+                                                    <Typography variant="body2" fontWeight={700} color="error.main">P {numeral(loan.balance).format('0,0')}</Typography>
                                                 </Box>
                                             </Stack>
                                         </Grid>
@@ -193,7 +193,7 @@ const ClientStatementPage: React.FC = () => {
                                                                 </Stack>
                                                             </Box>
                                                             <Typography variant="body2" fontWeight={700} sx={{ color: tx.type === 'payment' ? 'success.main' : 'inherit', ml: 2 }}>
-                                                                {tx.type === 'payment' ? '-' : ''}${numeral(tx.amount).format('0,0.00')}
+                                                                {tx.type === 'payment' ? '-' : ''}P {numeral(tx.amount).format('0,0.00')}
                                                             </Typography>
                                                         </Stack>
                                                     </Box>
@@ -238,7 +238,7 @@ const ClientStatementPage: React.FC = () => {
                                                                     </Stack>
                                                                 </TableCell>
                                                                 <TableCell align="right" sx={{ fontWeight: 600, color: tx.type === 'payment' ? 'success.main' : 'inherit' }}>
-                                                                    {tx.type === 'payment' ? '-' : ''}${numeral(tx.amount).format('0,0.00')}
+                                                                    {tx.type === 'payment' ? '-' : ''}P {numeral(tx.amount).format('0,0.00')}
                                                                 </TableCell>
                                                             </TableRow>
                                                         );

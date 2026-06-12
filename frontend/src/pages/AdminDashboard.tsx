@@ -31,7 +31,7 @@ import {
     Sparkles,
     History,
     PieChart,
-    DollarSign,
+    Coins,
     Briefcase,
     Plus,
     UserPlus,
@@ -178,7 +178,7 @@ const AdminDashboard: React.FC = () => {
 
             <Grid container spacing={{ xs: 1.5, sm: 3 }} sx={{ mb: 4 }}>
                 {[
-                    { label: 'Loan Receivables', value: summary.receivables, icon: <DollarSign size={isMobile ? 16 : 24} />, color: 'primary.main' },
+                    { label: 'Loan Receivables', value: summary.receivables, icon: <Coins size={isMobile ? 16 : 24} />, color: 'primary.main' },
                     { label: 'Liquid Asset', value: summary.totalAssets - summary.receivables, icon: <Landmark size={isMobile ? 16 : 24} />, color: 'info.main' },
                     { label: 'Realized Interest', value: summary.realizedInterest, icon: <TrendingUp size={isMobile ? 16 : 24} />, color: 'success.main' },
                     { label: 'Accrued Interest', value: summary.accruedInterest, icon: <CreditCard size={isMobile ? 16 : 24} />, color: 'secondary.main' },

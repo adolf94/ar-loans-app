@@ -113,7 +113,7 @@ const GuarantorOverviewTab: React.FC<GuarantorOverviewTabProps> = () => {
                                         </Box>
                                     </Tooltip>
                                 </Stack>
-                                <Typography variant="h4" fontWeight={800}>${numeral(onHand).format("0,0")}</Typography>
+                                <Typography variant="h4" fontWeight={800}>P {numeral(onHand).format("0,0")}</Typography>
                                 <Typography variant="caption" color="text.secondary">Amount held on behalf of the coop</Typography>
                             </Box>
                             <Box sx={{ display: { xs: 'block', sm: 'none' } }}>
@@ -121,7 +121,7 @@ const GuarantorOverviewTab: React.FC<GuarantorOverviewTabProps> = () => {
                                     <Avatar sx={{ bgcolor: 'primary.main', width: 28, height: 28 }}><Landmark size={14} /></Avatar>
                                     <Typography variant="caption" color="primary.main" fontWeight={700} sx={{ lineHeight: 1.2 }}>Cash on hand</Typography>
                                 </Stack>
-                                <Typography variant="h6" fontWeight={800} sx={{ fontSize: '1.1rem', pl: 0.5 }}>${numeral(onHand).format("0,0")}</Typography>
+                                <Typography variant="h6" fontWeight={800} sx={{ fontSize: '1.1rem', pl: 0.5 }}>P {numeral(onHand).format("0,0")}</Typography>
                             </Box>
                         </CardContent>
                     </Card>
@@ -143,7 +143,7 @@ const GuarantorOverviewTab: React.FC<GuarantorOverviewTabProps> = () => {
                                         </Box>
                                     </Tooltip>
                                 </Stack>
-                                <Typography variant="h4" fontWeight={800}>${numeral(accruedInterest).format("0,0")}</Typography>
+                                <Typography variant="h4" fontWeight={800}>P {numeral(accruedInterest).format("0,0")}</Typography>
                                 <Typography variant="caption" color="text.secondary">Unpaid interest you are helping manage</Typography>
                             </Box>
                             <Box sx={{ display: { xs: 'block', sm: 'none' } }}>
@@ -151,7 +151,7 @@ const GuarantorOverviewTab: React.FC<GuarantorOverviewTabProps> = () => {
                                     <Avatar sx={{ bgcolor: 'error.main', width: 28, height: 28 }}><Activity size={14} /></Avatar>
                                     <Typography variant="caption" color="error.main" fontWeight={700} sx={{ lineHeight: 1.2 }}>Accrued</Typography>
                                 </Stack>
-                                <Typography variant="h6" fontWeight={800} sx={{ fontSize: '1.1rem', pl: 0.5 }}>${numeral(accruedInterest).format("0,0")}</Typography>
+                                <Typography variant="h6" fontWeight={800} sx={{ fontSize: '1.1rem', pl: 0.5 }}>P {numeral(accruedInterest).format("0,0")}</Typography>
                             </Box>
                         </CardContent>
                     </Card>
@@ -166,7 +166,7 @@ const GuarantorOverviewTab: React.FC<GuarantorOverviewTabProps> = () => {
                                     <Avatar sx={{ bgcolor: 'success.main' }}><CheckCircle2 size={20} /></Avatar>
                                 </Stack>
                                 <Typography variant="body2" color="success.main" fontWeight={700}>Realized Interest</Typography>
-                                <Typography variant="h4" fontWeight={800}>${numeral(realizedInterest).format("0,0")}</Typography>
+                                <Typography variant="h4" fontWeight={800}>P {numeral(realizedInterest).format("0,0")}</Typography>
                                 <Typography variant="caption" color="text.secondary">Total earnings already collected</Typography>
                             </Box>
                             <Box sx={{ display: { xs: 'block', sm: 'none' } }}>
@@ -174,7 +174,7 @@ const GuarantorOverviewTab: React.FC<GuarantorOverviewTabProps> = () => {
                                     <Avatar sx={{ bgcolor: 'success.main', width: 28, height: 28 }}><CheckCircle2 size={14} /></Avatar>
                                     <Typography variant="caption" color="success.main" fontWeight={700} sx={{ lineHeight: 1.2 }}>Realized</Typography>
                                 </Stack>
-                                <Typography variant="h6" fontWeight={800} sx={{ fontSize: '1.1rem', pl: 0.5 }}>${numeral(realizedInterest).format("0,0")}</Typography>
+                                <Typography variant="h6" fontWeight={800} sx={{ fontSize: '1.1rem', pl: 0.5 }}>P {numeral(realizedInterest).format("0,0")}</Typography>
                             </Box>
                         </CardContent>
                     </Card>
