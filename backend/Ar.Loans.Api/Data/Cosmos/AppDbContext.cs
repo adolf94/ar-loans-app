@@ -24,16 +24,16 @@ namespace Ar.Loans.Api.Data.Cosmos
         }
 
 
-        public DbSet<User> Users { get; set; }
-        public DbSet<Loan> Loans { get; set; }
-        public DbSet<Payment> Payment { get; set; }
-        public DbSet<Account> Accounts { get; set; }
-        public DbSet<Entry> Entries { get; set; }
-        public DbSet<UserBankAccount> BankAccounts { get; set; }
-        public DbSet<BlobFile> Files { get; set; }
-        public DbSet<InterestRule> InterestRules { get; set; }
-        public DbSet<LogEntry> Logs { get; set; }
-        public DbSet<Comment> Comments { get; set; } = null!;
+        public virtual DbSet<User> Users { get; set; }
+        public virtual DbSet<Loan> Loans { get; set; }
+        public virtual DbSet<Payment> Payment { get; set; }
+        public virtual DbSet<Account> Accounts { get; set; }
+        public virtual DbSet<Entry> Entries { get; set; }
+        public virtual DbSet<UserBankAccount> BankAccounts { get; set; }
+        public virtual DbSet<BlobFile> Files { get; set; }
+        public virtual DbSet<InterestRule> InterestRules { get; set; }
+        public virtual DbSet<LogEntry> Logs { get; set; }
+        public virtual DbSet<Comment> Comments { get; set; } = null!;
 
 
 

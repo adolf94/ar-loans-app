@@ -86,7 +86,7 @@ namespace Ar.Loans.Api.Functions
                                 };
 
                                 decimal rateToUse = isGrace ? loan.GracePeriodInterest : loan.InterestRate;
-                                decimal upcomingInterest = interestFactor * (rateToUse / 100M);
+                                decimal upcomingInterest = Math.Floor(interestFactor * (rateToUse / 100M) * 100M) / 100M;
                                 decimal newBalance = balance + upcomingInterest;
 
                                 int graceDaysForPeriod = (loan.RecurringGracePeriod || loan.NextInterestDate == loan.Date) ? loan.GracePeriodDays : 0;
@@ -132,8 +132,8 @@ namespace Ar.Loans.Api.Functions
                                 {
                                     // Calculate penalty-based projection
                                     decimal penaltyRate = loan.InterestRate;
-                                    decimal penaltyCharge = interestFactor * (penaltyRate / 100M);
-                                    decimal latePenaltyAmount = balance * (loan.LatePaymentPenalty / 100M); 
+                                    decimal penaltyCharge = Math.Floor(interestFactor * (penaltyRate / 100M) * 100M) / 100M;
+                                    decimal latePenaltyAmount = Math.Floor(balance * (loan.LatePaymentPenalty / 100M) * 100M) / 100M; 
                                     decimal penaltyBalance = balance + penaltyCharge + latePenaltyAmount;
 
                                     StringBuilder penaltyMsg = new StringBuilder();

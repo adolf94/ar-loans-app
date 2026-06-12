@@ -137,8 +137,10 @@ namespace Ar.Loans.Api.Data.Cosmos
             if (loan == null) throw new Exception("Loan not found");
 
             // 1. Identify entries to remove (Interests/Penalties after payment date for rebalancing)
+            // An interest transaction is considered "after the payment date" if its actual accrual date (DateStart + graceDays) is after the payment date.
             var futureTransactions = loan.Transactions
-                    .Where(t => (t.Type == "interest" || t.Type == "penalty") && t.EndDate > payment.Date)
+                    .Where(t => (t.Type == "interest" || t.Type == "penalty") &&
+                                t.DateStart.AddDays((loan.RecurringGracePeriod || t.DateStart == loan.Date) ? loan.GracePeriodDays : 0) > payment.Date)
                     .ToList();
 
             var deletedEntryIds = new List<Guid>();
@@ -261,8 +263,10 @@ namespace Ar.Loans.Api.Data.Cosmos
             if (loan == null) throw new Exception("Loan not found");
 
             // 1. Identify all future interest/penalty entries for re-accrual
+            // An interest transaction is considered "after the payment date" if its actual accrual date (DateStart + graceDays) is after the payment date.
             var futureTransactions = loan.Transactions
-                    .Where(t => (t.Type == "interest" || t.Type == "penalty") && t.EndDate > payment.Date)
+                    .Where(t => (t.Type == "interest" || t.Type == "penalty") &&
+                                t.DateStart.AddDays((loan.RecurringGracePeriod || t.DateStart == loan.Date) ? loan.GracePeriodDays : 0) > payment.Date)
                     .ToList();
 
             // Find the specific payment ledger item to remove
@@ -426,19 +430,19 @@ namespace Ar.Loans.Api.Data.Cosmos
 
                 decimal rateToUse = (graceDays > 0 && lateFactor <= 0) ? loan.GracePeriodInterest : loan.InterestRate;
 
-                decimal monthlyInterest = interestFactor * (rateToUse / 100M);
-                decimal penaltyInterest = lateFactor * (loan.LatePaymentPenalty / 100M);
+                decimal monthlyInterest = Math.Floor(interestFactor * (rateToUse / 100M) * 100M) / 100M;
+                decimal penaltyInterest = Math.Floor(lateFactor * (loan.LatePaymentPenalty / 100M) * 100M) / 100M;
 
                 decimal totalCharge = monthlyInterest + penaltyInterest;
 
                 if (totalCharge <= 0)
                 {
                     // Make sure we advance dates even if 0 charge
-                    loan.NextInterestDate = loan.NextInterestDate.AddMonths(1);
+                    loan.NextInterestDate = GetNextInterestDate(loan.NextInterestDate, loan.Date);
                 }
                 else
                 {
-                    var endDate = startDate.AddMonths(1);
+                    var endDate = GetNextInterestDate(startDate, loan.Date);
 
                     if (monthlyInterest > 0)
                     {
@@ -568,6 +572,20 @@ namespace Ar.Loans.Api.Data.Cosmos
             }
 
             return newTransactions;
+        }
+
+        private static DateOnly GetNextInterestDate(DateOnly currentDate, DateOnly loanStartDate)
+        {
+            int targetYear = currentDate.Year;
+            int targetMonth = currentDate.Month + 1;
+            if (targetMonth > 12)
+            {
+                targetMonth = 1;
+                targetYear += 1;
+            }
+            int daysInMonth = DateTime.DaysInMonth(targetYear, targetMonth);
+            int targetDay = Math.Min(loanStartDate.Day, daysInMonth);
+            return new DateOnly(targetYear, targetMonth, targetDay);
         }
 
         public async Task<TransactionResult> RebalanceInterestRealizations(Loan loan)

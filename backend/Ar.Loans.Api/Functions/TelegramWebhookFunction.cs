@@ -74,7 +74,7 @@ namespace Ar.Loans.Api.Functions
                 if (string.IsNullOrEmpty(chatId)) return new OkResult();
 
                 var recentLogs = await _logService.GetRecentLogsByChatIdAsync(chatId, 5);
-                var sb = new StringBuilder();
+                var sb = new StringBuilder();  
                 sb.AppendLine("📋 *Recent Messages in this Chat:*");
                 
                 if (recentLogs.Count == 0)
