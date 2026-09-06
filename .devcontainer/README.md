@@ -162,7 +162,8 @@ Secrets are placeholders — fill in:
 
 | Key | Where | Notes |
 |-----|-------|-------|
-| `AppConfig__GeminiKey` | `local.settings.json` | Google AI key for `/files/identify_transaction`; without it that endpoint fails, rest works |
+| `AppConfig__OpenRouterKey` | `local.settings.json` | OpenRouter API key for `/files/identify_transaction`; without it that endpoint fails, rest works |
+| `AppConfig__OpenRouterModel` | `local.settings.json` | OpenRouter model id (vendor/model), defaults to `google/gemini-2.5-flash` |
 | `AppConfig__Telegram__ClientSecret` | `local.settings.json` | Bot token; if empty, `Program.cs` skips `SetWebhook` so backend still starts (logs a warning) |
 | `AppConfig__JwtConfig__Authority` / `Audience` | `local.settings.json` | Defaults to `https://auth.adolfrey.com/api` / `ar-loans-api`; must match `frontend/public/config.js` |
 | `AppConfig__AzureStorage` | `local.settings.json` | Azurite connection string by default; replace with real storage for cloud dev |

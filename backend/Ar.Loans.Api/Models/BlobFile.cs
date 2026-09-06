@@ -1,5 +1,4 @@
 ﻿using System.Text.Json.Serialization;
-using Google.Cloud.AIPlatform.V1;
 
 namespace Ar.Loans.Api.Models
 {

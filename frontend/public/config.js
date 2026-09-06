@@ -1,5 +1,5 @@
 webConfig = {
-    apiUrl: "http://localhost:7071/api",
+    apiUrl: "http://localhost:7239/api",
     authUrl: "https://auth.adolfrey.com/api/",
     authority: "https://auth.adolfrey.com/api",
     clientId: "ar-loans-app",

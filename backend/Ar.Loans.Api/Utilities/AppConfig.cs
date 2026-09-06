@@ -9,7 +9,9 @@ namespace Ar.Loans.Api.Utilities
     public class AppConfig
     {
         public string DatabaseName { get; set; }
-        public string GeminiKey { get; set; }
+        public string OpenRouterKey { get; set; } = string.Empty;
+        public string OpenRouterModel { get; set; } = string.Empty;
+        public string OpenRouterReasoningEffort { get; set; } = "medium";
         public string UsersDb { get; set; }
         public string CosmosEndpoint { get; set; }
         public string CosmosKey { get; set; } = "";

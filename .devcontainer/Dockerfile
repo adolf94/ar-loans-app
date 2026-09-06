@@ -75,7 +75,7 @@ RUN curl -fsSL https://opencode.ai/install | bash || echo "WARN: opencode instal
 # Google Antigravity CLI. Installed as the vscode user so the binary lands in
 # ~/.local/bin (already on PATH, see ENV above). Auth is per-user at runtime:
 # run `agy login` (local browser) or use the SSH URL-code flow inside the
-# container; headless/CI can use GEMINI_API_KEY instead (see README).
+# container; headless/CI can use OPENROUTER_API_KEY instead (see README).
 # Best-effort: never fail the image build if the download is unreachable.
 RUN curl -fsSL https://antigravity.google/cli/install.sh | bash || echo "WARN: agy install failed - continuing without it"
 

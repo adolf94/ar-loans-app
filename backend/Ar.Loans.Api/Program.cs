@@ -2,7 +2,7 @@ using System.Text;
 using Ar.Loans.Api.Data;
 using Ar.Loans.Api.Data.Azure;
 using Ar.Loans.Api.Data.Cosmos;
-using Ar.Loans.Api.Data.GoogleAi;
+using Ar.Loans.Api.Data.OpenRouter;
 using Ar.Loans.Api.Middlewares;
 using Ar.Loans.Api.Utilities;
 using Ar.Loans.Api.Services;

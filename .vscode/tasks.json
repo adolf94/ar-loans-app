@@ -74,7 +74,7 @@
       "options": {
         "cwd": "${workspaceFolder}/backend/Ar.Loans.Api/bin/Debug/net9.0"
       },
-      "command": "func host start",
+      "command": "func host start --port 7239 --address 0.0.0.0",
       "isBackground": true,
       "problemMatcher": {
         "owner": "func-host",
