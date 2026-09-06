@@ -34,6 +34,9 @@ namespace Ar.Loans.Api.Models
 				[JsonPropertyName("destinationAcctId")]
 				public Guid DestinationAcctId { get; set; }
 
+				[JsonPropertyName("financeIngestionId")]
+				public string? FinanceIngestionId { get; set; } = null;
+
 				[JsonPropertyName("partitionKey")]
 				public string PartitionKey { get; set; } = "default";
 		}

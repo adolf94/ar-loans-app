@@ -1,2 +1,7 @@
 backend/Ar.Loans.Api.Tests/bin
 backend/Ar.Loans.Api.Tests/obj
+.devcontainer/logs/*.log
+.devcontainer/logs/*.pid
+.devcontainer/.env
+frontend/node_modules
+frontend/dist

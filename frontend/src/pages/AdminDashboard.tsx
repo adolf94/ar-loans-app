@@ -19,6 +19,7 @@ import UsersTab from '../components/admin/UsersTab';
 import LedgerTab from '../components/admin/LedgerTab';
 import BalanceSheetTab from '../components/admin/BalanceSheetTab';
 import InterestRulesTab from '../components/admin/InterestRulesTab';
+import FinanceSettingsTab from '../components/admin/FinanceSettingsTab';
 import UserDialog from '../components/dialogs/UserDialog';
 import LoanDialog from '../components/dialogs/LoanDialog';
 import PaymentDialog from '../components/dialogs/PaymentDialog';
@@ -39,9 +40,9 @@ import {
     Wallet,
     Settings,
     Users,
+    Link2,
     MessageSquare
 } from 'lucide-react';
-import { calculateBalanceSheet } from '../logic/accounting';
 import { analyzePortfolio } from '../services/aiService';
 import { useUsers, useCreateUser, useUpdateUser } from '../repositories/user';
 import { useLoans } from '../repositories/loan';
@@ -251,6 +252,7 @@ const AdminDashboard: React.FC = () => {
                         <Tab label="Ledger" icon={<History size={18} />} iconPosition="start" />
                         <Tab label="Balance Sheet" icon={<PieChart size={18} />} iconPosition="start" />
                         <Tab label="Interest Rules" icon={<Settings size={18} />} iconPosition="start" />
+                        <Tab label="Finance" icon={<Link2 size={18} />} iconPosition="start" />
                         <Tab label="System Messages" icon={<MessageSquare size={18} />} iconPosition="start" />
                     </Tabs>
                     <Box sx={{
@@ -305,6 +307,10 @@ const AdminDashboard: React.FC = () => {
                 </TabPanel>
 
                 <TabPanel value={tabValue} index={5}>
+                    <FinanceSettingsTab />
+                </TabPanel>
+
+                <TabPanel value={tabValue} index={6}>
                     <MessagesTab />
                 </TabPanel>
             </Paper>

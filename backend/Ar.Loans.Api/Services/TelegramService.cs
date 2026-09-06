@@ -28,6 +28,8 @@ namespace Ar.Loans.Api.Services
             _logService = logService;
         }
 
+        private bool IsDummyToken => string.IsNullOrWhiteSpace(_appConfig.Telegram.ClientSecret);
+
         private string EscapeMarkdownV2(string text)
         {
             if (string.IsNullOrEmpty(text)) return text;
@@ -44,6 +46,7 @@ namespace Ar.Loans.Api.Services
 
         public async Task<bool> EditMessageAsync(string chatId, long messageId, string text)
         {
+            if (IsDummyToken) return false;
             try
             {
                 var escapedText = EscapeMarkdownV2(text);
@@ -71,6 +74,7 @@ namespace Ar.Loans.Api.Services
 
         public async Task<long?> SendPhotoAsync(string chatId, byte[] photoData, string fileName, string? caption = null)
         {
+            if (IsDummyToken) return null;
             try
             {
                 using var ms = new System.IO.MemoryStream(photoData);
@@ -94,6 +98,7 @@ namespace Ar.Loans.Api.Services
 
         public async Task<long?> SendPhotoAsync(string chatId, string photoUrl, string? caption = null)
         {
+            if (IsDummyToken) return null;
             try
             {
                 var message = await BotClient.SendPhoto(
@@ -114,6 +119,7 @@ namespace Ar.Loans.Api.Services
 
         public async Task<long?> SendMessageAsync(string chatId, string text)
         {
+            if (IsDummyToken) return null;
             try
             {
                 var escapedText = EscapeMarkdownV2(text);

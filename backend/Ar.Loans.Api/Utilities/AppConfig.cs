@@ -22,11 +22,25 @@ namespace Ar.Loans.Api.Utilities
         public JwtConfiguration JwtConfig { get; set; } = new();
         public TelegramConfiguration Telegram { get; set; } = new();
         public ArGoConfiguration ArGo { get; set; } = new();
+        public FinanceConfiguration Finance { get; set; } = new();
     }
     public class ArGoConfiguration
     {
         public string BaseUrl { get; set; } = string.Empty;
         public string Scope { get; set; } = "api://ar-go/links:create api://ar-go/links:on_behalf";
+    }
+    public class FinanceConfiguration
+    {
+        public bool Enabled { get; set; } = false;
+        // Full API base including the /api suffix, e.g. https://finance.adolfrey.com/api
+        public string BaseUrl { get; set; } = string.Empty;
+        // Notification Ingester base, e.g. http://localhost:7072
+        public string IngesterBaseUrl { get; set; } = string.Empty;
+        public string Scope { get; set; } = "api://finance-app-api/transactions:create api://finance-app-api/transactions:read:self api://finance-app-api/accounts:read api://finance-app-api/ingestions:read api://finance-app-api/transactions:delete:self";
+        public string SyncQueueName { get; set; } = "finance-sync";
+        // Use DELETE /transactions/{id} (transactions:delete:self) for reversals;
+        // falls back to reversal transactions when the scope is unavailable.
+        public bool UseDeleteForReversal { get; set; } = true;
     }
     public class TelegramConfiguration
     {

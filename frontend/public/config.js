@@ -1,6 +1,6 @@
 webConfig = {
-    apiUrl: "http://localhost:7239/api",
-    authUrl: "http://localhost:7239/api/",
+    apiUrl: "http://localhost:7071/api",
+    authUrl: "https://auth.adolfrey.com/api/",
     authority: "https://auth.adolfrey.com/api",
     clientId: "ar-loans-app",
     apiClientId: "ar-loans-api",
@@ -9,5 +9,6 @@ webConfig = {
     "adminRole": "api://ar-loans-api/admin",
     "guarantorRole": "api://ar-loans-api/guarantor",
     defaultLoanTemplate: "019cf9a0-ded3-73ae-bb7d-c14d9d24560e",
-    allowAccountCreation: true
+    allowAccountCreation: true,
+    enableFinanceIntegration: false
 }

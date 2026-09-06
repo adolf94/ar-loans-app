@@ -13,12 +13,17 @@ export const getUsers = async (): Promise<User[]> => {
 
 
 
+const isUuid = (id: string) =>
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+
 export const useGetUser = (id: string)  => {
     const {data = null} = useQuery({
-        queryKey: ["users", {userId:id}], 
+        queryKey: ["users", {userId:id}],
             queryFn:()=>api.get(`/users/${id}`)
-                .then(e=>e.data)
-         })
+                .then(e=>e.data),
+        // Avoid calling /users/{id} with an empty or non-GUID id.
+        enabled: isUuid(id)
+     })
     return data
 };
 

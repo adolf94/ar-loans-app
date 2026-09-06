@@ -12,7 +12,7 @@
       "type": "process",
       "problemMatcher": "$msCompile",
       "options": {
-        "cwd": "${workspaceFolder}/backend\\Ar.Loans.Api"
+        "cwd": "${workspaceFolder}/backend/Ar.Loans.Api"
       }
     },
     {
@@ -31,7 +31,7 @@
       },
       "problemMatcher": "$msCompile",
       "options": {
-        "cwd": "${workspaceFolder}/backend\\Ar.Loans.Api"
+        "cwd": "${workspaceFolder}/backend/Ar.Loans.Api"
       }
     },
     {
@@ -47,7 +47,7 @@
       "type": "process",
       "problemMatcher": "$msCompile",
       "options": {
-        "cwd": "${workspaceFolder}/backend\\Ar.Loans.Api"
+        "cwd": "${workspaceFolder}/backend/Ar.Loans.Api"
       }
     },
     {
@@ -64,18 +64,29 @@
       "dependsOn": "clean release (functions)",
       "problemMatcher": "$msCompile",
       "options": {
-        "cwd": "${workspaceFolder}/backend\\Ar.Loans.Api"
+        "cwd": "${workspaceFolder}/backend/Ar.Loans.Api"
       }
     },
     {
-      "type": "func",
+      "label": "func: host start",
+      "type": "shell",
       "dependsOn": "build (functions)",
       "options": {
-        "cwd": "${workspaceFolder}/backend\\Ar.Loans.Api/bin/Debug/net9.0"
+        "cwd": "${workspaceFolder}/backend/Ar.Loans.Api/bin/Debug/net9.0"
       },
-      "command": "host start",
+      "command": "func host start",
       "isBackground": true,
-      "problemMatcher": "$func-dotnet-watch"
+      "problemMatcher": {
+        "owner": "func-host",
+        "pattern": {
+          "regexp": "."
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "Azure Functions Core Tools",
+          "endsPattern": "Worker process started and initialized|Job host started|Host lock lease acquired"
+        }
+      }
     }
   ]
 }

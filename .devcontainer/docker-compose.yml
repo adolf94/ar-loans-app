@@ -1,0 +1,118 @@
+# ar-loans-app local development environment.
+#
+# The `dev` service is the development container (used by the VS Code devcontainer
+# and/or standalone). It runs the two app processes (backend, frontend).
+# The `cosmos` and `azurite` services are the Azure emulators the backend
+# connects to over the shared `ar-loans-app-net` network, addressed by hostname.
+#
+#  Dev ports  (inside the `dev` container):
+#    7239  -> backend   (.NET Azure Functions, isolated, --port 7239 to match
+#                        frontend/public/config.js apiUrl http://localhost:7239/api)
+#    5173  -> frontend  (Vite dev server)
+#
+#  Emulator services (reachable from `dev` via <hostname>:<port>):
+#    cosmos  :8081        Cosmos DB emulator (published to host :18081 to
+#                             avoid clash with finance3)
+#    azurite :10000-10002 Azure Storage (published to host :11000-11002
+#                             to avoid clash with finance3)
+#
+# Usage (from repo root):
+#   docker compose -f .devcontainer/docker-compose.yml up -d --build   # start everything
+#   docker compose -f .devcontainer/docker-compose.yml down            # stop
+#   # Then run the apps inside the dev container (see scripts/dev-up.sh).
+#
+name: ar-loans-app
+
+services:
+  cosmos:
+    image: mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:vnext-latest
+    container_name: ar-loans-app-cosmos
+    restart: no
+    environment:
+      AZURE_COSMOS_EMULATOR_PARTITION_COUNT: "10"
+      AZURE_COSMOS_EMULATOR_ENABLE_DATA_PERSISTENCE: "true"
+    # Workaround: with data persistence enabled, an unclean container stop
+    # leaves a stale /data/db/postmaster.pid in the cosmos-data volume, which
+    # makes Postgres inside the emulator refuse to start on the next boot
+    # (gateway then answers 503 and the health check never passes).
+    # Clear the stale lock file before handing over to the real entrypoint.
+    entrypoint:
+      - /bin/sh
+      - -c
+      - 'rm -f /data/db/postmaster.pid /data/db/pg_internal.pid; exec /home/cosmosdev/docker_entrypoint.sh'
+    ports:
+      - "18081:8081"
+    volumes:
+      - cosmos-data:/tmp/cosmos/appdata
+    networks:
+      - ar-loans-app-net
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - 'curl -fsS "http://localhost:8081/" -o /dev/null || exit 1'
+      interval: 15s
+      timeout: 10s
+      retries: 20
+      start_period: 30s
+
+  azurite:
+    image: mcr.microsoft.com/azure-storage/azurite:latest
+    container_name: ar-loans-app-azurite
+    restart: no
+    command: "azurite --silent --skipApiVersionCheck --blobHost 0.0.0.0 --queueHost 0.0.0.0 --tableHost 0.0.0.0"
+    ports:
+      - "11000:10000"
+      - "11001:10001"
+      - "11002:10002"
+    volumes:
+      - azurite-data:/data
+    networks:
+      - ar-loans-app-net
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "require('net').connect(10000,'127.0.0.1',()=>process.exit(0)).on('error',()=>process.exit(1))"
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  dev:
+    build:
+      context: ..
+      dockerfile: .devcontainer/Dockerfile
+    container_name: ar-loans-app-dev
+    user: "1000:1000"
+    init: true
+    tty: true
+    stdin_open: true
+    environment:
+      ASPNETCORE_ENVIRONMENT: "Development"
+      DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+      DOTNET_NOLOGO: "1"
+      NODE_AUTH_TOKEN: "${AR_NPM_AUTH_TOKEN:-}"
+    volumes:
+      - ../:/workspaces/ar-loans-app
+    ports:
+      - "5173:5173"
+      - "7239:7239"
+      - "7071:7071"
+    working_dir: /workspaces/ar-loans-app
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - ar-loans-app-net
+    depends_on:
+      cosmos:
+        condition: service_healthy
+      azurite:
+        condition: service_healthy
+
+volumes:
+  cosmos-data:
+  azurite-data:
+
+networks:
+  ar-loans-app-net:
+    driver: bridge

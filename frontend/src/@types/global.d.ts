@@ -14,6 +14,7 @@ declare global {
             guarantorRole: string;
             defaultLoanTemplate: string;
             allowAccountCreation?: boolean;
+            enableFinanceIntegration?: boolean;
         };
     }
     const webConfig: {
@@ -27,5 +28,6 @@ declare global {
         guarantorRole: string;
         defaultLoanTemplate: string;
         allowAccountCreation?: boolean;
+        enableFinanceIntegration?: boolean;
     };
 }

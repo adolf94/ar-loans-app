@@ -12,6 +12,7 @@ using Microsoft.Azure.Functions.Worker.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
 using Telegram.Bot;
 
@@ -57,23 +58,46 @@ builder.Services.AddCosmosDbContext(config);
 builder.Services.AddHttpClient();
 builder.Services.AddHttpClient<AuthorityService>();
 builder.Services.AddHttpClient<ArGoService>();
+builder.Services.AddHttpClient<FinanceService>();
+builder.Services.AddSingleton<IFinanceSyncQueue, Ar.Loans.Api.Data.Azure.FinanceSyncQueue>();
+builder.Services.AddScoped<FinanceSyncProcessor>();
 builder.Services.AddScoped<LogService>();
 builder.Services.AddScoped<TelegramService>();
 builder.Services.AddSingleton<IAiService, AiService>();
 builder.Services.AddSingleton<AzureFileRepo>();
 
-builder.Services.AddSingleton<ITelegramBotClient>(sp => 
+builder.Services.AddSingleton<ITelegramBotClient>(sp =>
 {
-    string? webhookUrl = !string.IsNullOrEmpty(appConfig.BaseUrl) 
+    // Local dev: skip webhook registration when no bot secret is configured
+    // so `func start` works out-of-the-box without a real Telegram token.
+    if (string.IsNullOrWhiteSpace(appConfig.Telegram.ClientSecret))
+    {
+        var logger = sp.GetRequiredService<ILoggerFactory>().CreateLogger("Telegram");
+        logger.LogWarning("Telegram ClientSecret is empty - Telegram bot disabled for local dev.");
+        return new TelegramBotClient("0000000000:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
+    }
+
+    string? webhookUrl = !string.IsNullOrEmpty(appConfig.BaseUrl)
         ? $"{appConfig.BaseUrl.TrimEnd('/')}/telegram/webhook"
         : appConfig.Telegram.WebhookUrl;
 
     var bot = new TelegramBotClient(appConfig.Telegram.ClientSecret);
-    bot.SetWebhook(webhookUrl, allowedUpdates: []).Wait();
+    if (!string.IsNullOrWhiteSpace(webhookUrl))
+    {
+        bot.SetWebhook(webhookUrl, allowedUpdates: []).Wait();
+    }
     return bot;
 });
 builder.Services.AddMemoryCache();
 
 webapp.UseMiddleware<AppMiddleware>();
 
-builder.Build().Run();
+var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<Ar.Loans.Api.Data.Cosmos.AppDbContext>();
+    dbContext.Database.EnsureCreatedAsync().Wait();
+}
+
+app.Run();

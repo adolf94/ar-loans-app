@@ -1,5 +1,15 @@
 {
+  "name": "ar-loans-app",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "dev-up": "bash .devcontainer/scripts/dev-up.sh",
+    "dev:ui": "npm run dev --prefix frontend -- --host 0.0.0.0",
+    "dev:api": "sh -c 'cd backend/Ar.Loans.Api && func start --port 7239 --address 0.0.0.0'",
+    "dev:stack:status": "bash .devcontainer/scripts/dev-up.sh --status",
+    "dev:stack:down": "bash .devcontainer/scripts/dev-up.sh --down"
+  },
   "dependencies": {
-    "@adolf94/ar-auth-client": "^1.1.1"
+    "@adolf94/ar-auth-client": "^1.2.4"
   }
 }

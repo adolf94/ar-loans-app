@@ -39,12 +39,12 @@ namespace Ar.Loans.Api.Middlewares
 						var httpContext = context.GetHttpContext();
 						if (httpContext != null)
 						{
+								var user = httpContext.RequestServices.GetRequiredService<CurrentUser>();
 								httpContext.Response.OnStarting(() =>
 								{
 										if (httpContext.Response.StatusCode == 401 || httpContext.Response.StatusCode == 403)
 										{
-												var user = httpContext.RequestServices.GetService<CurrentUser>();
-												if (!string.IsNullOrEmpty(user?.AuthFailureReason))
+												if (!string.IsNullOrEmpty(user.AuthFailureReason))
 												{
 														httpContext.Response.Headers["AuthReason"] = user.AuthFailureReason;
 												}

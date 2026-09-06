@@ -274,11 +274,16 @@ namespace Ar.Loans.Api.Controllers
         }
 
         [Function(nameof(GetUser))]
-        public async Task<IActionResult> GetUser([HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "users/{id}")] HttpRequest req, Guid id)
+        public async Task<IActionResult> GetUser([HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "users/{id}")] HttpRequest req, string id)
         {
             if (!_user.IsAuthenticated) return new UnauthorizedResult();
-            if (_user.UserId != id && !_user.IsAuthorized("guarantor,admin")) return new ForbidResult();
-            var items = await _repo.GetUser(id);
+
+            // Route values arrive as raw strings; a non-GUID id (e.g. an OIDC uid)
+            // must not crash the function host with a converter exception.
+            if (!Guid.TryParse(id, out var userId)) return new BadRequestResult();
+
+            if (_user.UserId != userId && !_user.IsAuthorized("guarantor,admin")) return new ForbidResult();
+            var items = await _repo.GetUser(userId);
 
             return await Task.FromResult(new OkObjectResult(items));
         }

@@ -1,7 +1,9 @@
 using Ar.Loans.Api.Models;
+using Ar.Loans.Api.Services;
 using Ar.Loans.Api.Utilities;
 using Azure.Identity;
 using Microsoft.EntityFrameworkCore;
+using ConnectionMode = Microsoft.Azure.Cosmos.ConnectionMode;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using System;
@@ -9,6 +11,8 @@ using System.Collections.Generic;
 using System.Configuration;
 using System.Linq;
 using System.Text;
+using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Ar.Loans.Api.Data.Cosmos
@@ -17,10 +21,13 @@ namespace Ar.Loans.Api.Data.Cosmos
     {
 
         private readonly IConfiguration _configuration;
-        public AppDbContext(DbContextOptions<AppDbContext> options, IConfiguration config) : base(options)
+        private readonly IFinanceSyncQueue? _syncQueue;
+        private FinanceConfiguration? _financeConfig;
+
+        public AppDbContext(DbContextOptions<AppDbContext> options, IConfiguration config, IFinanceSyncQueue? syncQueue = null) : base(options)
         {
             _configuration = config;
-            base.Database.EnsureCreatedAsync().Wait();
+            _syncQueue = syncQueue;
         }
 
 
@@ -34,8 +41,136 @@ namespace Ar.Loans.Api.Data.Cosmos
         public virtual DbSet<InterestRule> InterestRules { get; set; }
         public virtual DbSet<LogEntry> Logs { get; set; }
         public virtual DbSet<Comment> Comments { get; set; } = null!;
+        public virtual DbSet<AccountLink> AccountLinks { get; set; } = null!;
+        public virtual DbSet<FinanceSyncItem> FinanceSyncItems { get; set; } = null!;
 
+        private static readonly JsonSerializerOptions PayloadJsonOptions = new()
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            PropertyNameCaseInsensitive = true
+        };
 
+        internal FinanceConfiguration FinanceConfig =>
+            _financeConfig ??= _configuration.GetSection("AppConfig:Finance").Get<FinanceConfiguration>() ?? new FinanceConfiguration();
+
+        /// <summary>
+        /// Finance mirroring hook: whenever journal entries are created/deleted and the
+        /// involved accounts are linked to finance_app accounts, enqueue durable
+        /// FinanceSyncItems and push event-driven queue messages after a successful save.
+        /// </summary>
+        public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+        {
+            var publishedItemIds = new List<Guid>();
+
+            if (FinanceConfig.Enabled)
+            {
+                var addedEntries = ChangeTracker.Entries<Entry>()
+                    .Where(e => e.State == EntityState.Added).Select(e => e.Entity).ToList();
+                var deletedEntries = ChangeTracker.Entries<Entry>()
+                    .Where(e => e.State == EntityState.Deleted).Select(e => e.Entity).ToList();
+                var addedPayments = ChangeTracker.Entries<Payment>()
+                    .Where(e => e.State == EntityState.Added).Select(e => e.Entity).ToList();
+
+                if (addedEntries.Count > 0 || deletedEntries.Count > 0)
+                {
+                    var links = await AccountLinks.AsNoTracking().ToListAsync(cancellationToken);
+                    var now = DateTime.UtcNow;
+
+                    foreach (var entry in addedEntries)
+                    {
+                        if (entry.SkipFinanceSync || !string.IsNullOrEmpty(entry.FinanceTransactionId)) continue;
+
+                        var debitLink = links.FirstOrDefault(l => l.LoanAccountId == entry.DebitId);
+                        var creditLink = links.FirstOrDefault(l => l.LoanAccountId == entry.CreditId);
+                        if (debitLink == null || creditLink == null) continue;
+
+                        var linkedPayment = addedPayments.FirstOrDefault(p => p.LedgerId == entry.Id);
+                        var payload = new FinanceSyncPayload
+                        {
+                            DebitFinanceAccountId = debitLink.FinanceAccountId,
+                            CreditFinanceAccountId = creditLink.FinanceAccountId,
+                            FinanceUserId = !string.IsNullOrEmpty(debitLink.FinanceUserId) ? debitLink.FinanceUserId : creditLink.FinanceUserId,
+                            Amount = entry.Amount,
+                            Date = ToIsoUtc(entry.Date),
+                            Note = entry.Description,
+                            IngestionId = linkedPayment?.FinanceIngestionId
+                        };
+
+                        var item = new FinanceSyncItem
+                        {
+                            Id = Guid.CreateVersion7(),
+                            Kind = FinanceSyncKinds.Create,
+                            EntryId = entry.Id,
+                            Status = FinanceSyncStatuses.Pending,
+                            PayloadJson = JsonSerializer.Serialize(payload, PayloadJsonOptions),
+                            CreatedAt = now,
+                            UpdatedAt = now
+                        };
+                        FinanceSyncItems.Add(item);
+                        publishedItemIds.Add(item.Id);
+                    }
+
+                    foreach (var entry in deletedEntries)
+                    {
+                        // A Create item that has not been processed yet is cancelled instead of reversed.
+                        var pendingCreates = await FinanceSyncItems
+                            .Where(s => s.EntryId == entry.Id
+                                        && s.Kind == FinanceSyncKinds.Create
+                                        && (s.Status == FinanceSyncStatuses.Pending || s.Status == FinanceSyncStatuses.Failed))
+                            .ToListAsync(cancellationToken);
+                        foreach (var p in pendingCreates)
+                        {
+                            p.Status = FinanceSyncStatuses.Cancelled;
+                            p.UpdatedAt = now;
+                        }
+
+                        if (string.IsNullOrEmpty(entry.FinanceTransactionId)) continue;
+
+                        var debitLink = links.FirstOrDefault(l => l.LoanAccountId == entry.DebitId);
+                        var creditLink = links.FirstOrDefault(l => l.LoanAccountId == entry.CreditId);
+                        if (debitLink == null || creditLink == null) continue;
+
+                        var payload = new FinanceSyncPayload
+                        {
+                            DebitFinanceAccountId = debitLink.FinanceAccountId,
+                            CreditFinanceAccountId = creditLink.FinanceAccountId,
+                            FinanceUserId = !string.IsNullOrEmpty(debitLink.FinanceUserId) ? debitLink.FinanceUserId : creditLink.FinanceUserId,
+                            Amount = entry.Amount,
+                            Date = ToIsoUtc(entry.Date),
+                            Note = $"Reversal: {entry.Description}"
+                        };
+
+                        var item = new FinanceSyncItem
+                        {
+                            Id = Guid.CreateVersion7(),
+                            Kind = FinanceSyncKinds.Delete,
+                            EntryId = entry.Id,
+                            FinanceTransactionId = entry.FinanceTransactionId,
+                            Status = FinanceSyncStatuses.Pending,
+                            PayloadJson = JsonSerializer.Serialize(payload, PayloadJsonOptions),
+                            CreatedAt = now,
+                            UpdatedAt = now
+                        };
+                        FinanceSyncItems.Add(item);
+                        publishedItemIds.Add(item.Id);
+                    }
+                }
+            }
+
+            var result = await base.SaveChangesAsync(cancellationToken);
+
+            if (publishedItemIds.Count > 0 && _syncQueue != null)
+            {
+                foreach (var id in publishedItemIds)
+                {
+                    await _syncQueue.PublishAsync(id);
+                }
+            }
+
+            return result;
+        }
+
+        internal static string ToIsoUtc(DateOnly date) => date.ToString("yyyy-MM-dd") + "T00:00:00Z";
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -107,6 +242,16 @@ namespace Ar.Loans.Api.Data.Cosmos
                     .HasPartitionKey(e => e.PartitionKey)
                     .HasKey(c => c.Id);
 
+            builder.Entity<AccountLink>()
+                    .ToContainer("AccountLinks")
+                    .HasPartitionKey(e => e.PartitionKey)
+                    .HasKey(c => c.Id);
+
+            builder.Entity<FinanceSyncItem>()
+                    .ToContainer("FinanceSyncQueue")
+                    .HasPartitionKey(e => e.PartitionKey)
+                    .HasKey(c => c.Id);
+
 
         }
     }
@@ -125,7 +270,10 @@ namespace Ar.Loans.Api.Data.Cosmos
 
                 // The Emulator requires the well-known Auth Key
                 string EmulatorKey = Environment.GetEnvironmentVariable("AppConfig__CosmosKey");
-                opt.UseCosmos(cosmosEndpoint, EmulatorKey, db);
+                opt.UseCosmos(cosmosEndpoint, EmulatorKey, db, cosmosOptions =>
+                {
+                    cosmosOptions.ConnectionMode(ConnectionMode.Gateway);
+                });
 
 
             });
@@ -139,6 +287,7 @@ namespace Ar.Loans.Api.Data.Cosmos
             services.AddScoped<IEntryRepo, EntryRepo>();
             services.AddScoped<IInterestRuleRepo, InterestRuleRepo>();
             services.AddScoped<ICommentRepo, CommentRepo>();
+            services.AddScoped<IAccountLinkRepo, AccountLinkRepo>();
 
             return services;
         }
