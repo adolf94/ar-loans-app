@@ -30,7 +30,7 @@ jobs:
       - name: Install Dependencies
         run: npm install --legacy-peer-deps
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         working-directory: frontend
           
       - name: Build React
