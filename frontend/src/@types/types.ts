@@ -62,6 +62,7 @@ export interface Loan {
     fileId?: string;
     showAmortization?: boolean;
     recurringGracePeriod?: boolean;
+    financeIngestionId?: string | null;
     transactions: LoanLedger[];
 }
 

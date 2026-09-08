@@ -110,18 +110,33 @@ public class FinanceServiceTests
     }
 
     [Fact]
-    public async Task GetIngestions_ForwardsUserToken_NotServiceToken()
+    public async Task GetIngestions_UsesServiceClientCredentialsToken_NotUserToken()
     {
         var (finance, handler, _) = TestHelpers.CreateFinanceService(Config());
         handler.Respond(HttpStatusCode.OK, """[{"id":"ing-1","status":"Pending"}]""", containsPath: "/ingestions");
 
-        var result = await finance.GetIngestionsAsync("Bearer user-token-abc", "Pending", 10);
+        var result = await finance.GetIngestionsAsync("Pending", 10);
 
         Assert.Equal(200, result.StatusCode);
         Assert.Contains("ing-1", result.Body);
         var req = Assert.Single(handler.Requests);
-        Assert.Equal("Bearer user-token-abc", req.Authorization);
+        Assert.Equal("Bearer test-token", req.Authorization);
         Assert.Contains("status=Pending", req.Uri!.Query);
+    }
+
+    [Fact]
+    public async Task GetIngestion_UsesServiceClientCredentialsToken()
+    {
+        var (finance, handler, _) = TestHelpers.CreateFinanceService(Config());
+        handler.Respond(HttpStatusCode.OK, """{"id":"ing-42","status":"Pending"}""", containsPath: "/ingestions/ing-42");
+
+        var result = await finance.GetIngestionAsync("ing-42");
+
+        Assert.Equal(200, result.StatusCode);
+        Assert.Contains("ing-42", result.Body);
+        var req = Assert.Single(handler.Requests);
+        Assert.Equal("Bearer test-token", req.Authorization);
+        Assert.Equal("/ingestions/ing-42", req.Uri!.AbsolutePath);
     }
 
     [Fact]

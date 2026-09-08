@@ -47,6 +47,7 @@ namespace Ar.Loans.Api.Data.Cosmos
                 FileId = loan.FileId,
                 AddedBy = _user.UserId,
                 LoanId = loan.Id,
+                FinanceIngestionId = loan.FinanceIngestionId,
             };
 
             loan.Transactions.Add(new LoanLedger

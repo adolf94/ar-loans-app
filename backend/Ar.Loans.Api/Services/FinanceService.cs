@@ -199,34 +199,35 @@ namespace Ar.Loans.Api.Services
         }
 
         /// <summary>
-        /// GET {INGESTER_BASE_URL}/ingestions with the END USER's bearer token passthrough
-        /// (ingestions are scoped to the token's {sub}). Returns the raw JSON body.
+        /// GET {INGESTER_BASE_URL}/ingestions using the SERVICE's client_credentials
+        /// token (ingestions:read is supported on the client_credentials flow).
+        /// Returns the raw JSON body.
         /// </summary>
-        public async Task<IngestionProxyResult> GetIngestionsAsync(string authorizationHeader, string status, int top)
+        public async Task<IngestionProxyResult> GetIngestionsAsync(string status, int top)
         {
             return await ProxyIngesterGetAsync(
-                $"/ingestions?status={Uri.EscapeDataString(status)}&%24top={top}", authorizationHeader);
+                $"/ingestions?status={Uri.EscapeDataString(status)}&%24top={top}");
         }
 
-        public async Task<IngestionProxyResult> GetIngestionAsync(string authorizationHeader, string ingestionId)
+        public async Task<IngestionProxyResult> GetIngestionAsync(string ingestionId)
         {
-            return await ProxyIngesterGetAsync($"/ingestions/{Uri.EscapeDataString(ingestionId)}", authorizationHeader);
+            return await ProxyIngesterGetAsync($"/ingestions/{Uri.EscapeDataString(ingestionId)}");
         }
 
-        private async Task<IngestionProxyResult> ProxyIngesterGetAsync(string pathAndQuery, string authorizationHeader)
+        private async Task<IngestionProxyResult> ProxyIngesterGetAsync(string pathAndQuery)
         {
             var ingester = _config.Finance.IngesterBaseUrl?.TrimEnd('/');
             if (_config.Finance.Enabled == false || string.IsNullOrWhiteSpace(ingester))
                 return new IngestionProxyResult(503, "{\"error\":\"Ingester not configured\"}");
 
+            var token = await GetTokenAsync();
+            if (token == null)
+                return new IngestionProxyResult(502, "{\"error\":\"Finance service token unavailable\"}");
+
             try
             {
                 var request = new HttpRequestMessage(HttpMethod.Get, $"{ingester}{pathAndQuery}");
-                // Forward the caller's original Authorization header (user token).
-                var authValue = authorizationHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase)
-                    ? authorizationHeader.Substring("Bearer ".Length)
-                    : authorizationHeader;
-                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", authValue);
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
                 var response = await _httpClient.SendAsync(request);
                 var body = await response.Content.ReadAsStringAsync();

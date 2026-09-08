@@ -93,7 +93,7 @@ namespace Ar.Loans.Api.Data.Cosmos
                             Amount = entry.Amount,
                             Date = ToIsoUtc(entry.Date),
                             Note = entry.Description,
-                            IngestionId = linkedPayment?.FinanceIngestionId
+                            IngestionId = entry.FinanceIngestionId ?? linkedPayment?.FinanceIngestionId
                         };
 
                         var item = new FinanceSyncItem

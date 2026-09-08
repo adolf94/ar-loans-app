@@ -68,6 +68,9 @@ namespace Ar.Loans.Api.Models
 
         [JsonPropertyName("recurringGracePeriod")]
         public bool RecurringGracePeriod { get; set; } = false;
+
+        [JsonPropertyName("financeIngestionId")]
+        public string? FinanceIngestionId { get; set; } = null;
     }
 
     public class LoanLedger

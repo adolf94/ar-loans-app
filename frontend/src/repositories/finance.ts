@@ -194,6 +194,17 @@ export const useIngestions = (status = 'Pending', enabled = true) => useQuery({
     enabled: enabled && isFinanceEnabled(),
 });
 
+const fetchIngestion = async (id: string): Promise<IngestionRecord> => {
+    const { data } = await apiClient.get<IngestionRecord>(`/finance/ingestions/${id}`);
+    return data;
+};
+
+export const useIngestion = (id: string | null | undefined, enabled = true) => useQuery({
+    queryKey: [FINANCE_INGESTIONS, 'detail', id],
+    queryFn: () => fetchIngestion(id!),
+    enabled: enabled && !!id && isFinanceEnabled(),
+});
+
 const processIngestion = async ({ ingestionId, request }:
     { ingestionId: string; request: ProcessIngestionRequest }): Promise<ProcessIngestionResult> => {
     const { data } = await apiClient.post<ProcessIngestionResult>(
@@ -227,23 +238,80 @@ export const useFinanceSyncItems = (status?: string, enabled = true) => useQuery
 });
 
 // ---- Helpers for auto-populating the process dialog from an ingestion ----
-export const ingestionAmount = (ing: IngestionRecord): number | null => {
-    if (typeof ing.amount === 'number' && !Number.isNaN(ing.amount)) return Math.abs(ing.amount);
-    if (typeof ing.amount === 'string') {
-        const parsed = parseFloat(ing.amount.replace(/[^0-9.-]+/g, ''));
+// Record shape is best-effort: flat fields, plus `ai_parsed` (AI-extracted fields)
+// and `raw_payload` (original notification) fallbacks.
+const parsedSection = (ing: IngestionRecord): Record<string, unknown> => {
+    const ai = ing.ai_parsed;
+    return (ai && typeof ai === 'object' ? ai : {}) as Record<string, unknown>;
+};
+
+const rawSection = (ing: IngestionRecord): Record<string, unknown> => {
+    const raw = ing.raw_payload;
+    return (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
+};
+
+const toAmount = (value: unknown): number | null => {
+    if (typeof value === 'number' && !Number.isNaN(value)) return Math.abs(value);
+    if (typeof value === 'string') {
+        const parsed = parseFloat(value.replace(/[^0-9.-]+/g, ''));
         if (!Number.isNaN(parsed)) return Math.abs(parsed);
     }
     return null;
 };
 
-export const ingestionDate = (ing: IngestionRecord): string | null => {
-    const raw = ing.date ?? ing.createdAt;
-    if (!raw) return null;
-    const d = new Date(raw);
+const toDate = (value: unknown): string | null => {
+    if (typeof value !== 'string' || !value) return null;
+    const d = new Date(value);
     if (Number.isNaN(d.getTime())) return null;
     return d.toISOString().slice(0, 10);
 };
 
+const toText = (value: unknown): string | null =>
+    typeof value === 'string' && value.trim() ? value : (typeof value === 'number' ? String(value) : null);
+
+export const ingestionAmount = (ing: IngestionRecord): number | null => {
+    const ai = parsedSection(ing);
+    const raw = rawSection(ing);
+    return toAmount(ing.amount) ?? toAmount(ai.amount) ?? toAmount(raw.amount);
+};
+
+export const ingestionDate = (ing: IngestionRecord): string | null => {
+    const ai = parsedSection(ing);
+    const raw = rawSection(ing);
+    return toDate(ing.date) ?? toDate(ai.date) ?? toDate(raw.date)
+        ?? toDate(ing.createdAt) ?? toDate(ai.created_at) ?? toDate(raw.created_at);
+};
+
 export const ingestionNote = (ing: IngestionRecord): string | null => {
-    return ing.description ?? ing.note ?? ing.referenceNumber ?? ing.reference ?? null;
+    const ai = parsedSection(ing);
+    const raw = rawSection(ing);
+    return toText(ing.description) ?? toText(ing.note)
+        ?? toText(ai.notes) ?? toText(ai.summary)
+        ?? toText(ing.referenceNumber) ?? toText(ai.reference_number)
+        ?? toText(ing.reference) ?? toText(raw.notif_id);
+};
+
+/** Text shown when DISPLAYING an ingestion: `raw_msg` first, then the note fallbacks. */
+export const ingestionDisplayText = (ing: IngestionRecord): string | null => {
+    const raw = rawSection(ing);
+    return toText(ing.raw_msg) ?? toText(raw.raw_msg) ?? ingestionNote(ing);
+};
+
+/** `ai_parsed.recipient_account_number` (masked/partial numbers included), if any. */
+export const ingestionRecipientAccountNumber = (ing: IngestionRecord): string | null => {
+    const ai = parsedSection(ing);
+    return toText(ai.recipient_account_number);
+};
+
+/** `ai_parsed.recipient_account_name`, if any. */
+export const ingestionRecipientAccountName = (ing: IngestionRecord): string | null => {
+    const ai = parsedSection(ing);
+    return toText(ai.recipient_account_name);
+};
+
+/** Reference usable as a loan `alternateId`: `raw_payload.notif_id` -> `ai_parsed.reference_number`. */
+export const ingestionLoanReference = (ing: IngestionRecord): string | null => {
+    const ai = parsedSection(ing);
+    const raw = rawSection(ing);
+    return toText(raw.notif_id) ?? toText(ai.reference_number);
 };

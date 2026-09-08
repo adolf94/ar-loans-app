@@ -13,6 +13,7 @@ import Layout from './components/Layout';
 import ClientStatementPage from './pages/ClientStatementPage';
 import CallbackPage from './pages/CallbackPage';
 import MagicLinkPage from './pages/MagicLinkPage';
+import NewLoanPage from './pages/NewLoanPage';
 
 // Root component that handles state and layout wrapper
 const Root = () => {
@@ -90,6 +91,17 @@ const magicRoute = createRoute({
     component: MagicLinkPage,
 });
 
+const newLoanRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: '/loans/new',
+    beforeLoad: (ctx) => {
+        if (!ctx.context.auth.hasRole([window.webConfig.adminRole])) {
+            throw redirect({ to: "/client" })
+        }
+    },
+    component: NewLoanPage,
+});
+
 // Create the router instance
 const routeTree = rootRoute.addChildren([
     indexRoute,
@@ -98,6 +110,7 @@ const routeTree = rootRoute.addChildren([
     guarantorRoute,
     callbackRoute,
     magicRoute,
+    newLoanRoute,
     clientStatementRoute
 ]);
 

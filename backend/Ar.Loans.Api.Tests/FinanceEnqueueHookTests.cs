@@ -135,6 +135,23 @@ public class FinanceEnqueueHookTests
     }
 
     [Fact]
+    public async Task AddedEntry_WithTaggedIngestionId_TagsCreateItemWithIngestionId()
+    {
+        await using var db = TestHelpers.CreateContext();
+        db.AccountLinks.AddRange(Link(DebitLoanAccount, DebitFinanceAccount), Link(CreditLoanAccount, CreditFinanceAccount));
+        await db.SaveChangesAsync();
+
+        // Loan-principal entries carry the ingestion id directly (no linked payment).
+        var entry = MakeEntry();
+        entry.FinanceIngestionId = "ing-loan-42";
+        db.Entries.Add(entry);
+        await db.SaveChangesAsync();
+
+        var item = Assert.Single(await db.FinanceSyncItems.ToListAsync());
+        Assert.Equal("ing-loan-42", Payload(item)?.IngestionId);
+    }
+
+    [Fact]
     public async Task DeletedSyncedEntry_EnqueuesDeleteItem()
     {
         var queue = new FakeFinanceSyncQueue();

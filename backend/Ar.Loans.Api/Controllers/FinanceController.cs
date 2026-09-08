@@ -150,8 +150,9 @@ namespace Ar.Loans.Api.Controllers
         }
 
         /// <summary>
-        /// Proxy to the Notification Ingester: list ingestion records for the SIGNED-IN
-        /// USER (forwards the caller's bearer token - ingestions are scoped to {sub}).
+        /// Proxy to the Notification Ingester: list ingestion records
+        /// (service client_credentials token; use the ingester directly from the
+        /// frontend if per-user bearer passthrough is ever needed).
         /// </summary>
         [Function("GetIngestions")]
         public async Task<IActionResult> GetIngestions(
@@ -161,14 +162,30 @@ namespace Ar.Loans.Api.Controllers
             if (!_appConfig.Finance.Enabled)
                 return new BadRequestObjectResult("Finance integration is not enabled.");
 
-            var auth = req.Headers.Authorization.ToString();
-            if (string.IsNullOrWhiteSpace(auth)) return new UnauthorizedResult();
-
             var status = req.Query["status"].FirstOrDefault() ?? "Pending";
             var topRaw = req.Query["$top"].FirstOrDefault() ?? req.Query["top"].FirstOrDefault();
             if (!int.TryParse(topRaw, out var top) || top <= 0) top = 50;
 
-            var result = await _financeService.GetIngestionsAsync(auth, status, top);
+            var result = await _financeService.GetIngestionsAsync(status, top);
+            return new ContentResult { Content = result.Body, StatusCode = result.StatusCode, ContentType = "application/json" };
+        }
+
+        /// <summary>
+        /// Proxy to the Notification Ingester: read a single ingestion record
+        /// (service client_credentials token).
+        /// </summary>
+        [Function("GetIngestion")]
+        public async Task<IActionResult> GetIngestion(
+            [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "finance/ingestions/{ingestionId}")] HttpRequest req)
+        {
+            if (GuardAdmin() is { } denied) return denied;
+            if (!_appConfig.Finance.Enabled)
+                return new BadRequestObjectResult("Finance integration is not enabled.");
+
+            var ingestionId = req.RouteValues["ingestionId"]?.ToString();
+            if (string.IsNullOrWhiteSpace(ingestionId)) return new BadRequestResult();
+
+            var result = await _financeService.GetIngestionAsync(ingestionId);
             return new ContentResult { Content = result.Body, StatusCode = result.StatusCode, ContentType = "application/json" };
         }
 

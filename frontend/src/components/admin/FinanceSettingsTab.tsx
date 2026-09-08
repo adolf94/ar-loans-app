@@ -11,7 +11,7 @@ import {
     useUpsertAccountLink, useDeleteAccountLink,
     useIngestions, useProcessIngestion, useFinanceSyncItems,
     isFinanceEnabled,
-    ingestionAmount, ingestionDate, ingestionNote
+    ingestionAmount, ingestionDate, ingestionNote, ingestionDisplayText
 } from '../../repositories/finance';
 import type { LinkedBalanceRow, IngestionRecord, FinanceAccount } from '../../repositories/finance';
 import { useLoans } from '../../repositories/loan';
@@ -169,7 +169,7 @@ const IngestionProcessDialog: React.FC<{
                 <Stack spacing={2} sx={{ pt: 1 }}>
                     {ingestion && (
                         <Alert severity="info" variant="outlined">
-                            <Typography variant="body2" fontWeight={600}>{ingestionNote(ingestion) ?? 'Ingestion event'}</Typography>
+                            <Typography variant="body2" fontWeight={600}>{ingestionDisplayText(ingestion) ?? 'Ingestion event'}</Typography>
                             <Typography variant="caption" color="text.secondary">ID: {ingestion.id}</Typography>
                         </Alert>
                     )}
@@ -266,7 +266,7 @@ const IngestionsSection: React.FC = () => {
                             return (
                                 <TableRow key={ing.id}>
                                     <TableCell>
-                                        <Typography variant="body2">{ingestionNote(ing) ?? '(no description)'}</Typography>
+                                        <Typography variant="body2">{ingestionDisplayText(ing) ?? '(no description)'}</Typography>
                                         <Typography variant="caption" color="text.secondary">{ing.id}</Typography>
                                     </TableCell>
                                     <TableCell>{amt != null ? money(amt) : '—'}</TableCell>

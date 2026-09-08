@@ -18,6 +18,7 @@ namespace Ar.Loans.Api.Models
 				public string? FileId { get; set; } = null;
 				public Guid? LoanId  { get; set; } = null;
 				public string? FinanceTransactionId { get; set; } = null;
+				public string? FinanceIngestionId { get; set; } = null;
 				public bool SkipFinanceSync { get; set; } = false;
 				public string PartitionKey { get; set; } = "default";
 		}

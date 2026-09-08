@@ -11,6 +11,7 @@ namespace Ar.Loans.Api.Data
 		{
 				public Task<UserBankAccount?> GetByAccountId(string accountId);
 				public Task<UserBankAccount?> GetByExactAccountId(string accountId);
+				public Task<UserBankAccount?> GetByName(string name);
 				public Task<UserBankAccount[]> GetByUserId(Guid UserId);
 
 				public Task CreateBankAccount(UserBankAccount acct);

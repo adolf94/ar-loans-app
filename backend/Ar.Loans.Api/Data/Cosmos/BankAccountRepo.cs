@@ -56,6 +56,26 @@ namespace Ar.Loans.Api.Data.Cosmos
 						return item;
 
 				}
+
+				public static string NormalizeName(string? name)
+				{
+						if (string.IsNullOrWhiteSpace(name)) return "";
+						var sb = new StringBuilder();
+						foreach (var c in name)
+						{
+								if (char.IsLetterOrDigit(c)) sb.Append(char.ToUpperInvariant(c));
+						}
+						return sb.ToString();
+				}
+
+				public async Task<UserBankAccount?> GetByName(string name)
+				{
+						var normalized = NormalizeName(name);
+						if (string.IsNullOrEmpty(normalized)) return null;
+
+						var items = await _context.BankAccounts.ToArrayAsync();
+						return items.FirstOrDefault(e => NormalizeName(e.Name) == normalized);
+				}
 				public async Task CreateBankAccount(UserBankAccount acct)
 				{
 

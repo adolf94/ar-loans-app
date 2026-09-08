@@ -14,6 +14,15 @@ export const getBankAccountByAccountId = async (accountId: string): Promise<User
     return data;
 };
 
+export const getBankAccountByName = async (name: string): Promise<UserAccount | null> => {
+    const { data } = await api.get<UserAccount>(`/bankaccounts/by-name`, {
+        params: {
+            name
+        }
+    });
+    return data;
+};
+
 
 export const getBankAccountByUser = async (userId)=>{
 }

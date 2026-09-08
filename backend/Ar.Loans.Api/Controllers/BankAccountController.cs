@@ -40,6 +40,27 @@ namespace Ar.Loans.Api.Controllers
             return new OkObjectResult(account);
         }
 
+        [Function("GetByBankAccountName")]
+        public async Task<IActionResult> GetByBankAccountName([HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "bankaccounts/by-name")] HttpRequest req)
+        {
+            if (!_user.IsAuthenticated) return new UnauthorizedResult();
+            if (!_user.IsAuthorized("admin")) return new ForbidResult();
+
+            string? name = req.Query["name"];
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                return new BadRequestObjectResult("Name is required.");
+            }
+
+            var account = await _repo.GetByName(name);
+            if (account == null)
+            {
+                return new NotFoundResult();
+            }
+
+            return new OkObjectResult(account);
+        }
+
         [Function("PutBankAccount")]
         public async Task<IActionResult> PutBankAccount([HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "bankaccounts")] HttpRequest req)
         {

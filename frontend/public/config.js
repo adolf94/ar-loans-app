@@ -10,5 +10,5 @@ webConfig = {
     "guarantorRole": "api://ar-loans-api/guarantor",
     defaultLoanTemplate: "019cf9a0-ded3-73ae-bb7d-c14d9d24560e",
     allowAccountCreation: true,
-    enableFinanceIntegration: false
+    enableFinanceIntegration: true
 }
