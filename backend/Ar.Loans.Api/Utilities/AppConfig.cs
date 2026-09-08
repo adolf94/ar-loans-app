@@ -43,6 +43,8 @@ namespace Ar.Loans.Api.Utilities
         // Use DELETE /transactions/{id} (transactions:delete:self) for reversals;
         // falls back to reversal transactions when the scope is unavailable.
         public bool UseDeleteForReversal { get; set; } = true;
+        // Static user ID for fetching finance accounts/groups and linking
+        public string UserId { get; set; } = "3575cfa0-ec94-40d2-8b25-ee9f0f135027";
     }
     public class TelegramConfiguration
     {

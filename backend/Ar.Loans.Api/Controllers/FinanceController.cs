@@ -35,6 +35,11 @@ namespace Ar.Loans.Api.Controllers
         private readonly CurrentUser _user = user;
         private readonly ILogger<FinanceController> _logger = logger;
 
+        private string TargetFinanceUserId =>
+            !string.IsNullOrWhiteSpace(_appConfig.Finance.UserId)
+                ? _appConfig.Finance.UserId
+                : _user.OidcUid;
+
         private IActionResult? GuardAdmin()
         {
             if (!_user.IsAuthenticated) return new UnauthorizedResult();
@@ -48,7 +53,7 @@ namespace Ar.Loans.Api.Controllers
             [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "finance/accounts")] HttpRequest req)
         {
             if (GuardAdmin() is { } denied) return denied;
-            var accounts = await _financeService.GetAccountsAsync(_user.OidcUid);
+            var accounts = await _financeService.GetAccountsAsync(TargetFinanceUserId);
             return new OkObjectResult(accounts);
         }
 
@@ -58,7 +63,7 @@ namespace Ar.Loans.Api.Controllers
             [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "finance/account-groups")] HttpRequest req)
         {
             if (GuardAdmin() is { } denied) return denied;
-            var groups = await _financeService.GetAccountGroupsAsync(_user.OidcUid);
+            var groups = await _financeService.GetAccountGroupsAsync(TargetFinanceUserId);
             return new OkObjectResult(groups);
         }
 
@@ -87,7 +92,7 @@ namespace Ar.Loans.Api.Controllers
             if (accounts.All(a => a.Id != dto.LoanAccountId))
                 return new BadRequestObjectResult("Unknown loan account.");
 
-            var link = await _linkRepo.UpsertLink(dto.LoanAccountId, dto.FinanceAccountId, _user.OidcUid);
+            var link = await _linkRepo.UpsertLink(dto.LoanAccountId, dto.FinanceAccountId, TargetFinanceUserId);
             return new OkObjectResult(link);
         }
 
@@ -118,10 +123,12 @@ namespace Ar.Loans.Api.Controllers
 
             // Accounts are owner-scoped in finance_app; fetch per distinct FinanceUserId.
             var financeAccountsByUser = new Dictionary<string, List<FinanceAccount>>();
-            foreach (var financeUserId in links
-                         .Select(l => l.FinanceUserId)
-                         .Where(id => !string.IsNullOrWhiteSpace(id))
-                         .Distinct())
+            var userIds = links
+                .Select(l => !string.IsNullOrWhiteSpace(l.FinanceUserId) ? l.FinanceUserId : TargetFinanceUserId)
+                .Where(id => !string.IsNullOrWhiteSpace(id))
+                .Distinct();
+
+            foreach (var financeUserId in userIds)
             {
                 financeAccountsByUser[financeUserId] = await _financeService.GetAccountsAsync(financeUserId);
             }
@@ -129,8 +136,12 @@ namespace Ar.Loans.Api.Controllers
             var rows = accounts.OrderBy(a => a.Section).ThenBy(a => a.Name).Select(a =>
             {
                 var link = links.FirstOrDefault(l => l.LoanAccountId == a.Id);
+                var effectiveUserId = !string.IsNullOrWhiteSpace(link?.FinanceUserId)
+                    ? link.FinanceUserId
+                    : TargetFinanceUserId;
+
                 var financeAccount = link != null
-                    ? financeAccountsByUser.GetValueOrDefault(link.FinanceUserId)?.FirstOrDefault(f => f.Id == link.FinanceAccountId)
+                    ? financeAccountsByUser.GetValueOrDefault(effectiveUserId)?.FirstOrDefault(f => f.Id == link.FinanceAccountId)
                     : null;
 
                 return new LinkedBalanceRow

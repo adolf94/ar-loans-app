@@ -187,4 +187,41 @@ public class FinanceServiceTests
         Assert.Empty(groups);
         Assert.Empty(handler.Requests);
     }
+
+    [Fact]
+    public async Task GetAccounts_WhenUserIdOmitted_UsesConfiguredStaticUserId()
+    {
+        var config = Config();
+        config.Finance.UserId = "static-owner-456";
+        var (finance, handler, _) = TestHelpers.CreateFinanceService(config);
+        handler.Respond(HttpStatusCode.OK,
+            """[{"id":"acc-static","userId":"static-owner-456","name":"Static Account","currentBalance":500,"accountType":"Bank","tags":[]}]""",
+            containsPath: "/accounts", method: HttpMethod.Get);
+
+        var accounts = await finance.GetAccountsAsync();
+
+        Assert.Single(accounts);
+        Assert.Equal("acc-static", accounts[0].Id);
+        var req = Assert.Single(handler.Requests);
+        Assert.Contains("/api/owners/static-owner-456/accounts", req.Uri!.AbsolutePath);
+    }
+
+    [Fact]
+    public async Task GetAccountGroups_WhenUserIdOmitted_UsesConfiguredStaticUserId()
+    {
+        var config = Config();
+        config.Finance.UserId = "static-owner-456";
+        var (finance, handler, _) = TestHelpers.CreateFinanceService(config);
+        handler.Respond(HttpStatusCode.OK,
+            """[{"id":"grp-static","userId":"static-owner-456","name":"Static Group","accountType":"Cash"}]""",
+            containsPath: "/account-group", method: HttpMethod.Get);
+
+        var groups = await finance.GetAccountGroupsAsync();
+
+        Assert.Single(groups);
+        Assert.Equal("grp-static", groups[0].Id);
+        var req = Assert.Single(handler.Requests);
+        Assert.Contains("/api/owners/static-owner-456/account-group", req.Uri!.AbsolutePath);
+    }
 }
+

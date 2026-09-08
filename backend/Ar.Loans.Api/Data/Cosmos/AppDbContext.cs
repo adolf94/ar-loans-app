@@ -89,7 +89,7 @@ namespace Ar.Loans.Api.Data.Cosmos
                         {
                             DebitFinanceAccountId = debitLink.FinanceAccountId,
                             CreditFinanceAccountId = creditLink.FinanceAccountId,
-                            FinanceUserId = !string.IsNullOrEmpty(debitLink.FinanceUserId) ? debitLink.FinanceUserId : creditLink.FinanceUserId,
+                            FinanceUserId = !string.IsNullOrEmpty(debitLink.FinanceUserId) ? debitLink.FinanceUserId : (!string.IsNullOrEmpty(creditLink.FinanceUserId) ? creditLink.FinanceUserId : FinanceConfig.UserId),
                             Amount = entry.Amount,
                             Date = ToIsoUtc(entry.Date),
                             Note = entry.Description,
@@ -134,7 +134,7 @@ namespace Ar.Loans.Api.Data.Cosmos
                         {
                             DebitFinanceAccountId = debitLink.FinanceAccountId,
                             CreditFinanceAccountId = creditLink.FinanceAccountId,
-                            FinanceUserId = !string.IsNullOrEmpty(debitLink.FinanceUserId) ? debitLink.FinanceUserId : creditLink.FinanceUserId,
+                            FinanceUserId = !string.IsNullOrEmpty(debitLink.FinanceUserId) ? debitLink.FinanceUserId : (!string.IsNullOrEmpty(creditLink.FinanceUserId) ? creditLink.FinanceUserId : FinanceConfig.UserId),
                             Amount = entry.Amount,
                             Date = ToIsoUtc(entry.Date),
                             Note = $"Reversal: {entry.Description}"

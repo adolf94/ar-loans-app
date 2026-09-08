@@ -45,11 +45,12 @@ namespace Ar.Loans.Api.Services
         }
 
         /// <summary>GET /api/owners/{userId}/accounts (accounts:read). Cached briefly per owner.</summary>
-        public async Task<List<FinanceAccount>> GetAccountsAsync(string userId)
+        public async Task<List<FinanceAccount>> GetAccountsAsync(string? userId = null)
         {
-            if (!IsConfigured || string.IsNullOrWhiteSpace(userId)) return new List<FinanceAccount>();
+            var effectiveUserId = !string.IsNullOrWhiteSpace(userId) ? userId : _config.Finance.UserId;
+            if (!IsConfigured || string.IsNullOrWhiteSpace(effectiveUserId)) return new List<FinanceAccount>();
 
-            var cacheKey = $"finance_accounts:{userId}";
+            var cacheKey = $"finance_accounts:{effectiveUserId}";
             if (_cache.TryGetValue(cacheKey, out List<FinanceAccount>? cached) && cached != null)
                 return cached;
 
@@ -58,7 +59,7 @@ namespace Ar.Loans.Api.Services
 
             try
             {
-                var request = new HttpRequestMessage(HttpMethod.Get, $"{_config.Finance.BaseUrl.TrimEnd('/')}/owners/{Uri.EscapeDataString(userId)}/accounts");
+                var request = new HttpRequestMessage(HttpMethod.Get, $"{_config.Finance.BaseUrl.TrimEnd('/')}/owners/{Uri.EscapeDataString(effectiveUserId)}/accounts");
                 request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
                 var response = await _httpClient.SendAsync(request);
                 if (!response.IsSuccessStatusCode)
@@ -80,11 +81,12 @@ namespace Ar.Loans.Api.Services
         }
 
         /// <summary>GET /api/owners/{userId}/account-group (accounts:read). Cached briefly per owner.</summary>
-        public async Task<List<FinanceAccountGroup>> GetAccountGroupsAsync(string userId)
+        public async Task<List<FinanceAccountGroup>> GetAccountGroupsAsync(string? userId = null)
         {
-            if (!IsConfigured || string.IsNullOrWhiteSpace(userId)) return new List<FinanceAccountGroup>();
+            var effectiveUserId = !string.IsNullOrWhiteSpace(userId) ? userId : _config.Finance.UserId;
+            if (!IsConfigured || string.IsNullOrWhiteSpace(effectiveUserId)) return new List<FinanceAccountGroup>();
 
-            var cacheKey = $"finance_account_groups:{userId}";
+            var cacheKey = $"finance_account_groups:{effectiveUserId}";
             if (_cache.TryGetValue(cacheKey, out List<FinanceAccountGroup>? cached) && cached != null)
                 return cached;
 
@@ -93,7 +95,7 @@ namespace Ar.Loans.Api.Services
 
             try
             {
-                var request = new HttpRequestMessage(HttpMethod.Get, $"{_config.Finance.BaseUrl.TrimEnd('/')}/owners/{Uri.EscapeDataString(userId)}/account-group");
+                var request = new HttpRequestMessage(HttpMethod.Get, $"{_config.Finance.BaseUrl.TrimEnd('/')}/owners/{Uri.EscapeDataString(effectiveUserId)}/account-group");
                 request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
                 var response = await _httpClient.SendAsync(request);
                 if (!response.IsSuccessStatusCode)
