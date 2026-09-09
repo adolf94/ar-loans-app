@@ -169,9 +169,10 @@ namespace Ar.Loans.Api.Services
         }
 
         /// <summary>
-        /// Opportunistic sweep of stranded items (Pending/Failed not touched recently).
-        /// Covers the rare case where the local save succeeded but the queue push failed.
-        /// Not a poller: runs only as part of a triggered invocation.
+        /// Sweep of stranded items not touched recently: Pending/Failed (dispatch
+        /// lost or last attempt failed) and stale Processing (host died
+        /// mid-process; the redelivered change-feed batch is filtered out by its
+        /// Pending-only check). In change-feed mode this is the retry engine.
         /// </summary>
         public async Task<int> DrainStaleAsync(int take = 20)
         {
@@ -179,8 +180,10 @@ namespace Ar.Loans.Api.Services
 
             var cutoff = DateTime.UtcNow.AddMinutes(-5);
             var staleIds = await _db.FinanceSyncItems
-                .Where(s => (s.Status == FinanceSyncStatuses.Pending || s.Status == FinanceSyncStatuses.Failed)
-                            && s.UpdatedAt < cutoff)
+                .Where(s => s.UpdatedAt < cutoff
+                            && (s.Status == FinanceSyncStatuses.Pending
+                                || s.Status == FinanceSyncStatuses.Failed
+                                || s.Status == FinanceSyncStatuses.Processing))
                 .OrderBy(s => s.CreatedAt)
                 .Select(s => s.Id)
                 .Take(take)
@@ -200,6 +203,46 @@ namespace Ar.Loans.Api.Services
                 }
             }
             return processed;
+        }
+
+        /// <summary>
+        /// Manual/admin reprocessing of Pending/Failed items (used when queue delivery is
+        /// lost - e.g. messages poisoned by a host-side dispatch issue). Unlike the
+        /// opportunistic drain, this ignores the staleness cutoff and reports per-item
+        /// outcomes so the caller can see why an item fails.
+        /// </summary>
+        public async Task<List<object>> RetryPendingAsync(int take = 50)
+        {
+            var results = new List<object>();
+            if (!_config.Finance.Enabled) return results;
+
+            var items = await _db.FinanceSyncItems
+                .Where(s => s.Status == FinanceSyncStatuses.Pending || s.Status == FinanceSyncStatuses.Failed)
+                .OrderBy(s => s.CreatedAt)
+                .Take(take)
+                .ToListAsync();
+
+            foreach (var item in items)
+            {
+                try
+                {
+                    await ProcessItemAsync(item.Id);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Manual retry of finance sync item {ItemId} failed", item.Id);
+                }
+                results.Add(new
+                {
+                    id = item.Id,
+                    kind = item.Kind,
+                    status = item.Status,
+                    attempts = item.Attempts,
+                    financeTransactionId = item.FinanceTransactionId,
+                    lastError = item.LastError
+                });
+            }
+            return results;
         }
 
         private async Task<string> DetermineTransactionTypeAsync(FinanceSyncPayload payload)

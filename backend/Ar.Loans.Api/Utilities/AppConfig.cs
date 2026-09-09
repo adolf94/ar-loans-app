@@ -40,6 +40,9 @@ namespace Ar.Loans.Api.Utilities
         public string IngesterBaseUrl { get; set; } = string.Empty;
         public string Scope { get; set; } = "api://finance-app-api/transactions:create api://finance-app-api/transactions:read:self api://finance-app-api/accounts:read api://finance-app-api/ingestions:read api://finance-app-api/transactions:delete:self";
         public string SyncQueueName { get; set; } = "finance-sync";
+        // Sync dispatch mode: "queue" (storage-queue doorbell) or "changefeed"
+        // (Cosmos change feed trigger on the FinanceSyncQueue container).
+        public string SyncMode { get; set; } = "queue";
         // Use DELETE /transactions/{id} (transactions:delete:self) for reversals;
         // falls back to reversal transactions when the scope is unavailable.
         public bool UseDeleteForReversal { get; set; } = true;

@@ -59,7 +59,12 @@ builder.Services.AddHttpClient();
 builder.Services.AddHttpClient<AuthorityService>();
 builder.Services.AddHttpClient<ArGoService>();
 builder.Services.AddHttpClient<FinanceService>();
-builder.Services.AddSingleton<IFinanceSyncQueue, Ar.Loans.Api.Data.Azure.FinanceSyncQueue>();
+builder.Services.AddSingleton<Ar.Loans.Api.Data.Azure.FinanceSyncQueue>();
+builder.Services.AddSingleton<Ar.Loans.Api.Services.ChangeFeedSyncPublisher>();
+builder.Services.AddSingleton<IFinanceSyncQueue>(sp =>
+    string.Equals(appConfig.Finance.SyncMode, "changefeed", StringComparison.OrdinalIgnoreCase)
+        ? sp.GetRequiredService<Ar.Loans.Api.Services.ChangeFeedSyncPublisher>()
+        : sp.GetRequiredService<Ar.Loans.Api.Data.Azure.FinanceSyncQueue>());
 builder.Services.AddScoped<FinanceSyncProcessor>();
 builder.Services.AddScoped<LogService>();
 builder.Services.AddScoped<TelegramService>();

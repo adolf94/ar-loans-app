@@ -9,7 +9,7 @@ import { Link2, Unlink, RefreshCw, PlayCircle, Wallet } from 'lucide-react';
 import {
     useLinkedBalances, useFinanceAccounts, useFinanceAccountGroups, useAccountLinks,
     useUpsertAccountLink, useDeleteAccountLink,
-    useIngestions, useProcessIngestion, useFinanceSyncItems,
+    useIngestions, useProcessIngestion, useFinanceSyncItems, useRetryFinanceSyncItems,
     isFinanceEnabled,
     ingestionAmount, ingestionDate, ingestionNote, ingestionDisplayText
 } from '../../repositories/finance';
@@ -29,6 +29,7 @@ const LinkRow: React.FC<{ row: LinkedBalanceRow }> = ({ row }) => {
     const { data: links = [] } = useAccountLinks();
     const upsert = useUpsertAccountLink();
     const remove = useDeleteAccountLink();
+    const isMobile = useIsMobile();
 
     const existingLink = links.find(l => l.loanAccountId === row.loanAccountId);
     const [selected, setSelected] = useState<string>(row.financeAccountId ?? '');
@@ -62,31 +63,46 @@ const LinkRow: React.FC<{ row: LinkedBalanceRow }> = ({ row }) => {
             <TableCell align="right">{money(row.loanBalance)}</TableCell>
             <TableCell>
                 <FormControl size="small" fullWidth>
-                    <Select
-                        value={selected}
-                        displayEmpty
-                        onChange={(e) => setSelected(e.target.value)}
-                        renderValue={(v) => v
-                            ? (financeAccounts.find(f => f.id === v)?.name ?? '(missing account)')
-                            : <em style={{ opacity: 0.6 }}>Not linked</em>}
-                    >
-                        <MenuItem value="">
-                            <em>Not linked</em>
-                        </MenuItem>
-                        {groupedAccounts.map(([group, accounts]) => (
-                            <React.Fragment key={group}>
-                                <ListSubheader sx={{ bgcolor: 'background.paper', fontWeight: 700 }}>
+                    {isMobile ? (
+                        <Select
+                            native
+                            value={selected}
+                            onChange={(e) => setSelected(e.target.value)}
+                        >
+                            <option value="">Not linked</option>
+                            {groupedAccounts.map(([group, accounts]) => (
+                                <optgroup key={group} label={group}>
+                                    {accounts.map(f => (
+                                        <option key={f.id} value={f.id}>{f.name} ({f.accountType})</option>
+                                    ))}
+                                </optgroup>
+                            ))}
+                        </Select>
+                    ) : (
+                        <Select
+                            value={selected}
+                            displayEmpty
+                            onChange={(e) => setSelected(e.target.value)}
+                            renderValue={(v) => v
+                                ? (financeAccounts.find(f => f.id === v)?.name ?? '(missing account)')
+                                : <em style={{ opacity: 0.6 }}>Not linked</em>}
+                        >
+                            <MenuItem value="">
+                                <em>Not linked</em>
+                            </MenuItem>
+                            {groupedAccounts.flatMap(([group, accounts]) => [
+                                <ListSubheader key={group} sx={{ bgcolor: 'background.paper', fontWeight: 700 }}>
                                     {group}
-                                </ListSubheader>
-                                {accounts.map(f => (
+                                </ListSubheader>,
+                                ...accounts.map(f => (
                                     <MenuItem key={f.id} value={f.id}>
                                         <Box component="span" sx={{ flexGrow: 1 }}>{f.name}</Box>
                                         <Box component="span" sx={{ opacity: 0.6, ml: 1 }}>{f.accountType}</Box>
                                     </MenuItem>
-                                ))}
-                            </React.Fragment>
-                        ))}
-                    </Select>
+                                ))
+                            ])}
+                        </Select>
+                    )}
                 </FormControl>
             </TableCell>
             <TableCell align="right">{money(currentLink?.currentBalance)}</TableCell>
@@ -307,14 +323,20 @@ const statusColor = (s: string): ChipColor =>
 
 const SyncStatusSection: React.FC = () => {
     const { data: items = [], refetch, isFetching } = useFinanceSyncItems();
+    const retry = useRetryFinanceSyncItems();
 
     return (
         <Box>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                 <Typography variant="h6" fontWeight={700}>Sync Queue</Typography>
-                <IconButton size="small" onClick={() => refetch()} disabled={isFetching}>
-                    <RefreshCw size={16} />
-                </IconButton>
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                    <IconButton size="small" onClick={() => retry.mutate()} disabled={retry.isPending}>
+                        <PlayCircle size={16} />
+                    </IconButton>
+                    <IconButton size="small" onClick={() => refetch()} disabled={isFetching}>
+                        <RefreshCw size={16} />
+                    </IconButton>
+                </Box>
             </Box>
             <TableContainer component={Paper} variant="outlined">
                 <Table size="small">

@@ -237,6 +237,30 @@ export const useFinanceSyncItems = (status?: string, enabled = true) => useQuery
     enabled: enabled && isFinanceEnabled(),
 });
 
+export interface FinanceSyncRetryResult {
+    id: string;
+    kind: string;
+    status: string;
+    attempts: number;
+    financeTransactionId?: string | null;
+    lastError?: string | null;
+}
+
+const retrySyncItems = async (): Promise<FinanceSyncRetryResult[]> => {
+    const { data } = await apiClient.post<FinanceSyncRetryResult[]>('/finance/sync/retry');
+    return data;
+};
+
+export const useRetryFinanceSyncItems = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: retrySyncItems,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: [FINANCE_SYNC_ITEMS] });
+        },
+    });
+};
+
 // ---- Helpers for auto-populating the process dialog from an ingestion ----
 // Record shape is best-effort: flat fields, plus `ai_parsed` (AI-extracted fields)
 // and `raw_payload` (original notification) fallbacks.

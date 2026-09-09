@@ -22,6 +22,7 @@ namespace Ar.Loans.Api.Controllers
         IAccountRepo accountRepo,
         ILoanRepo loanRepo,
         AppDbContext db,
+        FinanceSyncProcessor syncProcessor,
         AppConfig appConfig,
         CurrentUser user,
         ILogger<FinanceController> logger)
@@ -31,6 +32,7 @@ namespace Ar.Loans.Api.Controllers
         private readonly IAccountRepo _accountRepo = accountRepo;
         private readonly ILoanRepo _loanRepo = loanRepo;
         private readonly AppDbContext _db = db;
+        private readonly FinanceSyncProcessor _syncProcessor = syncProcessor;
         private readonly AppConfig _appConfig = appConfig;
         private readonly CurrentUser _user = user;
         private readonly ILogger<FinanceController> _logger = logger;
@@ -284,6 +286,22 @@ namespace Ar.Loans.Api.Controllers
                 .Take(30)
                 .ToListAsync();
             return new OkObjectResult(items);
+        }
+
+        /// <summary>
+        /// Immediate retry of Pending/Failed sync items (ignores the drain's
+        /// 5-minute staleness cutoff); reports per-item outcomes.
+        /// </summary>
+        [Function("RetryFinanceSyncItems")]
+        public async Task<IActionResult> RetryFinanceSyncItems(
+            [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "finance/sync/retry")] HttpRequest req)
+        {
+            if (GuardAdmin() is { } denied) return denied;
+            if (!_appConfig.Finance.Enabled)
+                return new BadRequestObjectResult("Finance integration is not enabled.");
+
+            var results = await _syncProcessor.RetryPendingAsync();
+            return new OkObjectResult(results);
         }
     }
 
