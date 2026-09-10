@@ -17,23 +17,17 @@ import {
     FormControlLabel,
     Switch,
     Alert,
-    Dialog,
     DialogTitle,
     DialogContent,
-    DialogActions,
-    Table,
-    TableHead,
-    TableBody,
-    TableRow,
-    TableCell,
-    TableContainer,
-    CircularProgress
+    DialogActions
 } from '@mui/material';
 import { Camera, Sparkles, UserPlus, ChevronDown, ChevronRight, Download } from 'lucide-react';
 import type { User, Loan, UserAccount } from '../../@types/types';
 import { identifyTransaction, type IdentifiedTransaction } from '../../repositories/file';
 import UserDialog from '../dialogs/UserDialog';
-import { getBankAccountByAccountId, getBankAccountByName, createBankAccount } from '../../repositories/bankAccount';
+import IngestionPickerDialog from '../dialogs/IngestionPickerDialog';
+import { getBankAccountByAccountId, createBankAccount } from '../../repositories/bankAccount';
+import { resolveIngestionClientId } from '../../logic/ingestionMatch';
 import { v7 as uuidv7 } from 'uuid';
 import { useCreateLoan } from '../../repositories/loan';
 import { useAccounts, type Account } from '../../repositories/account';
@@ -43,12 +37,9 @@ import { useDateValidation } from '../../logic/dateValidation';
 import {
     isFinanceEnabled,
     useIngestion,
-    useIngestions,
     ingestionAmount,
     ingestionDate,
     ingestionDisplayText,
-    ingestionRecipientAccountNumber,
-    ingestionRecipientAccountName,
     ingestionLoanReference,
     type IngestionRecord
 } from '../../repositories/finance';
@@ -64,9 +55,6 @@ export interface LoanFormProps {
     variant?: 'dialog' | 'inline';
     submitLabel?: string;
 }
-
-const normalizeName = (value: string | null | undefined): string =>
-    (value ?? '').toUpperCase().replace(/[^A-Z0-9]/g, '');
 
 interface LoanFormState {
     id: string;
@@ -166,24 +154,7 @@ const LoanForm: React.FC<LoanFormProps> = ({
     // ---- Ingestion prefill ----
     const { data: linkedIngestion } = useIngestion(ingestionId, financeOn);
 
-    const resolveClientId = async (record: IngestionRecord): Promise<string> => {
-        const acctNumber = ingestionRecipientAccountNumber(record);
-        if (acctNumber) {
-            const acct = await getBankAccountByAccountId(acctNumber).catch(() => null);
-            if (acct?.userId) return acct.userId;
-        }
-        const acctName = ingestionRecipientAccountName(record);
-        if (acctName) {
-            const acct = await getBankAccountByName(acctName).catch(() => null);
-            if (acct?.userId) return acct.userId;
-            const norm = normalizeName(acctName);
-            if (norm) {
-                const matches = users.filter(u => normalizeName(u.name) === norm);
-                if (matches.length === 1) return matches[0].id;
-            }
-        }
-        return '';
-    };
+    const resolveClientId = (record: IngestionRecord) => resolveIngestionClientId(record, users);
 
     const applyIngestion = async (record: IngestionRecord) => {
         setImported(record);
@@ -633,75 +604,6 @@ const LoanForm: React.FC<LoanFormProps> = ({
                 </Button>
             </DialogActions>
         </>
-    );
-};
-
-const money = (n: number) =>
-    n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-
-const IngestionPickerDialog: React.FC<{
-    open: boolean;
-    onClose: () => void;
-    onSelect: (record: IngestionRecord) => void;
-}> = ({ open, onClose, onSelect }) => {
-    const { data: ingestions = [], isLoading } = useIngestions('Pending', open);
-
-    return (
-        <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-            <DialogTitle sx={{ pb: 1 }}>Import from Ingestion</DialogTitle>
-            <DialogContent sx={{ pt: 1 }}>
-                <TableContainer sx={{ maxHeight: 360 }}>
-                    <Table size="small" stickyHeader>
-                        <TableHead>
-                            <TableRow>
-                                <TableCell sx={{ py: 0.75 }}>Description</TableCell>
-                                <TableCell sx={{ py: 0.75 }} width={100}>Amount</TableCell>
-                                <TableCell sx={{ py: 0.75 }} width={100}>Date</TableCell>
-                                <TableCell sx={{ py: 0.75 }} align="right" width={72}></TableCell>
-                            </TableRow>
-                        </TableHead>
-                        <TableBody>
-                            {isLoading && (
-                                <TableRow><TableCell colSpan={4} align="center" sx={{ py: 2 }}><CircularProgress size={20} /></TableCell></TableRow>
-                            )}
-                            {!isLoading && ingestions.length === 0 && (
-                                <TableRow><TableCell colSpan={4} align="center" sx={{ py: 2 }}>No pending ingestions</TableCell></TableRow>
-                            )}
-                            {ingestions.map((ing) => {
-                                const amt = ingestionAmount(ing);
-                                const text = ingestionDisplayText(ing) ?? '(no description)';
-                                return (
-                                    <TableRow key={ing.id} hover>
-                                        <TableCell sx={{ py: 0.5, maxWidth: 260 }}>
-                                            <Tooltip title={text} placement="top-left">
-                                                <Typography variant="body2" sx={{
-                                                    display: '-webkit-box',
-                                                    WebkitLineClamp: 2,
-                                                    WebkitBoxOrient: 'vertical',
-                                                    overflow: 'hidden'
-                                                }}>
-                                                    {text}
-                                                </Typography>
-                                            </Tooltip>
-                                            <Typography variant="caption" color="text.secondary">
-                                                {ing.id.slice(0, 8)}…
-                                            </Typography>
-                                        </TableCell>
-                                        <TableCell sx={{ py: 0.5 }}>{amt != null ? money(amt) : '—'}</TableCell>
-                                        <TableCell sx={{ py: 0.5 }}>{ingestionDate(ing) ?? '—'}</TableCell>
-                                        <TableCell sx={{ py: 0.5 }} align="right">
-                                            <Button size="small" variant="contained" onClick={() => onSelect(ing)}>
-                                                Use
-                                            </Button>
-                                        </TableCell>
-                                    </TableRow>
-                                );
-                            })}
-                        </TableBody>
-                    </Table>
-                </TableContainer>
-            </DialogContent>
-        </Dialog>
     );
 };
 

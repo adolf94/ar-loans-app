@@ -14,6 +14,7 @@ import ClientStatementPage from './pages/ClientStatementPage';
 import CallbackPage from './pages/CallbackPage';
 import MagicLinkPage from './pages/MagicLinkPage';
 import NewLoanPage from './pages/NewLoanPage';
+import NewPaymentPage from './pages/NewPaymentPage';
 
 // Root component that handles state and layout wrapper
 const Root = () => {
@@ -102,6 +103,17 @@ const newLoanRoute = createRoute({
     component: NewLoanPage,
 });
 
+const newPaymentRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: '/payments/new',
+    beforeLoad: (ctx) => {
+        if (!ctx.context.auth.hasRole([window.webConfig.adminRole])) {
+            throw redirect({ to: "/client" })
+        }
+    },
+    component: NewPaymentPage,
+});
+
 // Create the router instance
 const routeTree = rootRoute.addChildren([
     indexRoute,
@@ -111,6 +123,7 @@ const routeTree = rootRoute.addChildren([
     callbackRoute,
     magicRoute,
     newLoanRoute,
+    newPaymentRoute,
     clientStatementRoute
 ]);
 

@@ -111,7 +111,9 @@ export interface Payment {
     destinationAcctId: string,
     userId: string,
     date: string,
-    description: string
+    description: string,
+    fileId?: string,
+    financeIngestionId?: string
 }
 
 export interface LogEntry {
