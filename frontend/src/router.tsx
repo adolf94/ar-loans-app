@@ -132,6 +132,7 @@ const ingestRoute = createRoute({
     getParentRoute: () => rootRoute,
     path: '/finance/ingest',
     beforeLoad: adminGuard,
+    validateSearch: ingestionSearch,
     component: IngestPage,
 });
 
