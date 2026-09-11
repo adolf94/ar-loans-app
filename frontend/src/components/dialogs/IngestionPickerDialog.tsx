@@ -59,7 +59,7 @@ const IngestionPickerDialog: React.FC<{
                                 return (
                                     <TableRow key={ing.id} hover>
                                         <TableCell sx={{ py: 0.5, maxWidth: 260 }}>
-                                            <Tooltip title={text} placement="top-left">
+                                            <Tooltip title={text} placement="top-start">
                                                 <Typography variant="body2" sx={{
                                                     display: '-webkit-box',
                                                     WebkitLineClamp: 2,

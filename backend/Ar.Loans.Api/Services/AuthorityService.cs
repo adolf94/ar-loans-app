@@ -23,7 +23,7 @@ namespace Ar.Loans.Api.Services
         {
             scope ??= "api://ar-auth-management/users:read:all";
             string cacheKey = $"authority_access_token_{scope.Replace(":", "_").Replace("/", "_")}";
-            
+
             if (_cache.TryGetValue(cacheKey, out string? token)) return token;
 
             var authority = _config.JwtConfig.Authority?.TrimEnd('/');
@@ -37,7 +37,7 @@ namespace Ar.Loans.Api.Services
                 { "scope", scope }
             });
 
-            try 
+            try
             {
                 var response = await _httpClient.PostAsync($"{authority}/token", requestBody);
                 if (!response.IsSuccessStatusCode)
@@ -70,18 +70,18 @@ namespace Ar.Loans.Api.Services
             var authority = _config.JwtConfig.Authority?.TrimEnd('/');
             var request = new HttpRequestMessage(HttpMethod.Get, $"{authority}/user/{userId}");
             request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
-                
+
             var response = await _httpClient.SendAsync(request);
 
             if (!response.IsSuccessStatusCode)
             {
-                if(response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
                 {
                     return null;
-								}
-								_logger.LogWarning("Failed to fetch user {UserId} from authority: {StatusCode}", userId, response.StatusCode);
+                }
+                _logger.LogWarning("Failed to fetch user {UserId} from authority: {StatusCode}", userId, response.StatusCode);
                 throw new Exception($"Failed to fetch user {userId} from authority: {response.StatusCode}");
-						}
+            }
 
             return await response.Content.ReadFromJsonAsync<AuthUser>();
         }
@@ -103,8 +103,8 @@ namespace Ar.Loans.Api.Services
         public string? MobileNumber { get; set; }
         [JsonPropertyName("externalIdentities")]
         public List<AuthUserIdentity> ExternalIdentities { get; set; } = new();
-        
-        public string? GetTelegramId() 
+
+        public string? GetTelegramId()
         {
             return ExternalIdentities?.FirstOrDefault(x => x.Provider == "telegram")?.ProviderId;
         }
