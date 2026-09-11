@@ -12,6 +12,7 @@ export interface Entry {
     addedBy?: string;
     loanId?: string;
     fileId?: string;
+    financeIngestionId?: string;
 }
 
 export const ENTRY = "entries"

@@ -15,6 +15,8 @@ import CallbackPage from './pages/CallbackPage';
 import MagicLinkPage from './pages/MagicLinkPage';
 import NewLoanPage from './pages/NewLoanPage';
 import NewPaymentPage from './pages/NewPaymentPage';
+import NewEntryPage from './pages/NewEntryPage';
+import IngestPage from './pages/IngestPage';
 
 // Root component that handles state and layout wrapper
 const Root = () => {
@@ -92,26 +94,45 @@ const magicRoute = createRoute({
     component: MagicLinkPage,
 });
 
+const ingestionSearch = (search: Record<string, unknown>) => ({
+    ingestion_id: typeof search.ingestion_id === 'string' ? search.ingestion_id : undefined,
+});
+
+const adminGuard = (ctx: { context: { auth: { hasRole: (roles: string[]) => boolean } } }) => {
+    if (!ctx.context.auth.hasRole([window.webConfig.adminRole])) {
+        throw redirect({ to: "/client" })
+    }
+};
+
 const newLoanRoute = createRoute({
     getParentRoute: () => rootRoute,
     path: '/loans/new',
-    beforeLoad: (ctx) => {
-        if (!ctx.context.auth.hasRole([window.webConfig.adminRole])) {
-            throw redirect({ to: "/client" })
-        }
-    },
+    beforeLoad: adminGuard,
+    validateSearch: ingestionSearch,
     component: NewLoanPage,
 });
 
 const newPaymentRoute = createRoute({
     getParentRoute: () => rootRoute,
     path: '/payments/new',
-    beforeLoad: (ctx) => {
-        if (!ctx.context.auth.hasRole([window.webConfig.adminRole])) {
-            throw redirect({ to: "/client" })
-        }
-    },
+    beforeLoad: adminGuard,
+    validateSearch: ingestionSearch,
     component: NewPaymentPage,
+});
+
+const newEntryRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: '/entries/new',
+    beforeLoad: adminGuard,
+    validateSearch: ingestionSearch,
+    component: NewEntryPage,
+});
+
+const ingestRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: '/finance/ingest',
+    beforeLoad: adminGuard,
+    component: IngestPage,
 });
 
 // Create the router instance
@@ -124,6 +145,8 @@ const routeTree = rootRoute.addChildren([
     magicRoute,
     newLoanRoute,
     newPaymentRoute,
+    newEntryRoute,
+    ingestRoute,
     clientStatementRoute
 ]);
 

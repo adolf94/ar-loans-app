@@ -21,6 +21,7 @@ namespace Ar.Loans.Api.Controllers
         IAccountLinkRepo linkRepo,
         IAccountRepo accountRepo,
         ILoanRepo loanRepo,
+        IEntryRepo entryRepo,
         AppDbContext db,
         FinanceSyncProcessor syncProcessor,
         AppConfig appConfig,
@@ -31,6 +32,7 @@ namespace Ar.Loans.Api.Controllers
         private readonly IAccountLinkRepo _linkRepo = linkRepo;
         private readonly IAccountRepo _accountRepo = accountRepo;
         private readonly ILoanRepo _loanRepo = loanRepo;
+        private readonly IEntryRepo _entryRepo = entryRepo;
         private readonly AppDbContext _db = db;
         private readonly FinanceSyncProcessor _syncProcessor = syncProcessor;
         private readonly AppConfig _appConfig = appConfig;
@@ -219,6 +221,44 @@ namespace Ar.Loans.Api.Controllers
             var ingestionId = req.RouteValues["ingestionId"]?.ToString();
             if (string.IsNullOrWhiteSpace(ingestionId)) return new BadRequestResult();
 
+            return await ProcessAsPayment(ingestionId, req);
+        }
+
+        /// <summary>
+        /// Process a selected ingestion choosing what to create:
+        /// - "payment": a loan payment (same contract as POST .../process);
+        /// - "loan": a new loan disbursement (Loan payload, like POST /loans);
+        /// - "entry": a plain journal entry (Entry payload, like POST /entries).
+        /// Each record is tagged with the ingestionId so the finance transaction
+        /// is mirrored and the ingestion is confirmed asynchronously.
+        /// </summary>
+        [Function("ProcessIngestionTyped")]
+        public async Task<IActionResult> ProcessIngestionTyped(
+            [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "finance/ingestions/{ingestionId}/process/{type}")] HttpRequest req)
+        {
+            if (GuardAdmin() is { } denied) return denied;
+            if (!_appConfig.Finance.Enabled)
+                return new BadRequestObjectResult("Finance integration is not enabled.");
+
+            var ingestionId = req.RouteValues["ingestionId"]?.ToString();
+            var type = req.RouteValues["type"]?.ToString()?.ToLowerInvariant();
+            if (string.IsNullOrWhiteSpace(ingestionId)) return new BadRequestResult();
+
+            switch (type)
+            {
+                case "payment":
+                    return await ProcessAsPayment(ingestionId, req);
+                case "loan":
+                    return await ProcessAsLoan(ingestionId, req);
+                case "entry":
+                    return await ProcessAsEntry(ingestionId, req);
+                default:
+                    return new BadRequestObjectResult("type must be one of: payment, loan, entry.");
+            }
+        }
+
+        private async Task<IActionResult> ProcessAsPayment(string ingestionId, HttpRequest req)
+        {
             var dto = await req.ReadFromJsonAsync<IngestionProcessRequest>();
             if (dto == null || dto.LoanId == Guid.Empty || dto.DestinationAccountId == Guid.Empty || dto.Amount <= 0)
                 return new BadRequestObjectResult("loanId, destinationAccountId and a positive amount are required.");
@@ -264,7 +304,79 @@ namespace Ar.Loans.Api.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to process ingestion {IngestionId}", ingestionId);
+                _logger.LogError(ex, "Failed to process ingestion {IngestionId} as payment", ingestionId);
+                return new BadRequestObjectResult(ex.Message);
+            }
+        }
+
+        private async Task<IActionResult> ProcessAsLoan(string ingestionId, HttpRequest req)
+        {
+            var loan = await req.ReadFromJsonAsync<Loan>();
+            if (loan == null || loan.ClientId == Guid.Empty || loan.Principal <= 0 || loan.SourceAcct == Guid.Empty)
+                return new BadRequestObjectResult("A valid loan payload is required (clientId, principal, sourceAcct).");
+
+            // The principal disbursement entry (DR Loan Receivables / CR source account)
+            // needs both sides linked to be mirrored to finance_app.
+            var sourceLink = await _linkRepo.GetByLoanAccountId(loan.SourceAcct);
+            var receivablesLink = await _linkRepo.GetByLoanAccountId(AccountConstants.LoanReceivables);
+            if (sourceLink == null || receivablesLink == null)
+                return new BadRequestObjectResult(
+                    "The source account and/or Loan Receivables is not linked to a finance account. Configure the links in Finance settings first.");
+
+            loan.Id = Guid.CreateVersion7();
+            loan.FinanceIngestionId = ingestionId;
+
+            try
+            {
+                var result = await _loanRepo.CreateLoan(loan);
+                return new OkObjectResult(new
+                {
+                    result.Loan,
+                    result.Entries,
+                    result.NewTransactions,
+                    ingestionId,
+                    message = "Loan created. Finance transaction and ingestion confirmation are processed asynchronously."
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to process ingestion {IngestionId} as loan", ingestionId);
+                return new BadRequestObjectResult(ex.Message);
+            }
+        }
+
+        private async Task<IActionResult> ProcessAsEntry(string ingestionId, HttpRequest req)
+        {
+            var entry = await req.ReadFromJsonAsync<Entry>();
+            if (entry == null || entry.DebitId == Guid.Empty || entry.CreditId == Guid.Empty || entry.Amount <= 0)
+                return new BadRequestObjectResult("A valid entry payload is required (debitId, creditId, amount).");
+            if (entry.DebitId == entry.CreditId)
+                return new BadRequestObjectResult("Debit and credit accounts must differ.");
+
+            var debitLink = await _linkRepo.GetByLoanAccountId(entry.DebitId);
+            var creditLink = await _linkRepo.GetByLoanAccountId(entry.CreditId);
+            if (debitLink == null || creditLink == null)
+                return new BadRequestObjectResult(
+                    "The debit and/or credit account is not linked to a finance account. Configure the links in Finance settings first.");
+
+            entry.Id = entry.Id == Guid.Empty ? Guid.CreateVersion7() : entry.Id;
+            entry.AddedBy = _user.UserId;
+            entry.FinanceIngestionId = ingestionId;
+
+            try
+            {
+                var result = await _entryRepo.ExecuteCreateEntryAndSave(entry);
+                return new OkObjectResult(new
+                {
+                    result.Entry,
+                    result.Accounts,
+                    ingestionId,
+                    message = "Entry recorded. Finance transaction and ingestion confirmation are processed asynchronously."
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to process ingestion {IngestionId} as entry", ingestionId);
                 return new BadRequestObjectResult(ex.Message);
             }
         }
