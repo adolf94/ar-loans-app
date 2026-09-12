@@ -1,18 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import {
-    Box,
-    Button,
-    Container,
-    FormControl,
-    InputLabel,
-    MenuItem,
-    Paper,
-    Select,
-    Stack,
-    TextField,
-    Typography
-} from '@mui/material';
 import { useNavigate } from '@tanstack/react-router';
+import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { v7 as uuidv7 } from 'uuid';
 import dayjs from 'dayjs';
 import { useAccounts, type Account } from '../repositories/account';
@@ -25,6 +13,7 @@ import {
     ingestionDisplayText,
     isFinanceEnabled
 } from '../repositories/finance';
+import { Button, Input, Panel, SectionTitle, Select } from '../components/ui';
 
 const NewEntryPage: React.FC = () => {
     const navigate = useNavigate();
@@ -44,7 +33,6 @@ const NewEntryPage: React.FC = () => {
         debitId: ''
     });
 
-    // Prefill once from the ingestion record.
     const appliedRef = useRef<string | null>(null);
     useEffect(() => {
         if (!ingestion || appliedRef.current === ingestion.id) return;
@@ -73,69 +61,71 @@ const NewEntryPage: React.FC = () => {
     };
 
     return (
-        <Container maxWidth="sm" sx={{ py: 4 }}>
-            <Stack spacing={2}>
-                <Typography variant="h5" fontWeight={600}>New Entry</Typography>
+        <div className="max-w-2xl mx-auto px-5 sm:px-8 py-8">
+            <button
+                onClick={goBack}
+                className="inline-flex items-center gap-1.5 text-xs font-mono tracking-wider uppercase text-silverdim hover:text-amber transition-colors"
+            >
+                <ArrowLeft size={14} />
+                Back to inbox
+            </button>
+            <SectionTitle className="mt-4">New entry</SectionTitle>
+            <p className="text-sm text-silverdim mt-1 mb-6">
+                Manual double-entry: money leaves one account and arrives in another.
+            </p>
 
-                {ingestion && (
-                    <Paper variant="outlined" sx={{ p: 1.5 }}>
-                        <Typography variant="body2" fontWeight={600}>Imported from ingestion</Typography>
-                        <Typography variant="caption" color="text.secondary">
-                            {ingestionDisplayText(ingestion) ?? 'Notification'} · {ingestion.id.slice(0, 8)}…
-                        </Typography>
-                    </Paper>
-                )}
+            {ingestion && (
+                <Panel className="mb-6 !p-3.5">
+                    <p className="text-sm font-semibold text-paper">Imported from ingestion</p>
+                    <p className="text-xs font-mono text-silverdim mt-0.5">
+                        {ingestionDisplayText(ingestion) ?? 'Notification'} · {ingestion.id.slice(0, 8)}…
+                    </p>
+                </Panel>
+            )}
 
-                <TextField
+            <Panel className="space-y-4">
+                <Input
+                    id="entry-date"
                     label="Date"
                     type="date"
-                    fullWidth
                     value={entry.date}
                     onChange={(e) => setEntry({ ...entry, date: e.target.value })}
-                    slotProps={{ inputLabel: { shrink: true } }}
                 />
-                <TextField
+                <Input
+                    id="entry-description"
                     label="Description"
-                    fullWidth
                     value={entry.description}
                     onChange={(e) => setEntry({ ...entry, description: e.target.value })}
                 />
-                <TextField
+                <Input
+                    id="entry-amount"
                     label="Amount"
                     type="number"
-                    fullWidth
                     value={entry.amount}
                     onChange={(e) => setEntry({ ...entry, amount: Number(e.target.value) })}
                 />
-                <FormControl fullWidth>
-                    <InputLabel>From (Credit):</InputLabel>
+                <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_1fr] items-end gap-3">
                     <Select
+                        id="entry-credit"
+                        label="From (Credit)"
                         value={entry.creditId}
-                        label="From (Credit):"
                         onChange={(e) => setEntry({ ...entry, creditId: e.target.value })}
-                    >
-                        {accounts.map((a: Account) => (
-                            <MenuItem key={a.id} value={a.id}>{a.name}</MenuItem>
-                        ))}
-                    </Select>
-                </FormControl>
-                <FormControl fullWidth>
-                    <InputLabel>To (Debit):</InputLabel>
+                        options={accounts.map((a: Account) => ({ value: a.id, label: a.name }))}
+                    />
+                    <ArrowRight size={16} className="hidden sm:block text-silverdim mb-3" aria-hidden="true" />
                     <Select
+                        id="entry-debit"
+                        label="To (Debit)"
                         value={entry.debitId}
-                        label="To (Debit):"
                         onChange={(e) => setEntry({ ...entry, debitId: e.target.value })}
-                    >
-                        {accounts.map((a: Account) => (
-                            <MenuItem key={a.id} value={a.id}>{a.name}</MenuItem>
-                        ))}
-                    </Select>
-                </FormControl>
+                        options={accounts.map((a: Account) => ({ value: a.id, label: a.name }))}
+                    />
+                </div>
 
-                <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
-                    <Button onClick={goBack}>Cancel</Button>
+                <div className="flex justify-end gap-2 pt-1">
+                    <Button variant="ghost" onClick={goBack}>Cancel</Button>
                     <Button
-                        variant="contained"
+                        variant="amber"
                         onClick={handleSubmit}
                         disabled={
                             !entry.description
@@ -148,9 +138,9 @@ const NewEntryPage: React.FC = () => {
                     >
                         {createEntry.isPending ? 'Saving...' : 'Add Entry'}
                     </Button>
-                </Box>
-            </Stack>
-        </Container>
+                </div>
+            </Panel>
+        </div>
     );
 };
 

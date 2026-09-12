@@ -1,21 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import {
-    Box,
-    Button,
-    Chip,
-    Container,
-    Dialog,
-    DialogTitle,
-    DialogContent,
-    DialogActions,
-    IconButton,
-    Paper,
-    Stack,
-    Tooltip,
-    Typography,
-    CircularProgress
-} from '@mui/material';
-import CloseIcon from '@mui/icons-material/Close';
+import { X } from 'lucide-react';
 import { useNavigate } from '@tanstack/react-router';
 import {
     useIngestion,
@@ -25,6 +9,7 @@ import {
     ingestionDisplayText,
     type IngestionRecord
 } from '../repositories/finance';
+import { Button, Dialog, IconButton, Panel, Paper, Spinner } from '../components/ui';
 
 const money = (n: number) =>
     n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -61,164 +46,129 @@ const IngestPage: React.FC = () => {
         navigate({ to, search: { ingestion_id: ing.id } });
 
     return (
-        <Container maxWidth="sm" sx={{ py: 4 }}>
-            <Stack spacing={2}>
-                <Box>
-                    <Typography variant="h5" fontWeight={600}>Ingest</Typography>
-                    <Typography variant="body2" color="text.secondary">
-                        Pending ingestion records. Choose how to book each one.
-                    </Typography>
-                </Box>
+        <div className="max-w-2xl mx-auto px-5 sm:px-8 py-8">
+            <div className="dev">
+                <h1 className="text-paper font-bold text-3xl tracking-tight">Ingest</h1>
+                <p className="text-sm text-silverdim mt-1">
+                    Pending ingestion records. Choose how to book each one.
+                </p>
+            </div>
 
+            <div className="mt-6 space-y-3">
                 {isLoading && (
-                    <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
-                        <CircularProgress size={24} />
-                    </Box>
+                    <div className="flex justify-center py-6">
+                        <Spinner size={24} />
+                    </div>
                 )}
 
                 {!isLoading && visible.length === 0 && (
-                    <Paper variant="outlined" sx={{ p: 3, textAlign: 'center' }}>
-                        <Typography variant="body2" color="text.secondary">No pending ingestions</Typography>
-                    </Paper>
+                    <div className="border border-dashed border-linestrong rounded-tray p-6 text-center text-sm text-silverdim">
+                        No pending ingestions
+                    </div>
                 )}
 
-                {visible.map((ing) => {
+                {visible.map((ing, i) => {
                     const amt = ingestionAmount(ing);
                     const date = ingestionDate(ing);
                     const text = ingestionDisplayText(ing) ?? '(no description)';
                     const selected = ing.id === selectedId;
+                    const source = ing.sourceType || ing.channel || 'Notification';
                     return (
-                        <Paper
-                            key={ing.id}
-                            ref={selected ? selectedRef : undefined}
-                            variant="outlined"
-                            sx={{
-                                p: 2,
-                                ...(selected && {
-                                    borderColor: 'primary.main',
-                                    borderWidth: 2,
-                                    bgcolor: 'action.selected'
-                                })
-                            }}
-                        >
-                            {/* raw_msg + dismiss */}
-                            <Stack direction="row" spacing={1} alignItems="flex-start">
-                                <Typography variant="body1" sx={{ flexGrow: 1, whiteSpace: 'pre-wrap' }}>
-                                    {text}
-                                </Typography>
-                                <Tooltip title="Dismiss">
-                                    <IconButton
-                                        size="small"
-                                        onClick={() => setDismissed(prev => new Set(prev).add(ing.id))}
-                                    >
-                                        <CloseIcon fontSize="small" />
-                                    </IconButton>
-                                </Tooltip>
-                            </Stack>
-
-                            {/* details */}
-                            <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 1 }}>
-                                <Chip size="small" label={amt != null ? money(amt) : '—'} />
-                                <Chip size="small" label={date ?? '—'} />
-                                <Typography variant="caption" color="text.secondary">
-                                    {ing.id.slice(0, 8)}…
-                                </Typography>
-                            </Stack>
-
-                            {/* routing buttons */}
-                            <Stack direction="row" spacing={1} sx={{ mt: 1.5 }}>
-                                <Button
-                                    size="small"
-                                    variant="outlined"
-                                    sx={{ flexGrow: 1 }}
-                                    onClick={() => routeTo(ing, '/loans/new')}
+                        <div key={ing.id} ref={selected ? selectedRef : undefined}>
+                            <Panel
+                                className={`dev flex flex-wrap items-start gap-4 ${selected ? 'border-amber' : ''}`}
+                                style={{ animationDelay: `${i * 70}ms` }}
+                            >
+                                <div className="min-w-0 flex-1 basis-64">
+                                    <p className="flex flex-wrap items-center gap-2 text-sm">
+                                        <span className="font-mono text-[11px] tracking-[0.16em] uppercase text-amber">{source}</span>
+                                        <span className="text-silverdim font-mono text-xs tnum">{date ?? '—'}</span>
+                                        <span className="text-silverdim font-mono text-xs tnum">{amt != null ? money(amt) : '—'}</span>
+                                        <span className="text-silverdim font-mono text-xs">{ing.id.slice(0, 8)}…</span>
+                                    </p>
+                                    <Paper className="mt-2 px-3.5 py-2.5 text-sm whitespace-pre-wrap">{text}</Paper>
+                                </div>
+                                <IconButton
+                                    label="Dismiss"
+                                    className="shrink-0"
+                                    onClick={() => setDismissed(prev => new Set(prev).add(ing.id))}
                                 >
-                                    Loan
-                                </Button>
-                                <Button
-                                    size="small"
-                                    variant="outlined"
-                                    sx={{ flexGrow: 1 }}
-                                    onClick={() => routeTo(ing, '/payments/new')}
-                                >
-                                    Payment
-                                </Button>
-                                <Button
-                                    size="small"
-                                    variant="contained"
-                                    sx={{ flexGrow: 1 }}
-                                    onClick={() => routeTo(ing, '/entries/new')}
-                                >
-                                    Entry
-                                </Button>
-                            </Stack>
-                        </Paper>
+                                    <X size={15} />
+                                </IconButton>
+                                <div className="flex gap-2 w-full">
+                                    <Button size="sm" variant="outline" fullWidth onClick={() => routeTo(ing, '/loans/new')}>
+                                        Loan
+                                    </Button>
+                                    <Button size="sm" variant="outline" fullWidth onClick={() => routeTo(ing, '/payments/new')}>
+                                        Payment
+                                    </Button>
+                                    <Button size="sm" variant="amber" fullWidth onClick={() => routeTo(ing, '/entries/new')}>
+                                        Entry
+                                    </Button>
+                                </div>
+                            </Panel>
+                        </div>
                     );
                 })}
-            </Stack>
+            </div>
 
-            <Dialog open={openModal} onClose={closeModal} maxWidth="xs" fullWidth>
-                <DialogTitle>Book ingestion</DialogTitle>
-                <DialogContent sx={{ pt: 1 }}>
-                    {ingestionLoading && (
-                        <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
-                            <CircularProgress size={24} />
-                        </Box>
-                    )}
-                    {!ingestionLoading && !selectedIngestion && (
-                        <Typography variant="body2" color="text.secondary" sx={{ py: 2, textAlign: 'center' }}>
-                            Ingestion {selectedId?.slice(0, 8)}… is no longer pending.
-                        </Typography>
-                    )}
-                    {selectedIngestion && (() => {
-                        const amt = ingestionAmount(selectedIngestion);
-                        return (
-                            <>
-                                <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
-                                    {ingestionDisplayText(selectedIngestion) ?? '(no description)'}
-                                </Typography>
-                                <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 1 }}>
-                                    <Chip size="small" label={amt != null ? money(amt) : '—'} />
-                                    <Chip size="small" label={ingestionDate(selectedIngestion) ?? '—'} />
-                                    <Typography variant="caption" color="text.secondary">
-                                        {selectedIngestion.id.slice(0, 8)}…
-                                    </Typography>
-                                </Stack>
-                                <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
-                                    Choose how to book this record.
-                                </Typography>
-                            </>
-                        );
-                    })()}
-                </DialogContent>
-                <DialogActions sx={{ justifyContent: 'center', pb: 2, gap: 1 }}>
+            <Dialog open={openModal} onClose={closeModal} title="Book ingestion" width="max-w-sm">
+                {ingestionLoading && (
+                    <div className="flex justify-center py-6">
+                        <Spinner size={24} />
+                    </div>
+                )}
+                {!ingestionLoading && !selectedIngestion && (
+                    <p className="text-sm text-silverdim py-2 text-center">
+                        Ingestion {selectedId?.slice(0, 8)}… is no longer pending.
+                    </p>
+                )}
+                {selectedIngestion && (() => {
+                    const amt = ingestionAmount(selectedIngestion);
+                    return (
+                        <>
+                            <Paper className="px-3.5 py-2.5 text-sm whitespace-pre-wrap">
+                                {ingestionDisplayText(selectedIngestion) ?? '(no description)'}
+                            </Paper>
+                            <p className="flex items-center gap-3 mt-2 text-xs font-mono text-silverdim tnum">
+                                <span>{amt != null ? money(amt) : '—'}</span>
+                                <span>{ingestionDate(selectedIngestion) ?? '—'}</span>
+                                <span>{selectedIngestion.id.slice(0, 8)}…</span>
+                            </p>
+                            <p className="text-sm text-silverdim mt-3">
+                                Choose how to book this record.
+                            </p>
+                        </>
+                    );
+                })()}
+                <div className="mt-5 flex gap-2">
                     <Button
-                        variant="outlined"
+                        variant="outline"
+                        fullWidth
                         disabled={!selectedIngestion}
-                        sx={{ flexGrow: 1 }}
                         onClick={() => selectedIngestion && routeTo(selectedIngestion, '/loans/new')}
                     >
                         Loan
                     </Button>
                     <Button
-                        variant="outlined"
+                        variant="outline"
+                        fullWidth
                         disabled={!selectedIngestion}
-                        sx={{ flexGrow: 1 }}
                         onClick={() => selectedIngestion && routeTo(selectedIngestion, '/payments/new')}
                     >
                         Payment
                     </Button>
                     <Button
-                        variant="contained"
+                        variant="amber"
+                        fullWidth
                         disabled={!selectedIngestion}
-                        sx={{ flexGrow: 1 }}
                         onClick={() => selectedIngestion && routeTo(selectedIngestion, '/entries/new')}
                     >
                         Entry
                     </Button>
-                </DialogActions>
+                </div>
             </Dialog>
-        </Container>
+        </div>
     );
 };
 

@@ -1,24 +1,10 @@
 import React, { useState } from 'react';
-import {
-    Dialog,
-    DialogTitle,
-    DialogContent,
-    DialogActions,
-    Button,
-    TextField,
-    FormControl,
-    InputLabel,
-    Select,
-    MenuItem,
-    Stack,
-    Box
-} from '@mui/material';
-import type { GeneralLedgerEntry } from '../../@types/types';
+import { Button, Dialog, Input, Select } from '../ui';
 import { useAccounts, type Account } from '../../repositories/account';
 import dayjs from 'dayjs';
 import { v7 as uuidv7 } from 'uuid'
 import { useCreateEntry, type Entry } from '../../repositories/entry';
-import { identifyTransaction } from '../../repositories/file';
+import { identifyTransaction, type IdentifiedTransaction } from '../../repositories/file';
 import { getBankAccountByAccountId } from '../../repositories/bankAccount';
 import { Camera, Sparkles } from 'lucide-react';
 import { useDateValidation } from '../../logic/dateValidation';
@@ -38,11 +24,12 @@ const empty_record = () => ({
     creditId: ""
 })
 
-const LedgerDialog: React.FC<LedgerDialogProps> = ({ onAddLedger, currentLedgerCount, children }) => {
+const LedgerDialog: React.FC<LedgerDialogProps> = ({ onAddLedger, children }) => {
     const [newLedger, setNewLedger] = useState(empty_record());
     const [open, setOpen] = useState(false)
     const [isScanning, setIsScanning] = useState(false)
-    const [imgData, setImgData] = useState(null)
+    const [, setImgData] = useState<IdentifiedTransaction | null>(null)
+    const [attempted, setAttempted] = useState(false)
     const { data: accounts = [] } = useAccounts();
     const createEntry = useCreateEntry()
     const validateDate = useDateValidation();
@@ -52,6 +39,7 @@ const LedgerDialog: React.FC<LedgerDialogProps> = ({ onAddLedger, currentLedgerC
     };
 
     const handleAdd = async () => {
+        setAttempted(true);
         if (!(await validateDate(newLedger.date))) {
             return;
         }
@@ -59,8 +47,8 @@ const LedgerDialog: React.FC<LedgerDialogProps> = ({ onAddLedger, currentLedgerC
         const ledgerEntry: Entry = {
             ...newLedger,
         };
-        let data = await createEntry.mutateAsync(ledgerEntry)
-        onAddLedger(data);
+        const data = await createEntry.mutateAsync(ledgerEntry)
+        onAddLedger(data as unknown as Entry);
         setOpen(false);
         setNewLedger(empty_record());
     };
@@ -74,7 +62,6 @@ const LedgerDialog: React.FC<LedgerDialogProps> = ({ onAddLedger, currentLedgerC
         try {
             const data = await identifyTransaction(file);
             if (data) {
-                //get user By accountId
                 setImgData(data);
 
                 var recipient = await getBankAccountByAccountId(data.recipientAcct)
@@ -88,14 +75,6 @@ const LedgerDialog: React.FC<LedgerDialogProps> = ({ onAddLedger, currentLedgerC
                         return null;
                     });
 
-                // setFound(acct != null)
-
-                // var recipient = await getBankAccountByAccountId(data.senderAcct)
-                //     .catch(err => {
-                //         console.error("Error getting bank account:", err);
-                //         return null;
-                //     });
-
                 setNewLedger((prev) => ({
                     ...prev,
                     date: dayjs(data.datetime).format("YYYY-MM-DD") || prev.date,
@@ -104,33 +83,26 @@ const LedgerDialog: React.FC<LedgerDialogProps> = ({ onAddLedger, currentLedgerC
                     amount: data?.amount,
                     fileId: data.fileId
                 }))
-                // setNewPayment(prev => ({
-                //     ...prev,
-                //     destinationAcctId: acct?.accountId || "",
-                //     amount: data.amount || prev.amount,
-                //     date: dayjs(data.datetime).format("YYYY-MM-DD") || prev.date,
-                //     fileId: data.fileId || null
-                // }));
 
             }
         } catch (error) {
             console.error("Error identifying transaction:", error);
         } finally {
             setIsScanning(false);
-            // Reset input
             event.target.value = '';
         }
     };
 
-
-
+    const accountOptions = accounts.map((a: Account) => ({ value: a.id, label: a.name }));
+    const missingDescription = !newLedger.description;
+    const missingAmount = newLedger.amount <= 0;
 
     return <>
-        {React.cloneElement(children, { onClick: () => setOpen(true) })}
-        <Dialog open={open} onClose={handleClose}>
-            <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                Ledger Entry
-                <Box>
+        {children && React.cloneElement(children as React.ReactElement<{ onClick?: () => void }>, { onClick: () => setOpen(true) })}
+        <Dialog open={open} onClose={handleClose} width="max-w-md">
+            <div className="flex items-center justify-between gap-3 mb-5">
+                <h2 className="text-paper font-semibold text-xl tracking-tight">Ledger Entry</h2>
+                <div className="flex items-center gap-2">
                     <input
                         type="file"
                         accept="image/*"
@@ -138,81 +110,62 @@ const LedgerDialog: React.FC<LedgerDialogProps> = ({ onAddLedger, currentLedgerC
                         id="loan-scan-input"
                         onChange={handleImageUpload}
                     />
-                    <label htmlFor="loan-scan-input">
-                        <Button
-                            component="span"
-                            variant="outlined"
-                            size="small"
-                            startIcon={isScanning ? <Sparkles className="animate-pulse" size={16} /> : <Camera size={16} />}
-                            disabled={isScanning}
-                            sx={{ borderRadius: 2 }}
-                        >
-                            {isScanning ? 'Scanning...' : 'Scan Receipt'}
-                        </Button>
+                    <label
+                        htmlFor="loan-scan-input"
+                        title={isScanning ? 'Scanning...' : 'Scan a receipt screenshot'}
+                        className={`inline-flex items-center gap-2 text-sm px-3 py-1.5 rounded-md border border-linestrong text-silver hover:text-paper hover:border-amberdeep transition-colors cursor-pointer ${isScanning ? 'opacity-50 pointer-events-none' : ''}`}
+                    >
+                        {isScanning ? <Sparkles size={16} className="animate-pulse" /> : <Camera size={16} strokeWidth={1.7} />}
+                        {isScanning ? 'Scanning...' : 'Scan Receipt'}
                     </label>
-                </Box>
-            </DialogTitle>
-            <DialogTitle></DialogTitle>
-            <DialogContent>
-                <Stack spacing={2} sx={{ mt: 1 }}>
-                    <TextField
-                        label="Date"
-                        type="date"
-                        fullWidth
-                        value={newLedger.date}
-                        onChange={(e) => setNewLedger({ ...newLedger, date: e.target.value })}
-                        slotProps={{ inputLabel: { shrink: true } }}
-                    />
-                    <TextField
-                        label="Description"
-                        fullWidth
-                        value={newLedger.description}
-                        onChange={(e) => setNewLedger({ ...newLedger, description: e.target.value })}
-                    />
-                    <TextField
-                        label="Amount"
-                        type="number"
-                        fullWidth
-                        value={newLedger.amount}
-                        onChange={(e) => setNewLedger({ ...newLedger, amount: Number(e.target.value) })}
-                    />
+                </div>
+            </div>
 
-                    <FormControl fullWidth>
-                        <InputLabel>From(Credit):</InputLabel>
-                        <Select
-                            value={newLedger.creditId}
-                            label="From(Credit):"
-                            onChange={(e) => setNewLedger({ ...newLedger, creditId: e.target.value })}
-                        >
-                            {accounts.map((a: Account) => (
-                                <MenuItem key={a.id} value={a.id}>{a.name}</MenuItem>
-                            ))}
-                        </Select>
-                    </FormControl>
-                    <FormControl fullWidth>
-                        <InputLabel>To(Debit):</InputLabel>
-                        <Select
-                            value={newLedger.debitId}
-                            label="From(Credit):"
-                            onChange={(e) => setNewLedger({ ...newLedger, debitId: e.target.value })}
-                        >
-                            {accounts.map((a: Account) => (
-                                <MenuItem key={a.id} value={a.id}>{a.name}</MenuItem>
-                            ))}
-                        </Select>
-                    </FormControl>
-                </Stack>
-            </DialogContent>
-            <DialogActions>
-                <Button onClick={handleClose}>Cancel</Button>
+            <div className="space-y-4">
+                <Input
+                    label="Date"
+                    type="date"
+                    value={newLedger.date}
+                    onChange={(e) => setNewLedger({ ...newLedger, date: e.target.value })}
+                />
+                <Input
+                    label="Description"
+                    value={newLedger.description}
+                    onChange={(e) => setNewLedger({ ...newLedger, description: e.target.value })}
+                    error={attempted && missingDescription ? 'Description is empty — write what this entry is for.' : ''}
+                />
+                <Input
+                    label="Amount (P)"
+                    type="number"
+                    className="tnum"
+                    value={newLedger.amount}
+                    onChange={(e) => setNewLedger({ ...newLedger, amount: Number(e.target.value) })}
+                    error={attempted && missingAmount ? 'Amount must be greater than zero — enter the figure from the receipt.' : ''}
+                />
+                <Select
+                    label="From (Credit)"
+                    value={newLedger.creditId}
+                    onChange={(e) => setNewLedger({ ...newLedger, creditId: e.target.value })}
+                    options={[{ value: '', label: 'Select source account', disabled: true }, ...accountOptions]}
+                />
+                <Select
+                    label="To (Debit)"
+                    value={newLedger.debitId}
+                    onChange={(e) => setNewLedger({ ...newLedger, debitId: e.target.value })}
+                    options={[{ value: '', label: 'Select destination account', disabled: true }, ...accountOptions]}
+                />
+            </div>
+
+            <div className="mt-6 pt-4 border-t border-line flex items-center justify-end gap-3">
+                <Button variant="ghost" onClick={handleClose}>Cancel</Button>
                 <Button
                     onClick={handleAdd}
-                    variant="contained"
-                    disabled={!newLedger.description || newLedger.amount <= 0 || createEntry.isPending}
+                    disabled={missingDescription || missingAmount || createEntry.isPending}
+                    loading={createEntry.isPending}
                 >
-                    {createEntry.isPending ? 'Adding...' : 'Add Entry'}
+                    {createEntry.isPending ? 'Posting...' : 'Post entry'}
                 </Button>
-            </DialogActions>
+            </div>
         </Dialog>
     </>
 };

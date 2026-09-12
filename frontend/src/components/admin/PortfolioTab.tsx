@@ -1,39 +1,37 @@
 import React, { useMemo, useState } from 'react';
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableContainer,
-    TableHead,
-    TableRow,
-    Button,
-    Chip,
-    Stack,
-    Typography,
-    useMediaQuery,
-    useTheme,
-    FormControlLabel,
-    Switch,
-    Box,
-    Skeleton
-} from '@mui/material';
 import type { User } from '../../@types/types';
 import { useLoans } from '../../repositories/loan';
 import { useUsers } from '../../repositories/user';
 import dayjs from 'dayjs';
 import LoanManageDialog from '../dialogs/LoanManageDialog';
 import type { Loan } from '../../@types/types';
+import { Button, Checkbox, Panel, Stamp, Skeleton } from '../ui';
 
 interface PortfolioTabProps {
     users?: User[];
 }
 
+const statusStamp = (status: string) => {
+    switch (status) {
+        case 'Active':
+            return <Stamp tone="amber">{status}</Stamp>;
+        case 'Paid':
+            return <Stamp tone="good" rotate={-2}>{status}</Stamp>;
+        case 'Overdue':
+            return <Stamp tone="bad" dashed rotate={2}>{status}</Stamp>;
+        case 'Defaulted':
+            return <Stamp tone="bad" solid>{status}</Stamp>;
+        case 'Pending':
+            return <Stamp tone="silver" dashed>{status}</Stamp>;
+        default:
+            return <Stamp tone="silver">{status}</Stamp>;
+    }
+};
+
 const PortfolioTab: React.FC<PortfolioTabProps> = ({ }) => {
     const { data: loans = [], isLoading: isLoadingLoans } = useLoans();
-    const theme = useTheme();
     const { data: users = [], isLoading: isLoadingUsers } = useUsers()
     const isLoading = isLoadingLoans || isLoadingUsers;
-    const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
     const [selectedLoanId, setSelectedLoanId] = useState<string | null>(null);
     const [isManageOpen, setIsManageOpen] = useState(false);
@@ -55,137 +53,69 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({ }) => {
 
     return (
         <>
-            <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1 }}>
-                <FormControlLabel
-                    control={
-                        <Switch
-                            size="small"
-                            checked={showClosed}
-                            onChange={(e) => setShowClosed(e.target.checked)}
-                        />
-                    }
-                    label={
-                        <Typography variant="caption" color="text.secondary">
-                            Show paid loans ({loans.filter(l => l.status === 'Paid').length})
-                        </Typography>
-                    }
+            <div className="flex justify-end mb-2">
+                <Checkbox
+                    label={`Show paid loans (${loans.filter(l => l.status === 'Paid').length})`}
+                    checked={showClosed}
+                    onChange={(e) => setShowClosed(e.target.checked)}
                 />
-            </Box>
-            <TableContainer sx={{ maxHeight: 'calc(100vh - 300px)', overflowX: 'auto' }}>
-                <Table stickyHeader size={isMobile ? 'small' : 'medium'}>
-                    <TableHead>
-                        <TableRow>
-                            {isMobile ? (
-                                <>
-                                    <TableCell sx={{ fontWeight: 700 }}>Loan / Client</TableCell>
-                                    <TableCell align="right" sx={{ fontWeight: 700 }}>Balance</TableCell>
-                                    <TableCell align="right" sx={{ fontWeight: 700, minWidth: 60 }}></TableCell>
-                                </>
-                            ) : (
-                                <>
-                                    <TableCell sx={{ fontWeight: 700, minWidth: 100 }}>Loan ID</TableCell>
-                                    <TableCell sx={{ fontWeight: 700, minWidth: 100 }}>Date</TableCell>
-                                    <TableCell sx={{ fontWeight: 700, minWidth: 150 }}>Client</TableCell>
-                                    <TableCell sx={{ fontWeight: 700, minWidth: 100 }}>Principal</TableCell>
-                                    <TableCell sx={{ fontWeight: 700, minWidth: 100 }}>Balance</TableCell>
-                                    <TableCell sx={{ fontWeight: 700, minWidth: 100 }}>Rate (% / mo)</TableCell>
-                                    <TableCell sx={{ fontWeight: 700, minWidth: 80 }}>Status</TableCell>
-                                    <TableCell align="right" sx={{ fontWeight: 700, minWidth: 100 }}>Actions</TableCell>
-                                </>
-                            )}
-                        </TableRow>
-                    </TableHead>
-                    <TableBody>
-                        {isLoading ? (
-                            [...Array(5)].map((_, i) => (
-                                <TableRow key={i}>
-                                    {isMobile ? (
-                                        <>
-                                            <TableCell><Skeleton variant="text" width="80%" /><Skeleton variant="text" width="40%" /></TableCell>
-                                            <TableCell align="right"><Skeleton variant="text" width="60%" /></TableCell>
-                                            <TableCell />
-                                        </>
-                                    ) : (
-                                        <>
-                                            <TableCell><Skeleton variant="text" /></TableCell>
-                                            <TableCell><Skeleton variant="text" /></TableCell>
-                                            <TableCell><Skeleton variant="text" /></TableCell>
-                                            <TableCell><Skeleton variant="text" /></TableCell>
-                                            <TableCell><Skeleton variant="text" /></TableCell>
-                                            <TableCell><Skeleton variant="text" /></TableCell>
-                                            <TableCell><Skeleton variant="rectangular" width={60} height={24} /></TableCell>
-                                            <TableCell align="right"><Skeleton variant="rectangular" width={80} height={32} /></TableCell>
-                                        </>
-                                    )}
-                                </TableRow>
-                            ))
-                        ) : filteredLoans.map((loan) => {
-                            const clientName = users.find(u => u.id === loan.clientId)?.name || `ID: ${loan.clientId}`;
+            </div>
+            <div className="max-h-[calc(100vh-300px)] overflow-x-auto">
+                <Panel pad={false} className="min-w-[640px] overflow-hidden">
+                    <table className="w-full text-sm">
+                        <thead>
+                            <tr className="text-left text-[11px] font-mono tracking-[0.16em] uppercase text-silverdim border-b border-linestrong">
+                                <th className="px-4 py-3 font-medium">Loan ID</th>
+                                <th className="px-4 py-3 font-medium">Date</th>
+                                <th className="px-4 py-3 font-medium">Client</th>
+                                <th className="px-4 py-3 font-medium text-right">Principal</th>
+                                <th className="px-4 py-3 font-medium text-right">Balance</th>
+                                <th className="px-4 py-3 font-medium">Rate (% / mo)</th>
+                                <th className="px-4 py-3 font-medium">Status</th>
+                                <th className="px-4 py-3 font-medium text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-line/70">
+                            {isLoading ? (
+                                [...Array(5)].map((_, i) => (
+                                    <tr key={i}>
+                                        <td className="px-4 py-3"><Skeleton className="h-4 w-20" /></td>
+                                        <td className="px-4 py-3"><Skeleton className="h-4 w-16" /></td>
+                                        <td className="px-4 py-3"><Skeleton className="h-4 w-28" /></td>
+                                        <td className="px-4 py-3"><Skeleton className="h-4 w-20 ml-auto" /></td>
+                                        <td className="px-4 py-3"><Skeleton className="h-4 w-20 ml-auto" /></td>
+                                        <td className="px-4 py-3"><Skeleton className="h-4 w-12" /></td>
+                                        <td className="px-4 py-3"><Skeleton className="h-6 w-16" /></td>
+                                        <td className="px-4 py-3"><Skeleton className="h-8 w-20 ml-auto" /></td>
+                                    </tr>
+                                ))
+                            ) : filteredLoans.map((loan) => {
+                                const clientName = users.find(u => u.id === loan.clientId)?.name || `ID: ${loan.clientId}`;
 
-                            if (isMobile) {
                                 return (
-                                    <TableRow key={loan.id} hover>
-                                        <TableCell>
-                                            <Stack spacing={0.25}>
-                                                <Typography variant="body2" fontWeight={600}>{clientName}</Typography>
-                                                <Stack direction="row" spacing={0.5} alignItems="center">
-                                                    <Typography variant="caption" color="text.secondary">
-                                                        {loan.alternateId || loan.id}
-                                                    </Typography>
-                                                    <Typography variant="caption" color="text.secondary">·</Typography>
-                                                    <Typography variant="caption" color="text.secondary">
-                                                        {dayjs(loan.date).format("MMM DD")}
-                                                    </Typography>
-                                                </Stack>
-                                            </Stack>
-                                        </TableCell>
-                                        <TableCell align="right">
-                                            <Stack spacing={0.25} alignItems="flex-end">
-                                                <Typography variant="body2" fontWeight={600}>
-                                                    P {loan.balance.toLocaleString()}
-                                                </Typography>
-                                                <Chip
-                                                    label={loan.status}
-                                                    size="small"
-                                                    color={loan.status === 'Active' ? 'info' : loan.status === 'Paid' ? 'success' : 'default'}
-                                                    sx={{ fontWeight: 600, height: 18, fontSize: '0.6rem' }}
-                                                />
-                                            </Stack>
-                                        </TableCell>
-                                        <TableCell align="right" sx={{ px: 0.5 }}>
-                                            <Button size="small" variant="outlined" onClick={() => handleManage(loan)} sx={{ minWidth: 0, px: 1, fontSize: '0.65rem' }}>
-                                                Manage
-                                            </Button>
-                                        </TableCell>
-                                    </TableRow>
+                                    <tr key={loan.id} className="hover:bg-tray/50 transition-colors">
+                                        <td className="px-4 py-3 font-mono text-paper font-semibold tnum">{loan.alternateId || loan.id}</td>
+                                        <td className="px-4 py-3 font-mono text-silverdim whitespace-nowrap">{dayjs(loan.date).format("MMM DD")}</td>
+                                        <td className="px-4 py-3 text-paper">{clientName}</td>
+                                        <td className="px-4 py-3 text-right font-mono font-bold text-paper tnum">P {loan.principal.toLocaleString()}</td>
+                                        <td className="px-4 py-3 text-right font-mono font-bold text-paper tnum">P {loan.balance.toLocaleString()}</td>
+                                        <td className="px-4 py-3 font-mono text-silver tnum">{loan.interestRate}% / mo</td>
+                                        <td className="px-4 py-3">{statusStamp(loan.status)}</td>
+                                        <td className="px-4 py-3 text-right">
+                                            <Button size="sm" variant="outline" onClick={() => handleManage(loan)}>Manage</Button>
+                                        </td>
+                                    </tr>
                                 );
-                            }
-
-                            return (
-                                <TableRow key={loan.id} hover>
-                                    <TableCell sx={{ fontWeight: 600 }}>{loan.alternateId || loan.id}</TableCell>
-                                    <TableCell sx={{ fontWeight: 600 }}>{dayjs(loan.date).format("MMM DD")}</TableCell>
-                                    <TableCell>{clientName}</TableCell>
-                                    <TableCell>P {loan.principal.toLocaleString()}</TableCell>
-                                    <TableCell>P {loan.balance.toLocaleString()}</TableCell>
-                                    <TableCell>{loan.interestRate}% / mo</TableCell>
-                                    <TableCell>
-                                        <Chip
-                                            label={loan.status}
-                                            size="small"
-                                            color={loan.status === 'Active' ? 'info' : loan.status === 'Paid' ? 'success' : 'default'}
-                                            sx={{ fontWeight: 600 }}
-                                        />
-                                    </TableCell>
-                                    <TableCell align="right">
-                                        <Button size="small" variant="outlined" onClick={() => handleManage(loan)}>Manage</Button>
-                                    </TableCell>
-                                </TableRow>
-                            );
-                        })}
-                    </TableBody>
-                </Table>
-            </TableContainer>
+                            })}
+                        </tbody>
+                    </table>
+                    {!isLoading && filteredLoans.length === 0 && (
+                        <div className="border border-dashed border-linestrong rounded-tray m-4 p-6 text-center text-sm text-silverdim">
+                            No loans on the line yet.
+                        </div>
+                    )}
+                </Panel>
+            </div>
             <LoanManageDialog
                 open={isManageOpen}
                 onClose={() => {

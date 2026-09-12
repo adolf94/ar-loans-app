@@ -1,19 +1,5 @@
 import React from 'react';
-import {
-    Dialog,
-    DialogTitle,
-    DialogContent,
-    Typography,
-    Tooltip,
-    Button,
-    Table,
-    TableHead,
-    TableBody,
-    TableRow,
-    TableCell,
-    TableContainer,
-    CircularProgress
-} from '@mui/material';
+import { Button, Dialog, Spinner } from '../ui';
 import {
     useIngestions,
     ingestionAmount,
@@ -33,60 +19,44 @@ const IngestionPickerDialog: React.FC<{
     const { data: ingestions = [], isLoading } = useIngestions('Pending', open);
 
     return (
-        <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-            <DialogTitle sx={{ pb: 1 }}>Import from Ingestion</DialogTitle>
-            <DialogContent sx={{ pt: 1 }}>
-                <TableContainer sx={{ maxHeight: 360 }}>
-                    <Table size="small" stickyHeader>
-                        <TableHead>
-                            <TableRow>
-                                <TableCell sx={{ py: 0.75 }}>Description</TableCell>
-                                <TableCell sx={{ py: 0.75 }} width={100}>Amount</TableCell>
-                                <TableCell sx={{ py: 0.75 }} width={100}>Date</TableCell>
-                                <TableCell sx={{ py: 0.75 }} align="right" width={72}></TableCell>
-                            </TableRow>
-                        </TableHead>
-                        <TableBody>
-                            {isLoading && (
-                                <TableRow><TableCell colSpan={4} align="center" sx={{ py: 2 }}><CircularProgress size={20} /></TableCell></TableRow>
-                            )}
-                            {!isLoading && ingestions.length === 0 && (
-                                <TableRow><TableCell colSpan={4} align="center" sx={{ py: 2 }}>No pending ingestions</TableCell></TableRow>
-                            )}
-                            {ingestions.map((ing) => {
-                                const amt = ingestionAmount(ing);
-                                const text = ingestionDisplayText(ing) ?? '(no description)';
-                                return (
-                                    <TableRow key={ing.id} hover>
-                                        <TableCell sx={{ py: 0.5, maxWidth: 260 }}>
-                                            <Tooltip title={text} placement="top-start">
-                                                <Typography variant="body2" sx={{
-                                                    display: '-webkit-box',
-                                                    WebkitLineClamp: 2,
-                                                    WebkitBoxOrient: 'vertical',
-                                                    overflow: 'hidden'
-                                                }}>
-                                                    {text}
-                                                </Typography>
-                                            </Tooltip>
-                                            <Typography variant="caption" color="text.secondary">
-                                                {ing.id.slice(0, 8)}…
-                                            </Typography>
-                                        </TableCell>
-                                        <TableCell sx={{ py: 0.5 }}>{amt != null ? money(amt) : '—'}</TableCell>
-                                        <TableCell sx={{ py: 0.5 }}>{ingestionDate(ing) ?? '—'}</TableCell>
-                                        <TableCell sx={{ py: 0.5 }} align="right">
-                                            <Button size="small" variant="contained" onClick={() => onSelect(ing)}>
-                                                Use
-                                            </Button>
-                                        </TableCell>
-                                    </TableRow>
-                                );
-            })}
-                        </TableBody>
-                    </Table>
-                </TableContainer>
-            </DialogContent>
+        <Dialog open={open} onClose={onClose} title="Import from Ingestion" width="max-w-2xl">
+            <div className="overflow-x-auto border border-linestrong rounded-md max-h-[380px] overflow-y-auto">
+                <table className="w-full text-sm min-w-[640px]">
+                    <thead className="sticky top-0 bg-bay2">
+                        <tr className="text-left text-[11px] font-mono tracking-[0.16em] uppercase text-silverdim border-b border-linestrong">
+                            <th className="px-3 py-2.5 font-medium">Description</th>
+                            <th className="px-3 py-2.5 font-medium text-right">Amount</th>
+                            <th className="px-3 py-2.5 font-medium">Date</th>
+                            <th className="px-3 py-2.5 font-medium text-right"></th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-line/70">
+                        {isLoading && (
+                            <tr><td colSpan={4} className="py-8"><div className="flex justify-center"><Spinner size={20} /></div></td></tr>
+                        )}
+                        {!isLoading && ingestions.length === 0 && (
+                            <tr><td colSpan={4} className="px-3 py-8 text-center text-sm text-silverdim">No pending ingestions</td></tr>
+                        )}
+                        {ingestions.map((ing) => {
+                            const amt = ingestionAmount(ing);
+                            const text = ingestionDisplayText(ing) ?? '(no description)';
+                            return (
+                                <tr key={ing.id} className="hover:bg-tray/50 transition-colors">
+                                    <td className="px-3 py-2 max-w-[280px]">
+                                        <p className="line-clamp-2 text-paper" title={text}>{text}</p>
+                                        <p className="font-mono text-[11px] text-silverdim mt-0.5">{ing.id.slice(0, 8)}…</p>
+                                    </td>
+                                    <td className="px-3 py-2 text-right font-mono font-bold text-paper tnum">{amt != null ? money(amt) : '—'}</td>
+                                    <td className="px-3 py-2 font-mono text-silver tnum">{ingestionDate(ing) ?? '—'}</td>
+                                    <td className="px-3 py-2 text-right">
+                                        <Button size="sm" onClick={() => onSelect(ing)}>Use</Button>
+                                    </td>
+                                </tr>
+                            );
+                        })}
+                    </tbody>
+                </table>
+            </div>
         </Dialog>
     );
 };

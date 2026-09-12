@@ -1,48 +1,22 @@
-import React, { useEffect } from 'react';
-import {
-    AppBar,
-    Toolbar,
-    Typography,
-    Box,
-    Container,
-    IconButton,
-    Menu,
-    MenuItem,
-    Avatar,
-    Chip
-} from '@mui/material';
-import { Shield, User as UserIcon, Briefcase, ChevronDown, Settings } from 'lucide-react';
-import { ArrowDropDown } from "@mui/icons-material"
+import React, { useEffect, useState } from 'react';
+import { Shield, User as UserIcon, Briefcase, ChevronDown, Settings, LogOut } from 'lucide-react';
 import type { UserRole } from '../@types/types';
 import { useNavigate, useLocation } from '@tanstack/react-router';
 import useUserInfo from './useUserInfo';
 import { useAuth } from '@adolf94/ar-auth-client';
+import { Avatar, Menu } from './ui';
 
 interface LayoutProps {
     children: React.ReactNode;
 }
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
-    const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
-    const [userEl, setUserEl] = React.useState<null | HTMLElement>(null);
-    const [role, setRole] = React.useState<UserRole>("Client");
+    const [role, setRole] = useState<UserRole>("Client");
     const navigate = useNavigate();
     const location = useLocation();
     const { userInfo, hasRole, setUserInfo } = useUserInfo()
     const { logout } = useAuth();
     const isSpecialPage = location.pathname === '/' || location.pathname === '/m' || location.pathname === '/callback';
-
-    const handleOpenMenu = (event: React.MouseEvent<HTMLElement>) => {
-        setAnchorEl(event.currentTarget);
-    };
-
-    const handleOpenUserMenu = (event: React.MouseEvent<HTMLElement>) => {
-        setUserEl(event.currentTarget);
-    };
-
-    const handleCloseMenu = () => {
-        setAnchorEl(null);
-    };
 
     useEffect(() => {
         if (location.href.toLowerCase().startsWith("/admin")) setRole("Admin")
@@ -52,8 +26,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
 
     const handleRoleSelect = (role: UserRole) => {
-        handleCloseMenu();
-
         switch (role) {
             case 'Admin': navigate({ to: '/admin' }); break;
             case 'Client': navigate({ to: '/client' }); break;
@@ -61,16 +33,15 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         }
     };
 
-    const getRoleIcon = (role: UserRole) => {
-        switch (role) {
-            case 'Admin': return <Shield size={18} />;
-            case 'Client': return <UserIcon size={18} />;
-            case 'Guarantor': return <Briefcase size={18} />;
+    const getRoleIcon = (r: UserRole) => {
+        switch (r) {
+            case 'Admin': return <Shield size={15} />;
+            case 'Client': return <UserIcon size={15} />;
+            case 'Guarantor': return <Briefcase size={15} />;
         }
     };
 
     const handleLogout = () => {
-        setUserEl(null)
         logout();
         sessionStorage.removeItem("access_token")
         localStorage.removeItem("id_token")
@@ -85,102 +56,54 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         navigate({ to: "/" })
     }
 
-
-    const getRoleColor = (role: UserRole) => {
-        switch (role) {
-            case 'Admin': return 'primary';
-            case 'Client': return 'info';
-            case 'Guarantor': return 'secondary';
-        }
-    };
-
     if (isSpecialPage) return <>{children}</>;
 
     return (
-        <Box sx={{ flexGrow: 1, minHeight: '100vh', bgcolor: 'background.default' }}>
-            <AppBar position="sticky" elevation={0} sx={{ borderBottom: '1px solid', borderColor: 'divider', bgcolor: 'background.paper', color: 'text.primary' }}>
-                <Container maxWidth="xl">
-                    <Toolbar disableGutters>
-                        <Typography
-                            variant="h5"
-                            noWrap
-                            component="div"
-                            sx={{
-                                flexGrow: 1,
-                                fontWeight: 800,
-                                letterSpacing: '-0.5px',
-                                background: 'linear-gradient(45deg, #2563eb 30%, #7c3aed 90%)',
-                                WebkitBackgroundClip: 'text',
-                                WebkitTextFillColor: 'transparent',
-                            }}
-                        >
-                            LendFlow
-                        </Typography>
+        <div className="min-h-screen">
+            <header className="sticky top-0 z-30 backdrop-blur bg-bay/85 border-b border-line">
+                <div className="max-w-7xl mx-auto px-5 sm:px-8 py-3 flex items-center gap-4">
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ffb224" strokeWidth="1.7" aria-hidden="true"><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="4" /><path d="M12 3v2M12 19v2M3 12h2M19 12h2" /></svg>
+                        <span className="text-paper font-bold tracking-[0.28em]">LENDFLOW</span>
+                    </div>
 
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                            <Chip
-                                label={role}
-                                color={getRoleColor(role)}
-                                icon={getRoleIcon(role) as React.ReactElement}
-                                size="small"
-                                variant="outlined"
-                                onClick={handleOpenMenu}
-                                deleteIcon={<ArrowDropDown />}
-                                onDelete={handleOpenMenu}
-                                sx={{ fontWeight: 600 }}
-                            />
-                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                                <IconButton sx={{ p: 0 }} onClick={handleOpenUserMenu}>
-                                    <Avatar 
-                                        src={userInfo.picture || userInfo.profile}
-                                        sx={{ bgcolor: 'primary.main', width: 32, height: 32, fontSize: '0.875rem' }}
-                                    >
-                                        {(userInfo.picture || userInfo.profile) ? null : (userInfo.name ? userInfo.name.charAt(0) : 'U')}
-                                    </Avatar>
-                                    <ChevronDown size={16} style={{ marginLeft: 4 }} />
-                                </IconButton>
-                                <Menu
-                                    anchorEl={anchorEl}
-                                    open={Boolean(anchorEl)}
+                    <div className="flex items-center gap-2 sm:gap-3">
+                        <Menu
+                            align="right"
+                            trigger={
+                                <button className="flex items-center gap-2 text-sm font-medium px-3 py-1.5 border border-linestrong rounded-md text-silver hover:border-amberdeep hover:text-amber transition-colors" aria-label="Switch role">
+                                    {getRoleIcon(role)}
+                                    <span className="hidden sm:inline">{role}</span>
+                                    <ChevronDown size={14} />
+                                </button>
+                            }
+                            items={[
+                                ...(hasRole([window.webConfig.adminRole]) ? [{ label: 'Admin', onClick: () => handleRoleSelect('Admin') }] : []),
+                                { label: 'Borrower', onClick: () => handleRoleSelect('Client') },
+                                ...(hasRole([window.webConfig.guarantorRole]) ? [{ label: 'Guarantor', onClick: () => handleRoleSelect('Guarantor') }] : []),
+                            ]}
+                        />
+                        <Menu
+                            align="right"
+                            trigger={
+                                <button className="flex items-center gap-1.5 p-1 rounded-md hover:bg-tray/70 transition-colors" aria-label="Account menu">
+                                    <Avatar name={userInfo.name || 'U'} className="w-8 h-8" />
+                                    <ChevronDown size={14} className="text-silverdim" />
+                                </button>
+                            }
+                            items={[
+                                { label: 'Account', onClick: () => window.open(window.webConfig.authority, "_blank") },
+                                { label: 'Logout', onClick: handleLogout, divider: true },
+                            ]}
+                        />
+                    </div>
+                </div>
+            </header>
 
-                                    onClose={handleCloseMenu}
-                                    PaperProps={{
-                                        sx: { mt: 1, minWidth: 180, borderRadius: 2 }
-                                    }}
-                                >
-                                    {hasRole([window.webConfig.adminRole]) && <MenuItem onClick={() => handleRoleSelect('Admin')}>
-                                        <Shield size={16} style={{ marginRight: 8 }} /> Admin
-                                    </MenuItem>}
-
-                                    <MenuItem onClick={() => handleRoleSelect('Client')}>
-                                        <UserIcon size={16} style={{ marginRight: 8 }} /> Borrower
-                                    </MenuItem>
-                                    {hasRole([window.webConfig.guarantorRole]) && <MenuItem onClick={() => handleRoleSelect('Guarantor')}>
-                                        <Briefcase size={16} style={{ marginRight: 8 }} /> Guarantor
-                                    </MenuItem>}
-                                </Menu>
-                                <Menu
-                                    anchorEl={userEl}
-                                    open={Boolean(userEl)}
-                                    onClose={() => setUserEl(null)}>
-                                    <MenuItem onClick={() => { setUserEl(null); window.open(window.webConfig.authority, "_blank") }}>
-                                        <Settings size={16} style={{ marginRight: 8 }} /> Account
-                                    </MenuItem>
-                                    <MenuItem onClick={() => handleLogout()}>
-                                        Logout
-                                    </MenuItem>
-
-                                </Menu>
-                            </Box>
-                        </Box>
-                    </Toolbar>
-                </Container>
-            </AppBar>
-
-            <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
+            <main className="max-w-7xl mx-auto px-5 sm:px-8 py-7 relative z-10">
                 {children}
-            </Container>
-        </Box>
+            </main>
+        </div>
     );
 };
 

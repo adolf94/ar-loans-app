@@ -1,10 +1,4 @@
 import React, { useState } from 'react';
-import {
-    Box, Typography, Button, Paper, Table, TableBody, TableCell,
-    TableContainer, TableHead, TableRow, Dialog, DialogTitle,
-    DialogContent, DialogActions, TextField, IconButton,
-    FormControl, InputLabel, Select, MenuItem
-} from '@mui/material';
 import { Plus, Edit2, Trash2 } from 'lucide-react';
 import {
     useGetInterestRules,
@@ -13,6 +7,7 @@ import {
     useDeleteInterestRule
 } from '../../repositories/interestRule';
 import type { InterestRule } from '../../@types/types';
+import { Button, IconButton, Input, Select, Dialog, Panel, SectionTitle, Skeleton } from '../ui';
 
 const InterestRulesTab: React.FC = () => {
     const { data: rules = [], isLoading } = useGetInterestRules();
@@ -61,146 +56,146 @@ const InterestRulesTab: React.FC = () => {
         }
     };
 
-    if (isLoading) return <Typography>Loading...</Typography>;
+    if (isLoading) return <div className="py-2 space-y-3"><Skeleton className="h-8 w-64" /><Skeleton className="h-40 w-full" /></div>;
 
     return (
-        <Box>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
-                <Typography variant="h5" fontWeight="bold">Interest Rules (Templates)</Typography>
+        <div>
+            <div className="flex justify-between items-center flex-wrap gap-3 mb-4">
+                <SectionTitle>Interest Rules (Templates)</SectionTitle>
                 <Button
-                    variant="contained"
-                    startIcon={<Plus size={18} />}
+                    startIcon={<Plus size={18} strokeWidth={1.7} />}
                     onClick={() => handleOpenDialog()}
                 >
                     Add Rule
                 </Button>
-            </Box>
+            </div>
 
-            <TableContainer component={Paper}>
-                <Table>
-                    <TableHead>
-                        <TableRow>
-                            <TableCell>Name</TableCell>
-                            <TableCell>Interest / Mo</TableCell>
-                            <TableCell>Grace Period</TableCell>
-                            <TableCell>Grace Period Int.</TableCell>
-                            <TableCell>Late Penalty</TableCell>
-                            <TableCell>Default Term</TableCell>
-                            <TableCell>Interest Base</TableCell>
-                            <TableCell align="right">Actions</TableCell>
-                        </TableRow>
-                    </TableHead>
-                    <TableBody>
+            <Panel pad={false} className="overflow-x-auto">
+                <table className="w-full text-sm min-w-[760px]">
+                    <thead>
+                        <tr className="text-left text-[11px] font-mono tracking-[0.16em] uppercase text-silverdim border-b border-linestrong">
+                            <th className="px-4 py-3 font-medium">Name</th>
+                            <th className="px-4 py-3 font-medium text-right">Interest / Mo</th>
+                            <th className="px-4 py-3 font-medium text-right">Grace Period</th>
+                            <th className="px-4 py-3 font-medium text-right">Grace Period Int.</th>
+                            <th className="px-4 py-3 font-medium text-right">Late Penalty</th>
+                            <th className="px-4 py-3 font-medium text-right">Default Term</th>
+                            <th className="px-4 py-3 font-medium">Interest Base</th>
+                            <th className="px-4 py-3 font-medium text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-line/70">
                         {rules.map((r) => (
-                            <TableRow key={r.id}>
-                                <TableCell>{r.name}</TableCell>
-                                <TableCell>{r.interestPerMonth}%</TableCell>
-                                <TableCell>{r.gracePeriodDays} days</TableCell>
-                                <TableCell>{r.gracePeriodInterest}%</TableCell>
-                                <TableCell>{r.latePaymentPenalty}%</TableCell>
-                                <TableCell>{r.defaultTerms} months</TableCell>
-                                <TableCell>
+                            <tr key={r.id} className="hover:bg-tray/50 transition-colors">
+                                <td className="px-4 py-3 text-paper font-semibold">{r.name}</td>
+                                <td className="px-4 py-3 text-right font-mono font-bold text-paper tnum">{r.interestPerMonth}%</td>
+                                <td className="px-4 py-3 text-right font-mono text-silver tnum">{r.gracePeriodDays} days</td>
+                                <td className="px-4 py-3 text-right font-mono text-silver tnum">{r.gracePeriodInterest}%</td>
+                                <td className="px-4 py-3 text-right font-mono text-silver tnum">{r.latePaymentPenalty}%</td>
+                                <td className="px-4 py-3 text-right font-mono text-silver tnum">{r.defaultTerms} months</td>
+                                <td className="px-4 py-3 text-silver">
                                     {r.interestBase === 'balance' ? 'Remaining Balance' :
                                         r.interestBase === 'principalBalance' ? 'Principal + Balance Avg' :
                                             'Original Principal'}
-                                </TableCell>
-                                <TableCell align="right">
-                                    <IconButton size="small" onClick={() => handleOpenDialog(r)} color="primary">
-                                        <Edit2 size={16} />
-                                    </IconButton>
-                                    <IconButton size="small" onClick={() => handleDelete(r.id)} color="error">
-                                        <Trash2 size={16} />
-                                    </IconButton>
-                                </TableCell>
-                            </TableRow>
+                                </td>
+                                <td className="px-4 py-3">
+                                    <div className="flex justify-end gap-1">
+                                        <IconButton label="Edit rule" onClick={() => handleOpenDialog(r)}>
+                                            <Edit2 size={16} strokeWidth={1.7} />
+                                        </IconButton>
+                                        <IconButton label="Delete rule" onClick={() => handleDelete(r.id)}>
+                                            <Trash2 size={16} strokeWidth={1.7} className="hover:text-bad" />
+                                        </IconButton>
+                                    </div>
+                                </td>
+                            </tr>
                         ))}
                         {rules.length === 0 && (
-                            <TableRow>
-                                <TableCell colSpan={8} align="center">No rules defined</TableCell>
-                            </TableRow>
+                            <tr>
+                                <td colSpan={8} className="px-4 py-3 text-center text-sm text-silverdim">No rules defined</td>
+                            </tr>
                         )}
-                    </TableBody>
-                </Table>
-            </TableContainer>
+                    </tbody>
+                </table>
+                {rules.length === 0 && (
+                    <div className="border border-dashed border-linestrong rounded-tray m-4 p-6 text-center text-sm text-silverdim">
+                        No rules yet — add one to set how interest and penalties are computed.
+                    </div>
+                )}
+            </Panel>
 
-            <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
-                <DialogTitle>{editingRule.id ? 'Edit Rule' : 'Add Rule'}</DialogTitle>
-                <DialogContent>
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
-                        <TextField
-                            label="Rule Name"
-                            value={editingRule.name || ''}
-                            onChange={(e) => setEditingRule({ ...editingRule, name: e.target.value })}
-                            fullWidth
-                        />
-                        <TextField
-                            label="Monthly Interest Rate (%)"
-                            type="number"
-                            value={editingRule.interestPerMonth ?? ''}
-                            onChange={(e) => setEditingRule({ ...editingRule, interestPerMonth: Number(e.target.value) })}
-                            fullWidth
-                        />
-                        <TextField
-                            label="Grace Period (Days)"
-                            type="number"
-                            value={editingRule.gracePeriodDays ?? ''}
-                            onChange={(e) => setEditingRule({ ...editingRule, gracePeriodDays: Number(e.target.value) })}
-                            fullWidth
-                        />
-                        <TextField
-                            label="Grace Period Interest (%)"
-                            type="number"
-                            value={editingRule.gracePeriodInterest ?? ''}
-                            onChange={(e) => setEditingRule({ ...editingRule, gracePeriodInterest: Number(e.target.value) })}
-                            fullWidth
-                        />
-                        <TextField
-                            label="Late Payment Penalty (%)"
-                            type="number"
-                            value={editingRule.latePaymentPenalty ?? ''}
-                            onChange={(e) => setEditingRule({ ...editingRule, latePaymentPenalty: Number(e.target.value) })}
-                            fullWidth
-                        />
-                        <TextField
-                            label="Default Terms (Months)"
-                            type="number"
-                            value={editingRule.defaultTerms ?? ''}
-                            onChange={(e) => setEditingRule({ ...editingRule, defaultTerms: Number(e.target.value) })}
-                            fullWidth
-                        />
-                        <FormControl fullWidth>
-                            <InputLabel>Interest Computed On</InputLabel>
-                            <Select
-                                value={editingRule.interestBase || 'principal'}
-                                label="Interest Computed On"
-                                onChange={(e) => setEditingRule({ ...editingRule, interestBase: e.target.value as 'principal' | 'balance' | 'principalBalance' })}
-                            >
-                                <MenuItem value="principal">Original Principal</MenuItem>
-                                <MenuItem value="balance">Remaining Balance (Capped at Principal)</MenuItem>
-                                <MenuItem value="principalBalance">Principal Balance (Principal first payout)</MenuItem>
-                            </Select>
-                        </FormControl>
-                        <FormControl fullWidth>
-                            <InputLabel>Grace Period Activation</InputLabel>
-                            <Select
-                                value={editingRule.recurringGracePeriod ? 'monthly' : 'start'}
-                                label="Grace Period Activation"
-                                onChange={(e) => setEditingRule({ ...editingRule, recurringGracePeriod: e.target.value === 'monthly' })}
-                            >
-                                <MenuItem value="start">Start of Loan Only</MenuItem>
-                                <MenuItem value="monthly">Monthly Basis (Every Month)</MenuItem>
-                            </Select>
-                        </FormControl>
-                    </Box>
-                </DialogContent>
-                <DialogActions>
-                    <Button onClick={handleCloseDialog}>Cancel</Button>
-                    <Button variant="contained" onClick={handleSave} disabled={!editingRule.name}>
-                        Save
-                    </Button>
-                </DialogActions>
+            <Dialog
+                open={openDialog}
+                onClose={handleCloseDialog}
+                title={editingRule.id ? 'Edit Rule' : 'Add Rule'}
+                width="max-w-xl"
+                actions={
+                    <>
+                        <Button variant="ghost" onClick={handleCloseDialog}>Cancel</Button>
+                        <Button onClick={handleSave} disabled={!editingRule.name}>
+                            Save
+                        </Button>
+                    </>
+                }
+            >
+                <div className="flex flex-col gap-4">
+                    <Input
+                        label="Rule Name"
+                        value={editingRule.name || ''}
+                        onChange={(e) => setEditingRule({ ...editingRule, name: e.target.value })}
+                    />
+                    <Input
+                        label="Monthly Interest Rate (%)"
+                        type="number"
+                        value={editingRule.interestPerMonth ?? ''}
+                        onChange={(e) => setEditingRule({ ...editingRule, interestPerMonth: Number(e.target.value) })}
+                    />
+                    <Input
+                        label="Grace Period (Days)"
+                        type="number"
+                        value={editingRule.gracePeriodDays ?? ''}
+                        onChange={(e) => setEditingRule({ ...editingRule, gracePeriodDays: Number(e.target.value) })}
+                    />
+                    <Input
+                        label="Grace Period Interest (%)"
+                        type="number"
+                        value={editingRule.gracePeriodInterest ?? ''}
+                        onChange={(e) => setEditingRule({ ...editingRule, gracePeriodInterest: Number(e.target.value) })}
+                    />
+                    <Input
+                        label="Late Payment Penalty (%)"
+                        type="number"
+                        value={editingRule.latePaymentPenalty ?? ''}
+                        onChange={(e) => setEditingRule({ ...editingRule, latePaymentPenalty: Number(e.target.value) })}
+                    />
+                    <Input
+                        label="Default Terms (Months)"
+                        type="number"
+                        value={editingRule.defaultTerms ?? ''}
+                        onChange={(e) => setEditingRule({ ...editingRule, defaultTerms: Number(e.target.value) })}
+                    />
+                    <Select
+                        label="Interest Computed On"
+                        value={editingRule.interestBase || 'principal'}
+                        onChange={(e) => setEditingRule({ ...editingRule, interestBase: e.target.value as 'principal' | 'balance' | 'principalBalance' })}
+                        options={[
+                            { value: 'principal', label: 'Original Principal' },
+                            { value: 'balance', label: 'Remaining Balance (Capped at Principal)' },
+                            { value: 'principalBalance', label: 'Principal Balance (Principal first payout)' }
+                        ]}
+                    />
+                    <Select
+                        label="Grace Period Activation"
+                        value={editingRule.recurringGracePeriod ? 'monthly' : 'start'}
+                        onChange={(e) => setEditingRule({ ...editingRule, recurringGracePeriod: e.target.value === 'monthly' })}
+                        options={[
+                            { value: 'start', label: 'Start of Loan Only' },
+                            { value: 'monthly', label: 'Monthly Basis (Every Month)' }
+                        ]}
+                    />
+                </div>
             </Dialog>
-        </Box>
+        </div>
     );
 };
 

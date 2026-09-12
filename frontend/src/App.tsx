@@ -1,5 +1,3 @@
-import { ThemeProvider, CssBaseline, Snackbar, Alert } from '@mui/material';
-import theme from './theme';
 import { RouterProvider } from '@tanstack/react-router';
 import { router } from './router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -7,8 +5,8 @@ import { useEffect, useState } from 'react';
 import { defaultUserInfo, UserInfoContext } from './components/useUserInfo';
 import { BackdropLoaderProvider } from './components/BackdropLoader';
 import LoginPrompt from './components/login/LoginPrompt';
+import { ToastProvider, useToast, ConfirmProvider } from './components/ui';
 import { jwtDecode } from 'jwt-decode'
-import { ConfirmProvider } from 'material-ui-confirm';
 import { syncUser } from './services/apiService';
 
 const queryClient = new QueryClient({
@@ -31,15 +29,11 @@ const authConfig = {
 
 function AppContent({ userInfo, setUserInfo, init }: any) {
   const { user, isAuthenticated, isLoading, hasScope, loginState } = useAuth();
-  const [snackbarOpen, setSnackbarOpen] = useState(false);
-  const [snackbarMessage, setSnackbarMessage] = useState('');
-  const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error'>('success');
+  const toast = useToast();
 
   const hasRole = (roleAny: string[]) => {
     return roleAny.some(e => hasScope(e))
   }
-
-
 
   useEffect(() => {
     const performSync = async () => {
@@ -58,9 +52,7 @@ function AppContent({ userInfo, setUserInfo, init }: any) {
 
           // If a state was provided, it means it was a magic link flow
           if (magicState) {
-            setSnackbarMessage("Account Linked Successfully");
-            setSnackbarSeverity("success");
-            setSnackbarOpen(true);
+            toast("Account linked successfully");
             sessionStorage.removeItem("magic_link_state");
           }
 
@@ -74,9 +66,7 @@ function AppContent({ userInfo, setUserInfo, init }: any) {
         } catch (error) {
           console.error("Backend user sync failed", error);
           if (loginState) {
-            setSnackbarMessage("Failed to link account");
-            setSnackbarSeverity("error");
-            setSnackbarOpen(true);
+            toast("Failed to link account", "error");
           }
         }
       } else if (!isLoading && !isAuthenticated) {
@@ -96,23 +86,8 @@ function AppContent({ userInfo, setUserInfo, init }: any) {
 
   return (
     <UserInfoContext.Provider value={{ userInfo, setUserInfo, hasRole }}>
-      <ConfirmProvider defaultOptions={{
-        confirmationButtonProps: { variant: 'contained' },
-        cancellationButtonProps: { variant: 'outlined' },
-      }}>
-        {init && !isLoading && <RouterProvider router={router} context={{ auth: { user: userInfo, hasRole } }} />}
-        <LoginPrompt />
-        <Snackbar 
-          open={snackbarOpen} 
-          autoHideDuration={10000} 
-          onClose={() => setSnackbarOpen(false)}
-          anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-        >
-          <Alert onClose={() => setSnackbarOpen(false)} severity={snackbarSeverity} sx={{ width: '100%' }}>
-            {snackbarMessage}
-          </Alert>
-        </Snackbar>
-      </ConfirmProvider>
+      {init && !isLoading && <RouterProvider router={router} context={{ auth: { user: userInfo, hasRole } }} />}
+      <LoginPrompt />
     </UserInfoContext.Provider>
   );
 }
@@ -147,14 +122,15 @@ function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider theme={theme}>
-        <CssBaseline />
-        <BackdropLoaderProvider>
-          <AuthProvider config={authConfig}>
-            <AppContent userInfo={userInfo} setUserInfo={setUserInfo} init={init} />
-          </AuthProvider>
-        </BackdropLoaderProvider>
-      </ThemeProvider>
+      <ToastProvider>
+        <ConfirmProvider>
+          <BackdropLoaderProvider>
+            <AuthProvider config={authConfig}>
+              <AppContent userInfo={userInfo} setUserInfo={setUserInfo} init={init} />
+            </AuthProvider>
+          </BackdropLoaderProvider>
+        </ConfirmProvider>
+      </ToastProvider>
     </QueryClientProvider>
   );
 }

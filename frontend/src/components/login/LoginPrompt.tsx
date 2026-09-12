@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react";
 import Login from "./Login";
-import { Modal } from "@mui/material";
+import { Dialog } from "../ui";
 import { setBackdropLoading, useBackdropLoader } from "../BackdropLoader";
 
 
@@ -40,15 +40,11 @@ const LoginPrompt = () => {
     };
 
 
-    return <Modal open={show} onClose={handleClose} sx={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center'
-    }}>
-        <Login onLogin={onComplete} />
-    </Modal>
-
+    return (
+        <Dialog open={show} onClose={handleClose} width="max-w-sm">
+            <Login onLogin={onComplete} />
+        </Dialog>
+    )
 }
 
 export default LoginPrompt

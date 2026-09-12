@@ -1,0 +1,174 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-11T00:00:00Z",
+  "title": "Design System: LendFlow — The Safelight Bay",
+  "extensions": {
+    "colorMeta": {
+      "bay": { "role": "neutral", "displayName": "Darkroom Bay", "canonical": "#150d07", "tonalRamp": ["#110904", "#2c231c", "#4a4038", "#6a5f57", "#8b8078", "#aea39a", "#d3c7bd", "#f8ece2"] },
+      "bay2": { "role": "neutral", "displayName": "Bay Shadow", "canonical": "#1f1409", "tonalRamp": ["#130902", "#2e2217", "#4c3f33", "#6c5e51", "#8e7f72", "#b1a294", "#d6c6b7", "#fcebdc"] },
+      "tray": { "role": "neutral", "displayName": "Enamel Tray", "canonical": "#271a0e", "tonalRamp": ["#140801", "#2f2216", "#4e3f32", "#6e5e50", "#907f70", "#b3a192", "#d8c5b6", "#fdebdb"] },
+      "trayedge": { "role": "neutral", "displayName": "Tray Edge", "canonical": "#3a2817", "tonalRamp": ["#160700", "#322110", "#513e2c", "#715d4a", "#937e6a", "#b7a08c", "#dcc4b0", "#ffead5"] },
+      "amber": { "role": "primary", "displayName": "Safelight Amber", "canonical": "#ffb224", "tonalRamp": ["#1b0400", "#431600", "#6e2d00", "#944d00", "#b87000", "#d09a45", "#e7c38f", "#feecd3"] },
+      "amberdeep": { "role": "secondary", "displayName": "Developed Amber", "canonical": "#b97a15", "tonalRamp": ["#1d0300", "#451400", "#6a3000", "#8d5100", "#b27303", "#d49847", "#eac190", "#ffebd3"] },
+      "safelight": { "role": "secondary", "displayName": "Fix Glow", "canonical": "#f4a63a", "tonalRamp": ["#1d0300", "#451300", "#702b00", "#944d00", "#b96f00", "#d49748", "#ebc191", "#ffebd4"] },
+      "paper": { "role": "neutral", "displayName": "Photo Paper", "canonical": "#f6efe2", "tonalRamp": ["#0f0a04", "#2a241b", "#474137", "#666055", "#888276", "#aba498", "#cfc8bc", "#f5eee1"] },
+      "paperdim": { "role": "neutral", "displayName": "Paper Fade", "canonical": "#e2d7c1", "tonalRamp": ["#110a00", "#2c2412", "#4a412e", "#6a604d", "#8b816d", "#aea48f", "#d3c8b2", "#f9edd7"] },
+      "silver": { "role": "neutral", "displayName": "Wet-Print Silver", "canonical": "#cfc4b2", "tonalRamp": ["#110a01", "#2c2415", "#4a4131", "#6a6050", "#8b8170", "#aea492", "#d3c8b6", "#f8edda"] },
+      "silverdim": { "role": "neutral", "displayName": "Dried Silver", "canonical": "#9a8c74", "tonalRamp": ["#130900", "#2f230e", "#4c402a", "#6c5f49", "#8e8069", "#b1a38a", "#d6c7ae", "#fcedd2"] },
+      "ink": { "role": "neutral", "displayName": "Marking Ink", "canonical": "#2b2015", "tonalRamp": ["#120902", "#2e2318", "#4c3f34", "#6c5f52", "#8d8072", "#b1a294", "#d5c6b8", "#fbecdd"] },
+      "inksoft": { "role": "neutral", "displayName": "Ink Wash", "canonical": "#6f5c43", "tonalRamp": ["#160700", "#322109", "#503e26", "#715e45", "#937f65", "#b6a186", "#dbc5aa", "#feebd3"] },
+      "good": { "role": "tertiary", "displayName": "Fixed Green", "canonical": "#5fd98d", "tonalRamp": ["#001300", "#003303", "#005711", "#007933", "#009c54", "#63bb81", "#a1d9b2", "#dcf6e3"] },
+      "bad": { "role": "tertiary", "displayName": "Fog Red", "canonical": "#f87171", "tonalRamp": ["#220000", "#4f0007", "#810016", "#ac2933", "#d15254", "#e78582", "#f9b5b2", "#ffe5e3"] },
+      "line": { "role": "neutral", "displayName": "Rule Line", "canonical": "#3a2a18", "tonalRamp": ["#150800", "#312210", "#4f3e2c", "#705e4a", "#927f6a", "#b5a18c", "#dac5af", "#ffebd4"] },
+      "linestrong": { "role": "neutral", "displayName": "Tray Border", "canonical": "#4d3620", "tonalRamp": ["#180600", "#352009", "#543d26", "#755c45", "#977d65", "#bb9f86", "#e0c3aa", "#ffead5"] }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Door headlines and view titles — Barlow bold, tight leading." },
+      "headline": { "displayName": "Headline", "purpose": "Panel-view page titles (Record a payment, Issue a loan)." },
+      "title": { "displayName": "Title", "purpose": "Panel and section titles inside the room." },
+      "body": { "displayName": "Body", "purpose": "Prose, descriptions, table cells; silver on dark, ink on paper." },
+      "label": { "displayName": "Stamped Label", "purpose": "Field labels, table headers, figure captions — mono uppercase wide-tracked." },
+      "figure": { "displayName": "Ledger Figure", "purpose": "All money, IDs, dates, percentages — IBM Plex Mono tabular numerals, bold." },
+      "hand": { "displayName": "Grease Pencil", "purpose": "Caveat annotations only — insights, encouragement; never data." }
+    },
+    "shadows": [
+      { "name": "print-drop", "value": "0 10px 30px rgba(0,0,0,.5)", "purpose": "Drying-line prints — paper hanging off the line." },
+      { "name": "statement-sheet", "value": "0 18px 60px rgba(0,0,0,.6)", "purpose": "The full statement modal — heaviest paper in the room." },
+      { "name": "toast-slip", "value": "0 10px 40px rgba(0,0,0,.55)", "purpose": "The confirmation slip delivered bottom-center." },
+      { "name": "thumb-drop", "value": "0 2px 6px rgba(0,0,0,.45)", "purpose": "Row-level print thumbnails, with inset ink ring." },
+      { "name": "rope-cast", "value": "0 2px 4px rgba(0,0,0,.5)", "purpose": "The drying line casting onto the wall." }
+    ],
+    "motion": [
+      { "name": "ease-develop", "value": "cubic-bezier(.22,.9,.3,1)", "purpose": "Default easing for the develop reveal and most state transitions." },
+      { "name": "develop-reveal", "value": "opacity .25→1; blur(7px)→0; brightness(.45)→1; contrast(.7)→1; translateY(6px)→0; ~1s, staggered 70–120ms", "purpose": "Signature entrance — content emerges like a print in the developer bath." },
+      { "name": "fix-flash", "value": "box-shadow ring rgba(255,178,36,.55)→transparent, 14px spread, 1.2s ease-out", "purpose": "One-shot confirmation pulse when money is fixed in the ledger." },
+      { "name": "reduced-motion", "value": "prefers-reduced-motion: reduce disables .dev and .pulse-fix; scroll-behavior auto", "purpose": "The room is still for visitors who need it still." }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "md", "value": "768px" },
+      { "name": "lg", "value": "1024px" },
+      { "name": "xl", "value": "1280px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The darkroom timer key — one amber primary action per view; hover lifts to photo paper.",
+      "html": "<button class=\"ds-btn-primary\"><svg width=\"17\" height=\"17\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"9\"/><path d=\"M12 7v5l3 2\"/></svg>Record payment</button>",
+      "css": ".ds-btn-primary { display: inline-flex; align-items: center; justify-content: center; gap: 8px; background: var(--color-amber, #ffb224); color: var(--color-ink, #2b2015); font-family: var(--font-sans, 'Barlow', system-ui, sans-serif); font-weight: 700; font-size: 15px; line-height: 1; padding: 12px 20px; border: none; border-radius: 6px; cursor: pointer; transition: background-color .15s ease; } .ds-btn-primary:hover { background: var(--color-paper, #f6efe2); } .ds-btn-primary:focus-visible { outline: 2px solid var(--color-amber, #ffb224); outline-offset: 2px; border-radius: 4px; }"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Cancel, back, and demo-switch actions — quiet dried-silver text that warms to amber on hover.",
+      "html": "<button class=\"ds-btn-ghost\">Cancel</button> <button class=\"ds-btn-ghost ds-btn-ghost-bordered\">Demo · view as borrower</button>",
+      "css": ".ds-btn-ghost { display: inline-flex; align-items: center; gap: 6px; background: transparent; color: var(--color-silverdim, #9a8c74); font-family: var(--font-sans, 'Barlow', system-ui, sans-serif); font-size: 14px; font-weight: 500; padding: 8px 12px; border: none; border-radius: 6px; cursor: pointer; transition: color .15s ease; } .ds-btn-ghost:hover { color: var(--color-amber, #ffb224); } .ds-btn-ghost-bordered { font-family: var(--font-mono, 'IBM Plex Mono', ui-monospace, monospace); font-size: 12px; text-transform: uppercase; letter-spacing: .05em; border: 1px solid var(--color-line, #3a2a18); } .ds-btn-ghost:focus-visible { outline: 2px solid var(--color-amber, #ffb224); outline-offset: 2px; border-radius: 4px; }"
+    },
+    {
+      "name": "Ink Button (on paper)",
+      "kind": "button",
+      "refersTo": "button-ink",
+      "description": "Primary action on papergrain surfaces — marking-ink fill with paper text.",
+      "html": "<button class=\"ds-btn-ink\">Ledger</button>",
+      "css": ".ds-btn-ink { display: inline-flex; align-items: center; justify-content: center; gap: 6px; background: var(--color-ink, #2b2015); color: var(--color-paper, #f6efe2); font-family: var(--font-sans, 'Barlow', system-ui, sans-serif); font-size: 14px; font-weight: 600; line-height: 1; padding: 10px 14px; border: none; border-radius: 6px; cursor: pointer; transition: background-color .15s ease; } .ds-btn-ink:hover { background: var(--color-inksoft, #6f5c43); } .ds-btn-ink:focus-visible { outline: 2px solid var(--color-amberdeep, #b97a15); outline-offset: 2px; border-radius: 4px; }"
+    },
+    {
+      "name": "Input Field",
+      "kind": "input",
+      "refersTo": "input-field",
+      "description": "Bay-black field with rule-line border, amber caret, stamped mono label above.",
+      "html": "<div class=\"ds-field\"><label class=\"ds-field-label\" for=\"ds-amount\">Amount (P)</label><input id=\"ds-amount\" class=\"ds-input tnum\" inputmode=\"decimal\" placeholder=\"0.00\"></div>",
+      "css": ".ds-field { display: flex; flex-direction: column; } .ds-field-label { font-family: var(--font-mono, 'IBM Plex Mono', ui-monospace, monospace); font-size: 11px; font-weight: 500; letter-spacing: .16em; text-transform: uppercase; color: var(--color-silverdim, #9a8c74); margin-bottom: 6px; } .ds-input { width: 100%; background: var(--color-bay, #150d07); border: 1px solid var(--color-line, #3a2a18); border-radius: 6px; padding: 10px 12px; font-family: var(--font-sans, 'Barlow', system-ui, sans-serif); font-size: 18px; color: var(--color-paper, #f6efe2); caret-color: var(--color-amber, #ffb224); } .ds-input::placeholder { color: var(--color-silverdim, #9a8c74); } .ds-input:focus-visible { outline: 2px solid var(--color-amber, #ffb224); outline-offset: 2px; border-radius: 4px; } .tnum { font-variant-numeric: tabular-nums; font-feature-settings: 'tnum'; }"
+    },
+    {
+      "name": "Stage Stamp",
+      "kind": "chip",
+      "refersTo": "stage-stamp",
+      "description": "The status grammar: every state named AND bordered AND colored. Dashed = provisional; tinted fill = defaulted.",
+      "html": "<span class=\"stamp ds-stamp ds-stamp-amber\">Active</span> <span class=\"stamp ds-stamp ds-stamp-good ds-stamp-tilt-l\">Paid · fixed</span> <span class=\"stamp ds-stamp ds-stamp-bad ds-stamp-dashed ds-stamp-tilt-r\">Overdue 4 days</span> <span class=\"stamp ds-stamp ds-stamp-defaulted\">Defaulted</span> <span class=\"stamp ds-stamp ds-stamp-dim ds-stamp-dashed\">In the bath</span>",
+      "css": ".stamp { display: inline-flex; align-items: center; gap: .35rem; font-family: var(--font-mono, 'IBM Plex Mono', ui-monospace, monospace); font-size: .6875rem; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; white-space: nowrap; line-height: 1; padding: .28rem .5rem; border: 2px solid currentColor; border-radius: 4px; } .ds-stamp-amber { color: var(--color-amber, #ffb224); } .ds-stamp-good { color: var(--color-good, #5fd98d); } .ds-stamp-bad { color: var(--color-bad, #f87171); } .ds-stamp-dim { color: var(--color-silverdim, #9a8c74); } .ds-stamp-dashed { border-style: dashed; } .ds-stamp-defaulted { color: var(--color-bad, #f87171); background: rgba(248,113,113,.14); } .ds-stamp-tilt-l { transform: rotate(-3deg); } .ds-stamp-tilt-r { transform: rotate(2deg); }"
+    },
+    {
+      "name": "Tray Panel",
+      "kind": "card",
+      "refersTo": "tray-panel",
+      "description": "Enamel tray container — bay2 fill, tray-border edge, 10px radius, ruled header band; flat, never shadowed.",
+      "html": "<div class=\"ds-tray\"><div class=\"ds-tray-head\"><h2 class=\"ds-tray-title\">Today's batch</h2><p class=\"ds-seg ds-seg-lg\">P 18,260 <span class=\"ds-seg-unit\">DUE</span></p></div><div class=\"ds-tray-body\">Panels separate by tone and border, never shadow.</div></div>",
+      "css": ".ds-tray { background: rgba(31,20,9,.7); border: 1px solid var(--color-linestrong, #4d3620); border-radius: 10px; overflow: hidden; color: var(--color-silver, #cfc4b2); font-family: var(--font-sans, 'Barlow', system-ui, sans-serif); } .ds-tray-head { padding: 16px 16px 12px; border-bottom: 1px solid var(--color-line, #3a2a18); } .ds-tray-title { margin: 0; font-size: 18px; font-weight: 600; letter-spacing: -.01em; color: var(--color-paper, #f6efe2); } .ds-tray-body { padding: 16px; font-size: 14px; } .ds-seg { font-family: var(--font-mono, 'IBM Plex Mono', ui-monospace, monospace); font-weight: 700; letter-spacing: .05em; color: #ffc247; font-variant-numeric: tabular-nums; } .ds-seg-lg { font-size: 24px; margin-top: 8px; } .ds-seg-unit { font-size: 12px; font-weight: 400; color: var(--color-silverdim, #9a8c74); letter-spacing: .2em; vertical-align: middle; }"
+    },
+    {
+      "name": "Loan Row",
+      "kind": "custom",
+      "refersTo": "tray-panel",
+      "description": "The portfolio's unit: print thumbnail (emergence = % repaid) + name/ID + progress meter + balance + stage stamp.",
+      "html": "<div class=\"ds-loan-row\"><span class=\"ds-print-thumb\"><span class=\"ds-print-subject\" style=\"filter: blur(.75px) brightness(.8) contrast(.9)\">MS</span></span><span class=\"ds-loan-id\"><span class=\"ds-loan-name\">Maria Santos</span><span class=\"ds-loan-code\">L-2411</span></span><span class=\"ds-loan-meter\"><span class=\"ds-meter\"><span class=\"ds-meter-fill\" style=\"width:62%\"></span></span><span class=\"ds-meter-caption\">62% · P 22,800 to go</span></span><span class=\"ds-loan-balance\"><span class=\"ds-balance\">P 22,800</span><span class=\"ds-balance-caption\">balance</span></span><span class=\"stamp ds-stamp ds-stamp-amber\">Active</span></div>",
+      "css": ".ds-loan-row { display: flex; align-items: center; gap: 16px; background: rgba(31,20,9,.7); border: 1px solid var(--color-linestrong, #4d3620); border-radius: 10px; padding: 14px 16px; font-family: var(--font-sans, 'Barlow', system-ui, sans-serif); transition: border-color .15s ease; } .ds-loan-row:hover { border-color: var(--color-amberdeep, #b97a15); } .ds-print-thumb { display: grid; place-items: center; width: 40px; height: 40px; flex-shrink: 0; background-color: var(--color-paper, #f6efe2); border-radius: 4px; box-shadow: 0 2px 6px rgba(0,0,0,.45), inset 0 0 0 1px rgba(43,32,21,.15); } .ds-print-subject { font-family: var(--font-mono, 'IBM Plex Mono', ui-monospace, monospace); font-weight: 700; color: var(--color-ink, #2b2015); } .ds-loan-id { min-width: 0; flex: 1; } .ds-loan-name { display: block; font-size: 15px; font-weight: 600; color: var(--color-paper, #f6efe2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .ds-loan-code { display: block; font-family: var(--font-mono, 'IBM Plex Mono', ui-monospace, monospace); font-size: 12px; color: var(--color-silverdim, #9a8c74); margin-top: 2px; } .ds-loan-meter { display: none; } .ds-meter { display: block; height: 6px; border-radius: 999px; background: var(--color-bay, #150d07); border: 1px solid var(--color-line, #3a2a18); overflow: hidden; } .ds-meter-fill { display: block; height: 100%; border-radius: 999px; background: var(--color-amber, #ffb224); } .ds-meter-caption { display: block; font-family: var(--font-mono, 'IBM Plex Mono', ui-monospace, monospace); font-size: 11px; color: var(--color-silverdim, #9a8c74); margin-top: 4px; font-variant-numeric: tabular-nums; } .ds-loan-balance { text-align: right; flex-shrink: 0; } .ds-balance { display: block; font-family: var(--font-mono, 'IBM Plex Mono', ui-monospace, monospace); font-weight: 700; font-size: 15px; color: var(--color-paper, #f6efe2); font-variant-numeric: tabular-nums; } .ds-balance-caption { display: block; font-family: var(--font-mono, 'IBM Plex Mono', ui-monospace, monospace); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--color-silverdim, #9a8c74); margin-top: 2px; } .stamp { display: inline-flex; align-items: center; font-family: var(--font-mono, 'IBM Plex Mono', ui-monospace, monospace); font-size: .6875rem; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; white-space: nowrap; line-height: 1; padding: .28rem .5rem; border: 2px solid currentColor; border-radius: 4px; } .ds-stamp-amber { color: var(--color-amber, #ffb224); } @media (min-width: 640px) { .ds-loan-meter { display: block; width: 160px; } }"
+    },
+    {
+      "name": "Station Rail Nav",
+      "kind": "nav",
+      "refersTo": "button-ghost",
+      "description": "The bay's fixed stations — dark enamel rail, amber active state with aria-current.",
+      "html": "<nav class=\"ds-rail\" aria-label=\"Admin stations\"><button class=\"ds-rail-item\">The bay</button><button class=\"ds-rail-item ds-rail-active\" aria-current=\"page\">Portfolio</button><button class=\"ds-rail-item\">Payment inbox</button><button class=\"ds-rail-item\">Ledger</button><button class=\"ds-rail-item\">Users</button></nav>",
+      "css": ".ds-rail { display: flex; flex-direction: column; gap: 4px; padding: 0 12px 16px; } .ds-rail-item { display: flex; align-items: center; gap: 10px; text-align: left; padding: 10px 12px; border-radius: 6px; background: transparent; border: none; color: var(--color-silver, #cfc4b2); font-family: var(--font-sans, 'Barlow', system-ui, sans-serif); font-size: 14px; font-weight: 500; cursor: pointer; transition: background-color .15s ease, color .15s ease; white-space: nowrap; } .ds-rail-item:hover { background: rgba(39,26,14,.7); color: var(--color-paper, #f6efe2); } .ds-rail-active, .ds-rail-active:hover { background: var(--color-tray, #271a0e); color: var(--color-amber, #ffb224); } .ds-rail-item:focus-visible { outline: 2px solid var(--color-amber, #ffb224); outline-offset: 2px; border-radius: 4px; }"
+    },
+    {
+      "name": "Segmented Readout",
+      "kind": "custom",
+      "refersTo": "typography.figure",
+      "description": "The room's clock — segmented timer digits for today's batch only: date, payments due, pesos in.",
+      "html": "<p class=\"ds-seg ds-seg-lg\">SEP 11 · 2 PAYMENTS DUE · P 0 IN</p>",
+      "css": ".ds-seg { font-family: var(--font-mono, 'IBM Plex Mono', ui-monospace, monospace); font-weight: 700; letter-spacing: .05em; color: #ffc247; font-variant-numeric: tabular-nums; } .ds-seg-lg { font-size: 20px; line-height: 1.25; }"
+    },
+    {
+      "name": "Toast (paper slip)",
+      "kind": "custom",
+      "refersTo": "toast",
+      "description": "Confirmation as a papergrain slip bottom-center: green check, ink text, fix-flash entrance, aria-live polite.",
+      "html": "<div class=\"ds-toast\" role=\"status\" aria-live=\"polite\"><svg width=\"17\" height=\"17\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"#5f8c3f\" stroke-width=\"2.2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 13l4 4L19 7\"/></svg>P 3,000 fixed in the ledger for Maria Santos — the print develops a step.</div>",
+      "css": ".ds-toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 12px; background-color: var(--color-paper, #f6efe2); color: var(--color-ink, #2b2015); font-family: var(--font-sans, 'Barlow', system-ui, sans-serif); font-size: 14px; font-weight: 500; padding: 14px 20px; border-radius: 6px; box-shadow: 0 10px 40px rgba(0,0,0,.55); animation: ds-fixflash 1.2s ease-out 1; } @keyframes ds-fixflash { 0% { box-shadow: 0 0 0 0 rgba(255,178,36,.55), 0 10px 40px rgba(0,0,0,.55); } 100% { box-shadow: 0 0 0 14px rgba(255,178,36,0), 0 10px 40px rgba(0,0,0,.55); } } @media (prefers-reduced-motion: reduce) { .ds-toast { animation: none; } }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Safelight Bay",
+    "overview": "LendFlow's redesign is a printing darkroom under amber safelight. The room is dark — deep bay blacks washed with an amber glow from above — and every loan is a photographic print developing through fixed, irreversible stations: received → issued → active → due → paid. A loan emerges from blur toward fixed at exactly the rate it's repaid; a fully paid loan is \"fixed\", and a pending loan sits \"in the bath\". Chrome is darkroom enamel; content is photographic paper. Money figures are wet-print silver or segmented timer digits; working notes are grease-pencil. The system refuses the category default of white cards on gray with a KPI-hero row: figures live in a ruled statement-header strip inline, never as cards.\n\nThe room must always answer the operator's question — where does each print stand — without a single color-only signal. Every status is a stamp: named, bordered, and colored at once. Density stays honest (this is a working bay, not a showroom), but the atmosphere carries trust: nothing hides in this light.",
+    "keyCharacteristics": [
+      "Amber safelight wash over layered darkroom-dark bays; photographic paper appears only as content artifacts (print cards, statement, toast).",
+      "All money figures and IDs in IBM Plex Mono with tabular numerals; Barlow carries UI and prose.",
+      "Status grammar = stamps: every state named AND marked AND colored; dashed borders mark provisional states.",
+      "The develop reveal: content enters with a blur/brightness/contrast emergence, staggered, honoring reduced motion.",
+      "Print thumbnails whose blur/brightness map to % repaid; the borrower's loans hang on a rope/clip drying line.",
+      "Grease-pencil (Caveat) reserved strictly for annotations — never data, never UI copy."
+    ],
+    "rules": [
+      { "name": "The One Safelight Rule", "body": "Amber is the only room light. It appears on ≤10% of any screen — actions, the active station, the day's figures. If everything glows, nothing develops.", "section": "colors" },
+      { "name": "The Named, Marked, Colored Rule", "body": "Every status exists as a stamp carrying a text name, a 2px border, and a color simultaneously. Color is never the sole signal of any state.", "section": "colors" },
+      { "name": "The Dark-Room, Paper-Content Rule", "body": "Darkroom chrome (bays, rails, panels) never carries long-form reading on white; papergrain surfaces never sit on the dark side of a border-line. Ink on paper, silver on bay — never mixed.", "section": "colors" },
+      { "name": "The Monospace Ledger Rule", "body": "Every money amount, ID, percentage, date, and tabular figure is IBM Plex Mono with tabular-nums. No exception in tables, stamps, or readouts.", "section": "typography" },
+      { "name": "The Grease-Pencil Rule", "body": "Caveat marks working notes and encouragement only. It never sets data, statuses, buttons, or anything a borrower must transcribe exactly.", "section": "typography" },
+      { "name": "The Physical-Paper Shadow Rule", "body": "Shadows are cast only by paper artifacts — prints, statement, toast, thumbnails, rope. Panels, rails, and buttons are flat enamel; they separate by tone and border, never shadow.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do set every money figure, ID, date, and percentage in IBM Plex Mono with tabular-nums (.tnum).",
+      "Do mark every loan status with a stamp that names it, borders it, and colors it — Paid · fixed (green, −3°), Overdue (dashed red, +2°), In the bath (dashed silver), Defaulted (red fill), Active (amber).",
+      "Do keep chrome dark (bay/bay2/tray) and put long-form or readable content only on papergrain surfaces (#f6efe2).",
+      "Do reserve amber (#ffb224) for primary actions, the active station, focus, selection, and today's-due emphasis; use developed amber (#b97a15) for amber hardware on paper.",
+      "Do enter content with the develop reveal (blur 7px → 0, brightness .45 → 1, contrast .7 → 1, translateY 6px → 0, ~1s cubic-bezier(.22,.9,.3,1), staggered 70–120ms) and disable it under prefers-reduced-motion: reduce.",
+      "Do map print-thumbnail emergence to % repaid — the visual is the data.",
+      "Do use dashed borders for provisional states (pending, likely-match inbox items, scan placeholder, empty states)."
+    ],
+    "donts": [
+      "Don't build KPI cards; money figures live in the ruled statement-header strip, inline.",
+      "Don't signal any state with color alone — always name + mark + color.",
+      "Don't use Caveat for data, statuses, buttons, or anything needing exact transcription.",
+      "Don't shadow flat enamel panels, rails, or buttons; shadows belong only to paper artifacts and the rope.",
+      "Don't introduce a second accent hue; the room has one safelight. Fog red and fixed green are service grammar, not decoration.",
+      "Don't use the segmented timer voice for anything but the day's batch.",
+      "Don't fabricate real borrower data or drop the \"sample data only\" disclosure on entry surfaces."
+    ]
+  }
+}

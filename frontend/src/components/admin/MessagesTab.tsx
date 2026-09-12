@@ -1,86 +1,61 @@
 import React, { useState } from 'react';
 import {
-    Box,
-    Paper,
-    Typography,
-    Table,
-    TableBody,
-    TableCell,
-    TableContainer,
-    TableHead,
-    TableRow,
-    Chip,
-    IconButton,
-    Collapse,
-    TextField,
-    Button,
-    Stack,
-    Divider,
-    Alert,
-    Tabs,
-    Tab,
-    Grid
-} from '@mui/material';
-import {
     ChevronDown,
     ChevronUp,
     Send,
     RefreshCw,
     MessageSquare,
-    Terminal,
     ArrowRightLeft,
     Reply
 } from 'lucide-react';
 import { useLogs } from '../../repositories/log';
 import apiClient from '../../services/api';
+import { Tabs, Button, IconButton, Panel, Stamp, Label } from '../ui';
 
 const LogRow: React.FC<{ log: any, onReply: (chatId: string) => void }> = ({ log, onReply }) => {
     const [open, setOpen] = useState(false);
 
     return (
         <>
-            <TableRow sx={{ '& > *': { borderBottom: 'unset' } }}>
-                <TableCell width="50">
-                    <IconButton size="small" onClick={() => setOpen(!open)}>
-                        {open ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+            <tr className="hover:bg-tray/50 transition-colors">
+                <td className="px-4 py-3 w-12">
+                    <IconButton label={open ? 'Collapse' : 'Expand'} onClick={() => setOpen(!open)}>
+                        {open ? <ChevronUp size={16} strokeWidth={1.7} /> : <ChevronDown size={16} strokeWidth={1.7} />}
                     </IconButton>
-                </TableCell>
-                <TableCell>{log.timestamp ? new Date(log.timestamp).toLocaleString() : '-'}</TableCell>
-                <TableCell>
-                    <Chip
-                        label={log.level || 'Info'}
-                        size="small"
-                        color={log.level === 'Error' ? 'error' : 'primary'}
-                        variant={log.source === 'AdminDashboard' ? 'filled' : 'outlined'}
-                    />
-                </TableCell>
-                <TableCell>{log.source || '-'}</TableCell>
-                <TableCell>{log.message || '-'}</TableCell>
-                <TableCell>
-                    <Stack direction="row" spacing={1} alignItems="center">
-                        <Typography variant="body2">{log.chatId || '-'}</Typography>
+                </td>
+                <td className="px-4 py-3 font-mono text-xs text-silverdim whitespace-nowrap">{log.timestamp ? new Date(log.timestamp).toLocaleString() : '-'}</td>
+                <td className="px-4 py-3">
+                    <Stamp tone={log.level === 'Error' ? 'bad' : 'amber'} dashed={log.source !== 'AdminDashboard'} solid={log.source === 'AdminDashboard'}>
+                        {log.level || 'Info'}
+                    </Stamp>
+                </td>
+                <td className="px-4 py-3 text-silver">{log.source || '-'}</td>
+                <td className="px-4 py-3 text-paper">{log.message || '-'}</td>
+                <td className="px-4 py-3">
+                    <span className="inline-flex items-center gap-2">
+                        <span className="font-mono text-sm text-paper tnum">{log.chatId || '-'}</span>
                         {log.chatId && (
-                            <IconButton size="small" onClick={() => onReply(log.chatId)}>
-                                <Reply size={14} />
+                            <IconButton label="Reply" onClick={() => onReply(log.chatId)}>
+                                <Reply size={14} strokeWidth={1.7} />
                             </IconButton>
                         )}
-                    </Stack>
-                </TableCell>
-            </TableRow>
-            <TableRow>
-                <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={6}>
-                    <Collapse in={open} timeout="auto" unmountOnExit>
-                        <Box sx={{ margin: 1, bgcolor: '#f8fafc', p: 2, borderRadius: 1, border: '1px solid #e2e8f0' }}>
-                            <Typography variant="overline" color="text.secondary" gutterBottom>
+                    </span>
+                </td>
+            </tr>
+            {open && (
+                <tr>
+                    <td colSpan={6} className="p-0">
+                        <div className="mx-4 my-2 bg-bay border border-line rounded-md p-3">
+                            <p className="text-[11px] font-mono tracking-[0.16em] uppercase text-silverdim mb-2">
                                 JSON Data
-                            </Typography>
-                            <pre style={{ margin: 0, fontSize: '0.8rem', overflow: 'auto' }}>
+                            </p>
+                            <pre className="m-0 text-xs overflow-auto text-silver font-mono">
                                 {JSON.stringify(log.data, null, 2)}
                             </pre>
-                        </Box>
-                    </Collapse>
-                </TableCell>
-            </TableRow>
+                        </div>
+                    </td>
+                </tr>
+            )}
         </>
     );
 };
@@ -153,97 +128,133 @@ const MessagesTab: React.FC = () => {
     };
 
     return (
-        <Box sx={{ p: 2 }}>
-            <Grid container spacing={3}>
-                {/* Playground Panel */}
-                <Grid item xs={12} md={4}>
-                    <Paper sx={{ border: '1px solid #e2e8f0', overflow: 'hidden' }}>
+        <div className="py-2">
+            <div className="grid gap-6 lg:grid-cols-3">
+                <div>
+                    <Panel pad={false} className="overflow-hidden">
                         <Tabs
-                            value={activePanel}
-                            onChange={(_, v) => setActivePanel(v)}
-                            variant="fullWidth"
-                            sx={{ borderBottom: 1, borderColor: 'divider' }}
-                        >
-                            <Tab label="Inbound Simulator" icon={<Terminal size={16} />} iconPosition="start" />
-                            <Tab label="Outbound Real" icon={<Send size={16} />} iconPosition="start" />
-                        </Tabs>
-
-                        <Box sx={{ p: 3 }}>
+                            value={String(activePanel)}
+                            onChange={(v) => setActivePanel(Number(v))}
+                            items={[
+                                { value: '0', label: 'Inbound' },
+                                { value: '1', label: 'Outbound' }
+                            ]}
+                        />
+                        <div className="p-5">
                             {activePanel === 0 ? (
-                                <Stack spacing={2}>
-                                    <TextField label="Simulated Chat ID" value={simChatId} onChange={(e) => setSimChatId(e.target.value)} fullWidth size="small" />
-                                    <TextField label="Simulated User" value={simUser} onChange={(e) => setSimUser(e.target.value)} fullWidth size="small" />
-                                    <TextField label="Simulated Message" value={simMessage} onChange={(e) => setSimMessage(e.target.value)} multiline rows={4} fullWidth />
-                                    <Button variant="contained" startIcon={<ArrowRightLeft size={18} />} onClick={handleSendSimulation} disabled={isProcessing || !simMessage} fullWidth>
+                                <div className="space-y-4">
+                                    <div>
+                                        <Label>Simulated Chat ID</Label>
+                                        <input
+                                            className="w-full bg-bay border border-line rounded-md px-3 py-2.5 text-sm text-paper focus:border-amberdeep"
+                                            value={simChatId}
+                                            onChange={(e) => setSimChatId(e.target.value)}
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label>Simulated User</Label>
+                                        <input
+                                            className="w-full bg-bay border border-line rounded-md px-3 py-2.5 text-sm text-paper focus:border-amberdeep"
+                                            value={simUser}
+                                            onChange={(e) => setSimUser(e.target.value)}
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label>Simulated Message</Label>
+                                        <textarea
+                                            rows={4}
+                                            className="w-full bg-bay border border-line rounded-md px-3 py-2.5 text-sm text-paper focus:border-amberdeep"
+                                            value={simMessage}
+                                            onChange={(e) => setSimMessage(e.target.value)}
+                                        />
+                                    </div>
+                                    <Button fullWidth startIcon={<ArrowRightLeft size={18} strokeWidth={1.7} />} onClick={handleSendSimulation} disabled={isProcessing || !simMessage}>
                                         Simulate Webhook
                                     </Button>
-                                </Stack>
+                                </div>
                             ) : (
-                                <Stack spacing={2}>
-                                    <TextField label="Target Chat ID" value={realChatId} onChange={(e) => setRealChatId(e.target.value)} fullWidth size="small" />
-                                    <TextField label="Actual Message (Markdown)" value={realMessage} onChange={(e) => setRealMessage(e.target.value)} multiline rows={4} fullWidth placeholder="Hello from Admin Dashboard..." />
-                                    <Button variant="contained" color="success" startIcon={<Send size={18} />} onClick={handleSendReal} disabled={isProcessing || !realMessage} fullWidth>
+                                <div className="space-y-4">
+                                    <div>
+                                        <Label>Target Chat ID</Label>
+                                        <input
+                                            className="w-full bg-bay border border-line rounded-md px-3 py-2.5 text-sm text-paper focus:border-amberdeep"
+                                            value={realChatId}
+                                            onChange={(e) => setRealChatId(e.target.value)}
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label>Actual Message (Markdown)</Label>
+                                        <textarea
+                                            rows={4}
+                                            placeholder="Hello from Admin Dashboard..."
+                                            className="w-full bg-bay border border-line rounded-md px-3 py-2.5 text-sm text-paper placeholder:text-silverdim focus:border-amberdeep"
+                                            value={realMessage}
+                                            onChange={(e) => setRealMessage(e.target.value)}
+                                        />
+                                    </div>
+                                    <Button fullWidth startIcon={<Send size={18} strokeWidth={1.7} />} onClick={handleSendReal} disabled={isProcessing || !realMessage}>
                                         Send to Telegram API
                                     </Button>
-                                </Stack>
+                                </div>
                             )}
 
-                            {status && <Alert severity={status.type} sx={{ mt: 2 }}>{status.message}</Alert>}
-                        </Box>
-                    </Paper>
-                </Grid>
+                            {status && (
+                                <div className={`mt-4 border rounded-tray px-4 py-3 text-sm ${status.type === 'error' ? 'border-bad/60 bg-bad/10 text-bad' : 'border-linestrong bg-tray/50 text-good'}`} role="alert">
+                                    {status.message}
+                                </div>
+                            )}
+                        </div>
+                    </Panel>
+                </div>
 
-                {/* Logs Table */}
-                <Grid item xs={12} md={8}>
-                    <Paper sx={{ border: '1px solid #e2e8f0' }}>
-                        <Box sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #eee' }}>
-                            <Stack>
-                                <Typography variant="h6" fontWeight={700} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                    <MessageSquare size={20} /> System Messages (Live)
-                                </Typography>
+                <div className="lg:col-span-2">
+                    <Panel pad={false} className="overflow-hidden">
+                        <div className="px-4 py-3 flex justify-between items-center border-b border-line">
+                            <div>
+                                <p className="text-paper font-semibold text-lg tracking-tight flex items-center gap-2">
+                                    <MessageSquare size={20} strokeWidth={1.7} /> System Messages (Live)
+                                </p>
                                 {error && (
-                                    <Typography variant="caption" color="error">
+                                    <p className="text-xs text-bad">
                                         Error: {(error as any).message}
-                                    </Typography>
+                                    </p>
                                 )}
-                            </Stack>
-                            <IconButton onClick={() => refetch()} disabled={isLoading}>
-                                <RefreshCw size={18} className={isLoading ? 'animate-spin' : ''} />
+                            </div>
+                            <IconButton label="Refresh messages" onClick={() => refetch()} disabled={isLoading}>
+                                <RefreshCw size={18} strokeWidth={1.7} className={isLoading ? 'animate-spin' : ''} />
                             </IconButton>
-                        </Box>
-                        <TableContainer sx={{ maxHeight: 650 }}>
-                            <Table stickyHeader size="small">
-                                <TableHead>
-                                    <TableRow>
-                                        <TableCell />
-                                        <TableCell>Time</TableCell>
-                                        <TableCell>Level</TableCell>
-                                        <TableCell>Source</TableCell>
-                                        <TableCell>Message</TableCell>
-                                        <TableCell>Chat Context</TableCell>
-                                    </TableRow>
-                                </TableHead>
-                                <TableBody>
+                        </div>
+                        <div className="max-h-[650px] overflow-auto">
+                            <table className="w-full text-sm min-w-[640px]">
+                                <thead>
+                                    <tr className="text-left text-[11px] font-mono tracking-[0.16em] uppercase text-silverdim border-b border-linestrong">
+                                        <th className="px-4 py-3 w-12" />
+                                        <th className="px-4 py-3 font-medium">Time</th>
+                                        <th className="px-4 py-3 font-medium">Level</th>
+                                        <th className="px-4 py-3 font-medium">Source</th>
+                                        <th className="px-4 py-3 font-medium">Message</th>
+                                        <th className="px-4 py-3 font-medium">Chat Context</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-line/70">
                                     {logs.length > 0 ? (
                                         logs.map((log: any) => (
                                             <LogRow key={log.id} log={log} onReply={onReply} />
                                         ))
                                     ) : (
-                                        <TableRow>
-                                            <TableCell colSpan={6} align="center" sx={{ py: 6 }}>
-                                                <Typography color="text.secondary">
-                                                    {isLoading ? 'Loading fresh messages...' : 'No system messages found.'}
-                                                </Typography>
-                                            </TableCell>
-                                        </TableRow>
+                                        <tr>
+                                            <td colSpan={6} className="px-4 py-8 text-center text-sm text-silverdim">
+                                                {isLoading ? 'Loading fresh messages...' : 'No system messages found.'}
+                                            </td>
+                                        </tr>
                                     )}
-                                </TableBody>
-                            </Table>
-                        </TableContainer>
-                    </Paper>
-                </Grid>
-            </Grid>
-        </Box>
+                                </tbody>
+                            </table>
+                        </div>
+                    </Panel>
+                </div>
+            </div>
+        </div>
     );
 };
 

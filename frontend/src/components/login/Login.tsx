@@ -1,27 +1,25 @@
 import React, { useState, useEffect } from 'react';
-import {
-    Box,
-    Typography,
-    Container,
-    Paper,
-    Stack,
-    useTheme,
-    Backdrop,
-    CircularProgress,
-    Button,
-} from '@mui/material';
 import { Sparkles } from 'lucide-react';
 import { useAuth } from '@adolf94/ar-auth-client';
-import GoogleIcon from '@mui/icons-material/Google';
-import TelegramIcon from '@mui/icons-material/Telegram';
-import FingerprintIcon from '@mui/icons-material/Fingerprint';
+import { Button, Paper, Spinner } from '../ui';
+
+const GoogleGlyph = () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
+        <path fill="#DB4437" d="M12 11v3.6h5.1c-.5 2.4-2.5 3.9-5.1 3.6-2.9-.3-5-2.7-5-5.6s2.1-5.3 5-5.6c1.5-.2 3 .3 4.1 1.3l2.7-2.7C17.1.4 13.4-.4 13.9.2 9.6.9 6.4 4.6 6.4 9s3.2 8.1 7.5 8.7c4.9.7 9-2.7 9-7.7 0-.4 0-.7-.1-1H12z" transform="translate(2.5 -1)" />
+    </svg>
+);
+
+const TelegramGlyph = () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="#0088cc" aria-hidden="true">
+        <path d="M21.9 3.4 2.7 10.8c-1.3.5-1.3 1.3-.2 1.6l4.9 1.5 1.9 5.8c.2.7.4.9 1 .9.4 0 .6-.2 1-.5l2.4-2.3 4.9 3.6c.9.5 1.5.2 1.8-.8l3.2-15.1c.3-1.3-.5-1.9-1.9-2.1zM8.5 13.6l10.2-6.4c.5-.3 1-.1.6.2l-8.7 7.9-.3 3.1-1.8-5.2z" />
+    </svg>
+);
 
 interface LoginProps {
     onLogin: (data: any, user: any) => void;
 }
 
 const Login: React.FC<LoginProps> = ({ onLogin }) => {
-    const theme = useTheme();
     const { login, user, isAuthenticated, accessToken } = useAuth();
     const [isLoggingIn, setIsLoggingIn] = useState(false);
 
@@ -44,121 +42,39 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     }, [isAuthenticated, user, accessToken, onLogin]);
 
     return (
-        <Container maxWidth="sm">
-            <Paper
-                elevation={0}
-                sx={{
-                    p: 6,
-                    borderRadius: 6,
-                    textAlign: 'center',
-                    border: '1px solid',
-                    borderColor: 'divider',
-                    bgcolor: 'background.paper',
-                    boxShadow: '0 20px 40px rgba(0,0,0,0.04)'
-                }}
-            >
-                <Stack spacing={4} alignItems="center">
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Typography
-                            variant="h3"
-                            sx={{
-                                fontWeight: 900,
-                                letterSpacing: '-1.5px',
-                                background: 'linear-gradient(45deg, #2563eb 30%, #7c3aed 90%)',
-                                WebkitBackgroundClip: 'text',
-                                WebkitTextFillColor: 'transparent',
-                            }}
-                        >
-                            LendFlow
-                        </Typography>
-                    </Box>
+        <div className="w-full max-w-sm dev">
+            <Paper className="p-7 sm:p-8 text-center shadow-[0_20px_50px_rgba(0,0,0,.5)]">
+                <div className="flex items-center justify-center gap-2.5">
+                    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#b97a15" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="4" /><path d="M12 3v2M12 19v2M3 12h2M19 12h2" /></svg>
+                    <span className="text-ink font-bold tracking-[0.28em] text-xl">LENDFLOW</span>
+                </div>
 
-                    <Typography variant="h5" fontWeight={700} color="text.primary">
-                        Institutional Grade AI Micro-Lending
-                    </Typography>
+                <p className="mt-5 font-semibold text-ink">Institutional grade micro-lending</p>
+                <p className="mt-2 text-sm text-inksoft leading-relaxed">
+                    Manage portfolios, read the room with AI, and keep the ledger clean — one platform, one light.
+                </p>
 
-                    <Typography variant="body1" color="text.secondary" sx={{ maxWidth: '80%', mb: 2 }}>
-                        Manage portfolios, analyze risk with Gemini 3 Flash, and streamline your accounting operations in one platform.
-                    </Typography>
+                <Button
+                    size="lg"
+                    fullWidth
+                    className="mt-6"
+                    onClick={handleLogin}
+                    loading={isLoggingIn}
+                >
+                    <span className="inline-flex items-center -space-x-1.5 mr-1">
+                        <span className="w-6 h-6 rounded-full bg-paper border border-ink/20 grid place-items-center"><GoogleGlyph /></span>
+                        <span className="w-6 h-6 rounded-full bg-paper border border-ink/20 grid place-items-center relative z-10"><TelegramGlyph /></span>
+                        <span className="w-6 h-6 rounded-full bg-paper border border-ink/20 grid place-items-center text-inksoft"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 2a7 7 0 0 1 7 7v3a7 7 0 0 1-14 0V9a7 7 0 0 1 7-7z" /><path d="M12 9v3a2 2 0 1 0 2 2" /><path d="M19 9h2M3 9h2" /></svg></span>
+                    </span>
+                    Sign in
+                </Button>
 
-                    <Button
-                        variant="contained"
-                        size="large"
-                        onClick={handleLogin}
-                        disabled={isLoggingIn}
-                        sx={{
-                            borderRadius: '16px',
-                            px: 4,
-                            py: 2,
-                            fontSize: '1.1rem',
-                            fontWeight: 600,
-                            textTransform: 'none',
-                            background: 'linear-gradient(45deg, #2563eb 30%, #7c3aed 90%)',
-                            boxShadow: '0 8px 24px rgba(37, 99, 235, 0.2)',
-                            transition: 'all 0.2s ease-in-out',
-                            '&:hover': {
-                                background: 'linear-gradient(45deg, #1d4ed8 30%, #6d28d9 90%)',
-                                transform: 'translateY(-2px)',
-                                boxShadow: '0 12px 32px rgba(37, 99, 235, 0.3)',
-                            },
-                        }}
-                    >
-                        <Stack direction="row" spacing={-1} sx={{ mr: 2 }}>
-                            <Box sx={{
-                                bgcolor: 'white',
-                                borderRadius: '50%',
-                                p: 0.5,
-                                display: 'flex',
-                                color: '#DB4437',
-                                boxShadow: 2,
-                                border: '1px solid #eee'
-                            }}>
-                                <GoogleIcon sx={{ fontSize: 18 }} />
-                            </Box>
-                            <Box sx={{
-                                bgcolor: 'white',
-                                borderRadius: '50%',
-                                p: 0.5,
-                                display: 'flex',
-                                color: '#0088cc',
-                                boxShadow: 2,
-                                border: '1px solid #eee',
-                                zIndex: 1
-                            }}>
-                                <TelegramIcon sx={{ fontSize: 18 }} />
-                            </Box>
-                            <Box sx={{
-                                bgcolor: 'white',
-                                borderRadius: '50%',
-                                p: 0.5,
-                                display: 'flex',
-                                color: '#444',
-                                boxShadow: 2,
-                                border: '1px solid #eee',
-                                zIndex: 2
-                            }}>
-                                <FingerprintIcon sx={{ fontSize: 18 }} />
-                            </Box>
-                        </Stack>
-                        Sign In
-                    </Button>
-
-                    <Stack direction="row" spacing={1} alignItems="center">
-                        <Sparkles size={16} color={theme.palette.primary.main} />
-                        <Typography variant="caption" color="text.secondary" fontWeight={600}>
-                            Powered by Gemini 3 Flash
-                        </Typography>
-                    </Stack>
-                </Stack>
+                <div className="mt-5 flex items-center justify-center gap-1.5 text-inksoft">
+                    <Sparkles size={14} />
+                    <span className="text-xs font-semibold">Powered by Gemini 3 Flash</span>
+                </div>
             </Paper>
-
-            <Backdrop
-                sx={(theme) => ({ color: '#fff', zIndex: theme.zIndex.drawer + 1 })}
-                open={isLoggingIn}
-            >
-                <CircularProgress color="inherit" />
-            </Backdrop>
-        </Container>
+        </div>
     );
 };
 

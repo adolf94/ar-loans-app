@@ -1,18 +1,6 @@
 import React, { useState } from 'react';
-import {
-    Dialog,
-    DialogTitle,
-    DialogContent,
-    DialogActions,
-    Button,
-    TextField,
-    FormControl,
-    InputLabel,
-    Select,
-    MenuItem,
-    Box
-} from '@mui/material';
 import { useCreateAccount, type Account } from '../../repositories/account';
+import { Dialog, Button, Input, Select } from '../ui';
 
 interface AccountDialogProps {
     open: boolean;
@@ -36,48 +24,48 @@ const AccountDialog: React.FC<AccountDialogProps> = ({ open, onClose }) => {
     };
 
     return (
-        <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth>
-            <DialogTitle>Add New Account</DialogTitle>
-            <DialogContent>
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
-                    <TextField
-                        label="Account Name"
-                        fullWidth
-                        value={formData.name}
-                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    />
-                    <FormControl fullWidth>
-                        <InputLabel>Section</InputLabel>
-                        <Select
-                            label="Section"
-                            value={formData.section}
-                            onChange={(e) => setFormData({ ...formData, section: e.target.value })}
-                        >
-                            <MenuItem value="Assets">Assets</MenuItem>
-                            <MenuItem value="Liabilities">Liabilities</MenuItem>
-                            <MenuItem value="Income">Income</MenuItem>
-                            <MenuItem value="Expense">Expense</MenuItem>
-                        </Select>
-                    </FormControl>
-                    <TextField
-                        label="Starting Balance"
-                        type="number"
-                        fullWidth
-                        value={formData.balance}
-                        onChange={(e) => setFormData({ ...formData, balance: Number(e.target.value) })}
-                    />
-                </Box>
-            </DialogContent>
-            <DialogActions>
-                <Button onClick={onClose}>Cancel</Button>
-                <Button
-                    onClick={handleSave}
-                    variant="contained"
-                    disabled={!formData.name || createAccount.isPending}
-                >
-                    {createAccount.isPending ? 'Saving...' : 'Add Account'}
-                </Button>
-            </DialogActions>
+        <Dialog
+            open={open}
+            onClose={onClose}
+            title="Add New Account"
+            width="max-w-sm"
+            actions={
+                <>
+                    <Button variant="ghost" onClick={onClose}>Cancel</Button>
+                    <Button
+                        onClick={handleSave}
+                        disabled={!formData.name || createAccount.isPending}
+                        loading={createAccount.isPending}
+                    >
+                        {createAccount.isPending ? 'Saving...' : 'Add Account'}
+                    </Button>
+                </>
+            }
+        >
+            <div className="flex flex-col gap-4">
+                <Input
+                    label="Account Name"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                />
+                <Select
+                    label="Section"
+                    value={formData.section}
+                    onChange={(e) => setFormData({ ...formData, section: e.target.value })}
+                    options={[
+                        { value: 'Assets', label: 'Assets' },
+                        { value: 'Liabilities', label: 'Liabilities' },
+                        { value: 'Income', label: 'Income' },
+                        { value: 'Expense', label: 'Expense' }
+                    ]}
+                />
+                <Input
+                    label="Starting Balance"
+                    type="number"
+                    value={formData.balance}
+                    onChange={(e) => setFormData({ ...formData, balance: Number(e.target.value) })}
+                />
+            </div>
         </Dialog>
     );
 };

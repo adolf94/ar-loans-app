@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Dialog } from '@mui/material';
+import { Dialog } from '../ui';
 import type { Payment } from '../../@types/types';
 import PaymentForm from '../payments/PaymentForm';
 
@@ -20,7 +20,7 @@ const PaymentDialog: React.FC<PaymentDialogProps> = ({
 
     return <>
         {children && React.isValidElement(children) && React.cloneElement(children as React.ReactElement<{ onClick?: () => void }>, { onClick: () => setOpen(true) })}
-        <Dialog open={open} onClose={() => setOpen(false)}>
+        <Dialog open={open} onClose={() => setOpen(false)} width="max-w-md">
             {open && (
                 <PaymentForm
                     key="blank"

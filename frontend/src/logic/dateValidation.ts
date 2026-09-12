@@ -1,4 +1,4 @@
-import { useConfirm } from 'material-ui-confirm';
+import { useConfirm } from '../components/ui';
 import dayjs from 'dayjs';
 
 /**
@@ -32,10 +32,7 @@ export const useDateValidation = () => {
                     cancellationText: 'Go Back',
                     confirmationButtonProps: { color: 'warning', variant: 'contained' },
                 });
-                if(response.confirmed){
-                    return true;
-                }
-                return false;
+                return response;
             } catch (e) {
                 return false;
             }

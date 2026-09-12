@@ -1,0 +1,995 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LendFlow — the Safelight Bay · design MVP</title>
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&family=Caveat:wght@500;600&display=swap" rel="stylesheet">
+<style type="text/tailwindcss">
+@theme {
+  --color-bay: #150d07;
+  --color-bay2: #1f1409;
+  --color-tray: #271a0e;
+  --color-trayedge: #3a2817;
+  --color-amber: #ffb224;
+  --color-amberdeep: #b97a15;
+  --color-safelight: #f4a63a;
+  --color-paper: #f6efe2;
+  --color-paperdim: #e2d7c1;
+  --color-silver: #cfc4b2;
+  --color-silverdim: #9a8c74;
+  --color-ink: #2b2015;
+  --color-inksoft: #6f5c43;
+  --color-good: #5fd98d;
+  --color-bad: #f87171;
+  --color-line: #3a2a18;
+  --color-linestrong: #4d3620;
+  --font-sans: "Barlow", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+  --font-hand: "Caveat", cursive;
+  --radius-tray: 10px;
+  --radius-print: 6px;
+}
+</style>
+<style>
+:root { color-scheme: dark; }
+html { scroll-behavior: smooth; }
+body {
+  background:
+    radial-gradient(120% 90% at 18% -10%, rgba(255,178,36,.16), rgba(255,178,36,.05) 42%, transparent 70%),
+    radial-gradient(140% 120% at 50% 120%, rgba(0,0,0,.55), transparent 60%),
+    #150d07;
+  min-height: 100vh;
+}
+body::before {
+  content: "";
+  position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.035 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+body::after {
+  content: "";
+  position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  background: radial-gradient(120% 100% at 50% 40%, transparent 55%, rgba(5,2,0,.5) 100%);
+}
+::selection { background: #ffb224; color: #2b2015; }
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: #1f1409; }
+::-webkit-scrollbar-thumb { background: #4d3620; border-radius: 8px; border: 2px solid #1f1409; }
+::-webkit-scrollbar-thumb:hover { background: #b97a15; }
+input, select, textarea { caret-color: #ffb224; }
+:focus-visible { outline: 2px solid #ffb224; outline-offset: 2px; border-radius: 4px; }
+.tnum { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
+
+.seg {
+  font-family: "IBM Plex Mono", monospace;
+  font-weight: 700;
+  letter-spacing: .05em;
+  color: #ffc247;
+}
+.stamp {
+  display: inline-flex; align-items: center; gap: .35rem;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: .6875rem; font-weight: 600; letter-spacing: .14em;
+  text-transform: uppercase; white-space: nowrap;
+  border: 2px solid currentColor; border-radius: 4px;
+  padding: .28rem .5rem; line-height: 1;
+}
+.stamp-dash { border-style: dashed; }
+.stamp-solid { background: rgba(248,113,113,.14); }
+
+.dev { animation: develop 1s cubic-bezier(.22,.9,.3,1) both; }
+@keyframes develop {
+  from { opacity: .25; filter: blur(7px) brightness(.45) contrast(.7); transform: translateY(6px); }
+  to   { opacity: 1;   filter: none; transform: none; }
+}
+.pulse-fix { animation: fixflash 1.2s ease-out 1; }
+@keyframes fixflash {
+  0% { box-shadow: 0 0 0 0 rgba(255,178,36,.55); }
+  100% { box-shadow: 0 0 0 14px rgba(255,178,36,0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dev, .pulse-fix { animation: none; }
+  html { scroll-behavior: auto; }
+}
+.papergrain {
+  background-color: #f6efe2;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='p'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.1' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 .35 0 0 0 0 .27 0 0 0 0 .18 0 0 0 0.05 0'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23p)'/%3E%3C/svg%3E");
+}
+.clip {
+  width: 14px; height: 34px; margin: 0 auto;
+  border: 2px solid #b97a15; border-radius: 7px 7px 3px 3px;
+  border-bottom: none; position: relative; background: #271a0e;
+}
+.clip::after { content: ""; position: absolute; left: 3px; right: 3px; top: 6px; height: 3px; border-radius: 2px; background: #b97a15; }
+.rope { height: 3px; background: linear-gradient(180deg, #4d3620, #2b2015); border-radius: 2px; box-shadow: 0 2px 4px rgba(0,0,0,.5); }
+.hand { font-family: "Caveat", cursive; }
+.hand-note { transform: rotate(-2deg); }
+@media print {
+  #app > *:not(#statement) { display: none !important; }
+  body { background: #fff; }
+  #statement { position: static !important; display: block !important; }
+}
+</style>
+</head>
+<body class="text-silver font-sans antialiased">
+
+<div id="app" class="relative z-10">
+
+  <!-- THE BAY DOOR -->
+  <section id="view-door" class="min-h-screen flex flex-col">
+    <header class="max-w-5xl mx-auto w-full px-6 pt-8 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#ffb224" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2"/></svg>
+        <span class="text-paper font-bold tracking-[0.28em] text-lg">LENDFLOW</span>
+      </div>
+      <span class="text-xs font-mono tracking-widest text-silverdim uppercase">Design MVP</span>
+    </header>
+
+    <div class="flex-1 flex items-center justify-center px-6 py-12">
+      <div class="w-full max-w-2xl dev">
+        <h1 class="text-paper font-bold text-4xl sm:text-5xl leading-[1.05] tracking-tight max-w-xl">The loan book that develops on schedule.</h1>
+        <p class="mt-3 text-silver max-w-xl text-[15px] leading-relaxed">Every loan hangs where you can see it. Pick your door: the room lights the way.</p>
+        <p class="hand text-amber hand-note text-2xl mt-4">The bay is open —</p>
+
+        <div class="mt-8 border border-linestrong rounded-tray bg-bay2/70 backdrop-blur-sm overflow-hidden">
+          <button data-enter="admin" class="w-full text-left px-5 sm:px-6 py-5 flex items-center gap-4 hover:bg-tray/70 transition-colors border-b border-line group">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ffb224" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="6" width="20" height="13" rx="2"/><circle cx="12" cy="12.5" r="3"/><path d="M6 6V4h12v2"/></svg>
+            <span class="flex-1 min-w-0">
+              <span class="block text-paper font-semibold text-[15px]">The lender's door</span>
+              <span class="block text-sm text-silverdim">Issue loans, record payments, read the room. The admin's bay.</span>
+            </span>
+            <span class="stamp text-amber group-hover:bg-amber group-hover:text-ink transition-colors">Admin</span>
+          </button>
+          <button data-enter="borrower" class="w-full text-left px-5 sm:px-6 py-5 flex items-center gap-4 hover:bg-tray/70 transition-colors border-b border-line group">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#5fd98d" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8h18v12H3z"/><path d="M3 8l9 6 9-6"/><circle cx="12" cy="14" r="1.6"/></svg>
+            <span class="flex-1 min-w-0">
+              <span class="block text-paper font-semibold text-[15px]">The borrower's door</span>
+              <span class="block text-sm text-silverdim">See every loan on your line: what's paid, what's left, what's next.</span>
+            </span>
+            <span class="stamp text-good">Borrower</span>
+          </button>
+          <button data-enter="guarantor" class="w-full text-left px-5 sm:px-6 py-5 flex items-center gap-4 hover:bg-tray/70 transition-colors group">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#f4a63a" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7z"/><path d="M9 12l2 2 4-4"/></svg>
+            <span class="flex-1 min-w-0">
+              <span class="block text-paper font-semibold text-[15px]">The guarantor's door</span>
+              <span class="block text-sm text-silverdim">Watch the loans you backstop. Exposure at a glance.</span>
+            </span>
+            <span class="stamp text-safelight">Guarantor</span>
+          </button>
+        </div>
+
+        <div class="mt-6 flex flex-wrap items-center justify-between gap-3">
+        <button id="signin-btn" class="inline-flex items-center gap-2 text-sm text-amber hover:text-paper transition-colors font-medium">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+            Sign in with LendFlow ID
+          </button>
+          <p class="hand text-silverdim text-lg hand-note">sample data only, no real pesos in here</p>
+        </div>
+      </div>
+    </div>
+    <footer class="px-6 pb-6 text-center text-xs font-mono tracking-wider text-silverdim uppercase">Static design preview · LendFlow redesign from MUI to Tailwind + shadcn</footer>
+  </section>
+
+  <!-- ADMIN -->
+  <section id="view-admin" class="hidden min-h-screen">
+    <div class="lg:grid lg:grid-cols-[240px_1fr]">
+      <aside class="lg:min-h-screen border-b lg:border-b-0 lg:border-r border-line bg-bay2/70">
+        <div class="px-5 py-5 flex items-center gap-3">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ffb224" stroke-width="1.7" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2"/></svg>
+          <span class="text-paper font-bold tracking-[0.28em]">LENDFLOW</span>
+        </div>
+        <nav id="admin-nav" class="flex lg:flex-col gap-1 px-3 pb-4 overflow-x-auto" aria-label="Admin stations">
+          <button data-panel="bay" class="adm-nav text-left px-3 py-2.5 rounded-md text-sm font-medium flex items-center gap-2.5 whitespace-nowrap">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10l9-7 9 7v10a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>
+            The bay
+          </button>
+          <button data-panel="portfolio" class="adm-nav text-left px-3 py-2.5 rounded-md text-sm font-medium flex items-center gap-2.5 whitespace-nowrap">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 4v5"/></svg>
+            Portfolio
+          </button>
+          <button data-panel="inbox" class="adm-nav text-left px-3 py-2.5 rounded-md text-sm font-medium flex items-center gap-2.5 whitespace-nowrap">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 13l4-9h10l4 9v7a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/><path d="M3 13h6a3 3 0 0 0 6 0h6"/></svg>
+            Payment inbox
+            <span id="inbox-badge" class="ml-auto font-mono text-[11px] px-1.5 py-0.5 rounded bg-amber text-ink font-bold">2</span>
+          </button>
+          <button data-panel="ledger" class="adm-nav text-left px-3 py-2.5 rounded-md text-sm font-medium flex items-center gap-2.5 whitespace-nowrap">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M4 19V5a2 2 0 0 1 2-2h13v18H6a2 2 0 0 1-2-2z"/><path d="M4 17h15M9 7h6M9 11h6"/></svg>
+            Ledger
+          </button>
+          <button data-panel="users" class="adm-nav text-left px-3 py-2.5 rounded-md text-sm font-medium flex items-center gap-2.5 whitespace-nowrap">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.5 3.4-5 6.5-5s5.7 1.5 6.5 5"/><circle cx="17" cy="9" r="2.5"/><path d="M17 14c2.5.3 4.2 1.8 4.7 4.5"/></svg>
+            Users
+          </button>
+        </nav>
+      </aside>
+
+      <div>
+        <header class="sticky top-0 z-20 backdrop-blur bg-bay/85 border-b border-line">
+          <div class="px-5 sm:px-8 py-3.5 flex items-center gap-4 flex-wrap">
+            <div>
+              <p class="font-mono text-[11px] tracking-[0.16em] text-silverdim uppercase">Today in the bay</p>
+              <p class="seg text-xl leading-tight">SEP 11 · <span id="seg-due">2</span> PAYMENTS DUE · <span id="seg-collected">P 0</span> IN</p>
+            </div>
+            <div class="ml-auto flex items-center gap-2 sm:gap-3">
+              <button data-enter="borrower" class="demo-switch hidden sm:inline-flex items-center gap-1.5 text-xs font-mono tracking-wider uppercase text-silverdim hover:text-amber transition-colors px-2.5 py-1.5 border border-line rounded-md">Demo · view as borrower</button>
+              <button data-enter="guarantor" class="demo-switch hidden sm:inline-flex items-center gap-1.5 text-xs font-mono tracking-wider uppercase text-silverdim hover:text-safelight transition-colors px-2.5 py-1.5 border border-line rounded-md">Demo · view as guarantor</button>
+              <button class="flex items-center gap-2.5 pl-2.5 pr-3 py-1.5 border border-linestrong rounded-md hover:border-amberdeep transition-colors">
+                <span class="w-7 h-7 rounded-full bg-trayedge text-amber grid place-items-center font-mono text-xs font-bold">AR</span>
+                <span class="text-sm text-paper font-medium">Ana Reyes</span>
+              </button>
+              <button data-enter="door" aria-label="Leave the bay" class="p-2 border border-line rounded-md hover:border-amberdeep hover:text-amber transition-colors">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg>
+              </button>
+            </div>
+          </div>
+        </header>
+
+        <main class="px-5 sm:px-8 py-7 max-w-6xl mx-auto">
+
+          <div id="admin-bay">
+            <div class="border-y border-linestrong py-4 grid grid-cols-2 md:grid-cols-4 gap-x-8 gap-y-3 dev">
+              <div>
+                <p class="text-silver font-bold text-lg tnum">P 99,200</p>
+                <p class="text-[11px] font-mono tracking-[0.16em] uppercase text-silverdim mt-0.5">Loan receivables</p>
+              </div>
+              <div>
+                <p class="text-silver font-bold text-lg tnum">P 214,350</p>
+                <p class="text-[11px] font-mono tracking-[0.16em] uppercase text-silverdim mt-0.5">Liquid asset</p>
+              </div>
+              <div>
+                <p class="text-good font-bold text-lg tnum">P 48,260</p>
+                <p class="text-[11px] font-mono tracking-[0.16em] uppercase text-silverdim mt-0.5">Realized interest</p>
+              </div>
+              <div>
+                <p class="text-safelight font-bold text-lg tnum">P 12,180</p>
+                <p class="text-[11px] font-mono tracking-[0.16em] uppercase text-silverdim mt-0.5">Accrued interest</p>
+              </div>
+            </div>
+
+            <div class="mt-7 grid xl:grid-cols-[1.55fr_1fr] gap-6 items-start">
+              <div>
+                <div class="flex items-baseline justify-between gap-4 mb-3">
+                  <h2 class="text-paper font-semibold text-xl tracking-tight">On the line</h2>
+                  <button data-panel="portfolio" class="text-sm text-amber hover:text-paper transition-colors font-medium">Open portfolio →</button>
+                </div>
+                <div id="bay-table" class="space-y-2.5"></div>
+              </div>
+
+              <div class="space-y-6">
+                <div class="border border-linestrong rounded-tray bg-bay2/70 overflow-hidden dev" style="animation-delay:.15s">
+                  <div class="px-4 pt-4 pb-3 border-b border-line">
+                    <h2 class="text-paper font-semibold text-lg tracking-tight">Today's batch</h2>
+                    <p class="seg text-2xl mt-2">P 18,260 <span class="text-xs font-mono font-normal text-silverdim tracking-[0.16em] align-middle">DUE</span></p>
+                  </div>
+                  <div id="batch-list" class="divide-y divide-line/70"></div>
+                  <div class="p-4">
+                    <button id="open-pay" data-panel="pay" class="w-full bg-amber text-ink font-bold text-[15px] py-3 rounded-md hover:bg-paper transition-colors inline-flex items-center justify-center gap-2">
+                      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+                      Record payment
+                    </button>
+                    <p class="mt-2.5 text-center text-xs text-silverdim">Two fields and a date. The ledger does the rest.</p>
+                  </div>
+                </div>
+
+                <div class="border border-linestrong rounded-tray bg-bay2/70 dev" style="animation-delay:.3s">
+                  <div class="px-4 pt-4 pb-3 border-b border-line flex items-baseline justify-between">
+                    <h2 class="text-paper font-semibold text-lg tracking-tight">Read the room</h2>
+                    <button id="insights-btn" class="text-xs font-mono tracking-wider uppercase text-amber hover:text-paper transition-colors">Read</button>
+                  </div>
+                  <div id="insights" class="px-4 pb-4">
+                    <p class="text-sm text-silverdim">A grease-pencil read of your portfolio, in plain words.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div id="admin-portfolio" class="hidden">
+            <div class="flex items-baseline justify-between gap-4 flex-wrap mb-4">
+              <h2 class="text-paper font-semibold text-xl tracking-tight">Portfolio</h2>
+              <div class="flex items-center gap-3">
+                <label class="inline-flex items-center gap-2 text-sm text-silverdim cursor-pointer select-none">
+                  <input id="show-paid" type="checkbox" class="accent-amber w-4 h-4"> Show fixed &amp; filed
+                </label>
+                <button id="open-issue" data-panel="issue" class="text-sm font-semibold bg-amber text-ink px-4 py-2.5 rounded-md hover:bg-paper transition-colors inline-flex items-center gap-2">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+                  Issue a loan
+                </button>
+              </div>
+            </div>
+            <div id="portfolio-table" class="space-y-2.5"></div>
+          </div>
+
+          <div id="admin-inbox" class="hidden">
+            <h2 class="text-paper font-semibold text-xl tracking-tight mb-1">Payment inbox</h2>
+            <p class="text-sm text-silverdim mb-5 max-w-2xl">Notifications from GCash and your bank land here. Confirm one and it becomes a ledger entry. No retyping.</p>
+            <div id="inbox-list" class="space-y-3 max-w-2xl"></div>
+          </div>
+
+          <div id="admin-ledger" class="hidden">
+            <h2 class="text-paper font-semibold text-xl tracking-tight mb-4">Ledger</h2>
+            <div class="border border-linestrong rounded-tray bg-bay2/70 overflow-x-auto">
+              <table class="w-full text-sm min-w-[640px]">
+                <thead>
+                  <tr class="text-left text-[11px] font-mono tracking-[0.16em] uppercase text-silverdim border-b border-linestrong">
+                    <th class="px-4 py-3 font-medium">Date</th>
+                    <th class="px-4 py-3 font-medium">Entry</th>
+                    <th class="px-4 py-3 font-medium">From → To</th>
+                    <th class="px-4 py-3 font-medium text-right">Amount</th>
+                    <th class="px-4 py-3 font-medium">Kind</th>
+                  </tr>
+                </thead>
+                <tbody id="ledger-body" class="divide-y divide-line/70"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div id="admin-users" class="hidden">
+            <div class="flex items-baseline justify-between gap-4 mb-4">
+              <h2 class="text-paper font-semibold text-xl tracking-tight">System users</h2>
+              <button id="toggle-user-form" class="text-sm font-semibold bg-amber text-ink px-4 py-2.5 rounded-md hover:bg-paper transition-colors inline-flex items-center gap-2">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+                Add user
+              </button>
+            </div>
+            <form id="user-form" class="hidden mb-5 border border-linestrong rounded-tray bg-bay2/70 p-5 max-w-2xl">
+              <div class="grid sm:grid-cols-2 gap-4">
+                <div>
+                  <label for="uf-name" class="block text-xs font-mono tracking-[0.16em] uppercase text-silverdim mb-1.5">Full name</label>
+                  <input id="uf-name" required class="w-full bg-bay border border-line rounded-md px-3 py-2.5 text-sm text-paper placeholder:text-silverdim" placeholder="e.g. Ana Reyes">
+                </div>
+                <div>
+                  <label for="uf-mobile" class="block text-xs font-mono tracking-[0.16em] uppercase text-silverdim mb-1.5">Mobile</label>
+                  <input id="uf-mobile" class="w-full bg-bay border border-line rounded-md px-3 py-2.5 text-sm text-paper placeholder:text-silverdim" placeholder="0917 000 0000">
+                </div>
+              </div>
+              <div class="mt-4 flex items-center justify-end gap-3">
+                <button type="button" id="cancel-user" class="text-sm text-silverdim hover:text-paper transition-colors px-3 py-2">Cancel</button>
+                <button type="submit" class="text-sm font-semibold bg-amber text-ink px-4 py-2.5 rounded-md hover:bg-paper transition-colors">Put on the wall</button>
+              </div>
+            </form>
+            <div id="users-list" class="border border-linestrong rounded-tray bg-bay2/70 overflow-x-auto">
+              <table class="w-full text-sm min-w-[560px]">
+                <thead>
+                  <tr class="text-left text-[11px] font-mono tracking-[0.16em] uppercase text-silverdim border-b border-linestrong">
+                    <th class="px-4 py-3 font-medium">Name</th>
+                    <th class="px-4 py-3 font-medium">Role</th>
+                    <th class="px-4 py-3 font-medium">Mobile</th>
+                  </tr>
+                </thead>
+                <tbody id="users-body" class="divide-y divide-line/70"></tbody>
+              </table>
+            </div>
+          </div>
+
+        </main>
+      </div>
+    </div>
+  </section>
+
+  <!-- RECORD PAYMENT -->
+  <section id="view-pay" class="hidden min-h-screen">
+    <div class="max-w-xl mx-auto px-5 py-10">
+      <button data-panel="bay" class="text-sm text-silverdim hover:text-amber transition-colors inline-flex items-center gap-2 mb-6">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M11 18l-6-6 6-6"/></svg>
+        Back to the bay
+      </button>
+      <h1 class="text-paper font-bold text-3xl tracking-tight">Record a payment</h1>
+      <p class="mt-2 text-sm text-silver">Pick the loan, type the amount. The rest is already fixed in the book.</p>
+
+      <form id="pay-form" class="mt-7 border border-linestrong rounded-tray bg-bay2/70 p-5 sm:p-6 space-y-5" novalidate>
+        <div>
+          <label for="pay-loan" class="block text-xs font-mono tracking-[0.16em] uppercase text-silverdim mb-1.5">Loan</label>
+          <select id="pay-loan" class="w-full bg-bay border border-line rounded-md px-3 py-2.5 text-sm text-paper"></select>
+        </div>
+        <div>
+          <label for="pay-amount" class="block text-xs font-mono tracking-[0.16em] uppercase text-silverdim mb-1.5">Amount (P)</label>
+          <input id="pay-amount" type="number" min="1" step="0.01" inputmode="decimal" class="w-full bg-bay border border-line rounded-md px-3 py-2.5 text-lg text-paper tnum" placeholder="0.00">
+          <p id="pay-amount-hint" class="mt-1.5 text-xs text-silverdim"></p>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label for="pay-date" class="block text-xs font-mono tracking-[0.16em] uppercase text-silverdim mb-1.5">Date</label>
+            <input id="pay-date" type="date" value="2026-09-11" class="w-full bg-bay border border-line rounded-md px-3 py-2.5 text-sm text-paper">
+          </div>
+          <div>
+            <label for="pay-src" class="block text-xs font-mono tracking-[0.16em] uppercase text-silverdim mb-1.5">Into</label>
+            <select id="pay-src" class="w-full bg-bay border border-line rounded-md px-3 py-2.5 text-sm text-paper">
+              <option>Cash on hand</option>
+              <option>GCash · 0917***</option>
+              <option>BPI · *4471</option>
+            </select>
+          </div>
+        </div>
+        <div class="border border-dashed border-linestrong rounded-md px-3.5 py-3 flex items-center gap-3">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9a8c74" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5-11 11"/></svg>
+          <span class="text-sm text-silverdim">Scan a receipt (coming in the production build)</span>
+        </div>
+        <p id="pay-error" class="hidden text-sm text-bad" role="alert"></p>
+        <div class="flex items-center justify-end gap-3 pt-1">
+          <button type="button" data-panel="bay" class="text-sm text-silverdim hover:text-paper transition-colors px-3 py-2">Cancel</button>
+          <button type="submit" class="text-sm font-bold bg-amber text-ink px-5 py-2.5 rounded-md hover:bg-paper transition-colors inline-flex items-center gap-2">
+            Fix it in the ledger
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg>
+          </button>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <!-- ISSUE LOAN -->
+  <section id="view-issue" class="hidden min-h-screen">
+    <div class="max-w-xl mx-auto px-5 py-10">
+      <button data-panel="portfolio" class="text-sm text-silverdim hover:text-amber transition-colors inline-flex items-center gap-2 mb-6">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M11 18l-6-6 6-6"/></svg>
+        Back to portfolio
+      </button>
+      <h1 class="text-paper font-bold text-3xl tracking-tight">Issue a loan</h1>
+      <p class="mt-2 text-sm text-silver">Three answers and it's on the line: who, how much, how long.</p>
+
+      <form id="issue-form" class="mt-7 border border-linestrong rounded-tray bg-bay2/70 p-5 sm:p-6 space-y-5" novalidate>
+        <div>
+          <label for="is-borrower" class="block text-xs font-mono tracking-[0.16em] uppercase text-silverdim mb-1.5">Borrower</label>
+          <select id="is-borrower" class="w-full bg-bay border border-line rounded-md px-3 py-2.5 text-sm text-paper"></select>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label for="is-principal" class="block text-xs font-mono tracking-[0.16em] uppercase text-silverdim mb-1.5">Principal (P)</label>
+            <input id="is-principal" type="number" min="1000" step="500" value="26000" class="w-full bg-bay border border-line rounded-md px-3 py-2.5 text-lg text-paper tnum">
+          </div>
+          <div>
+            <label for="is-term" class="block text-xs font-mono tracking-[0.16em] uppercase text-silverdim mb-1.5">Term (months)</label>
+            <input id="is-term" type="number" min="1" max="24" value="5" class="w-full bg-bay border border-line rounded-md px-3 py-2.5 text-lg text-paper tnum">
+          </div>
+        </div>
+        <div>
+          <label for="is-rate" class="block text-xs font-mono tracking-[0.16em] uppercase text-silverdim mb-1.5">Interest per month</label>
+          <div class="flex items-center gap-3">
+            <input id="is-rate" type="range" min="1" max="6" step="0.5" value="3" class="flex-1 accent-amber">
+            <span id="is-rate-out" class="font-mono font-bold text-amber tnum w-14 text-right">3.0%</span>
+          </div>
+        </div>
+        <div>
+          <label for="is-guarantor" class="block text-xs font-mono tracking-[0.16em] uppercase text-silverdim mb-1.5">Guarantor</label>
+          <select id="is-guarantor" class="w-full bg-bay border border-line rounded-md px-3 py-2.5 text-sm text-paper">
+            <option>None</option>
+            <option>Ben Tolentino</option>
+          </select>
+        </div>
+        <div class="border-t border-line pt-4 text-sm text-silverdim space-y-1" id="is-preview"></div>
+        <p id="is-error" class="hidden text-sm text-bad" role="alert"></p>
+        <div class="flex items-center justify-end gap-3">
+          <button type="button" data-panel="portfolio" class="text-sm text-silverdim hover:text-paper transition-colors px-3 py-2">Cancel</button>
+          <button type="submit" class="text-sm font-bold bg-amber text-ink px-5 py-2.5 rounded-md hover:bg-paper transition-colors">Put it on the line</button>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <!-- BORROWER -->
+  <section id="view-borrower" class="hidden min-h-screen">
+    <div class="max-w-lg mx-auto px-5 pb-16">
+      <header class="py-5 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ffb224" stroke-width="1.7" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2"/></svg>
+          <span class="text-paper font-bold tracking-[0.28em]">LENDFLOW</span>
+        </div>
+        <button data-enter="door" class="text-xs font-mono tracking-wider uppercase text-silverdim hover:text-amber transition-colors">Switch door</button>
+      </header>
+
+      <div class="dev">
+        <p class="text-paper font-bold text-3xl tracking-tight">Good afternoon, Maria</p>
+        <p class="hand text-amber text-2xl mt-1 hand-note">2 prints on your line, one nearly fixed</p>
+      </div>
+
+      <div id="borrower-owe" class="mt-6"></div>
+
+      <div class="mt-8">
+        <div class="flex items-end gap-3 px-1">
+          <div class="clip"></div>
+          <div class="rope flex-1"></div>
+          <div class="clip"></div>
+        </div>
+        <div id="borrower-prints" class="mt-5 space-y-6"></div>
+      </div>
+
+      <div class="mt-10 border-t border-line pt-5 text-center">
+        <p class="text-xs text-silverdim">Payments are recorded by your lender at Sikap Lending Circle. This page is yours to read: nothing to fill, nothing to sign.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- GUARANTOR -->
+  <section id="view-guarantor" class="hidden min-h-screen">
+    <div class="max-w-4xl mx-auto px-5 sm:px-8 pb-16">
+      <header class="py-5 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ffb224" stroke-width="1.7" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2"/></svg>
+          <span class="text-paper font-bold tracking-[0.28em]">LENDFLOW</span>
+        </div>
+        <button data-enter="door" class="text-xs font-mono tracking-wider uppercase text-silverdim hover:text-amber transition-colors">Switch door</button>
+      </header>
+
+      <div class="dev">
+        <h1 class="text-paper font-bold text-3xl tracking-tight">Ben Tolentino</h1>
+        <p class="hand text-amber text-2xl mt-1 hand-note">3 loans you've put your name under</p>
+      </div>
+
+      <div class="mt-6 border-y border-linestrong py-4 grid grid-cols-3 gap-x-6 gap-y-3 dev" style="animation-delay:.1s">
+        <div>
+          <p class="text-silver font-bold text-lg tnum">P 55,600</p>
+          <p class="text-[11px] font-mono tracking-[0.16em] uppercase text-silverdim mt-0.5">You guarantee</p>
+        </div>
+        <div>
+          <p class="text-bad font-bold text-lg tnum">P 39,200</p>
+          <p class="text-[11px] font-mono tracking-[0.16em] uppercase text-silverdim mt-0.5">At risk now</p>
+        </div>
+        <div>
+          <p class="text-good font-bold text-lg tnum">P 80,000</p>
+          <p class="text-[11px] font-mono tracking-[0.16em] uppercase text-silverdim mt-0.5">Released to date</p>
+        </div>
+      </div>
+
+      <div id="guarantor-prints" class="mt-7 space-y-2.5"></div>
+
+      <div class="mt-9">
+        <h2 class="text-paper font-semibold text-lg tracking-tight mb-3">Loans you could take under your name</h2>
+        <p class="text-sm text-silverdim mb-4">As a member of Sikap Lending Circle you can issue a loan and stand as its guarantor yourself.</p>
+          <button data-panel="issue" class="text-sm font-semibold bg-amber text-ink px-4 py-2.5 rounded-md hover:bg-paper transition-colors inline-flex items-center gap-2">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+          Issue a loan
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- STATEMENT (print) -->
+  <div id="statement" class="hidden fixed inset-0 z-40 overflow-y-auto bg-bay/80 p-4 sm:p-8">
+    <div class="max-w-2xl mx-auto papergrain text-ink rounded-print shadow-[0_18px_60px_rgba(0,0,0,.6)] p-7 sm:p-10">
+      <div class="flex items-start justify-between gap-4 border-b-2 border-ink pb-4">
+        <div>
+          <p class="font-bold tracking-[0.28em] text-lg">LENDFLOW</p>
+          <p class="text-sm text-inksoft mt-0.5">Statement of account · Sikap Lending Circle</p>
+        </div>
+        <p class="text-sm text-inksoft text-right">As of Sep 11, 2026<br>Maria Santos</p>
+      </div>
+      <div class="grid grid-cols-3 gap-4 py-5 border-b border-ink/30">
+        <div><p class="tnum font-bold text-xl">P 24,600</p><p class="text-[11px] font-mono uppercase tracking-wider text-inksoft mt-0.5">Outstanding</p></div>
+        <div><p class="tnum font-bold text-xl">P 47,400</p><p class="text-[11px] font-mono uppercase tracking-wider text-inksoft mt-0.5">Paid to date</p></div>
+        <div><p class="tnum font-bold text-xl">2</p><p class="text-[11px] font-mono uppercase tracking-wider text-inksoft mt-0.5">Active loans</p></div>
+      </div>
+      <table class="w-full text-sm mt-5">
+        <thead>
+          <tr class="text-left text-[11px] font-mono uppercase tracking-wider text-inksoft border-b border-ink/40">
+            <th class="py-2 font-medium">Date</th><th class="py-2 font-medium">Entry</th><th class="py-2 text-right font-medium">Amount</th>
+          </tr>
+        </thead>
+        <tbody id="statement-body" class="divide-y divide-ink/15"></tbody>
+      </table>
+      <p class="hand text-2xl mt-6 rotate-[-1.5deg] text-inksoft">Next payment: P 11,800 on Oct 5 — you're more than half way, Maria.</p>
+      <div class="mt-7 flex gap-3 print:hidden">
+        <button onclick="window.print()" class="text-sm font-bold bg-ink text-paper px-5 py-2.5 rounded-md hover:bg-inksoft transition-colors inline-flex items-center gap-2">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="7"/></svg>
+          Print statement
+        </button>
+        <button data-close-statement class="text-sm px-5 py-2.5 rounded-md border border-ink/40 hover:bg-ink/10 transition-colors">Back</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-50 papergrain text-ink px-5 py-3.5 rounded-md shadow-[0_10px_40px_rgba(0,0,0,.55)] flex items-center gap-3 text-sm font-medium" role="status" aria-live="polite"></div>
+</div>
+
+<script>
+const P = n => "P " + n.toLocaleString("en-PH", { maximumFractionDigits: 0 });
+const $ = s => document.querySelector(s);
+
+const users = [
+  { name: "Ana Reyes", role: "Admin", mobile: "0917 220 8814" },
+  { name: "Ben Tolentino", role: "Guarantor", mobile: "0918 455 1023" },
+  { name: "Maria Santos", role: "Borrower", mobile: "0917 803 4471" },
+  { name: "Jose Dela Cruz", role: "Borrower", mobile: "0920 118 7764" },
+  { name: "Carlo Navarro", role: "Borrower", mobile: "0995 664 2018" },
+  { name: "Nena Flores", role: "Borrower", mobile: "0916 990 3320" },
+];
+
+const loans = [
+  { id: "L-2405", name: "Maria Santos", principal: 12000, balance: 1800, rate: 3, term: 4, status: "Active", due: "Sep 30", nextAmt: 3360, nextDate: "Sep 30", nextIn: "19 days", paid: 85, source: "GCash · 0917***", ledger: [
+    ["Jun 30", "Disbursement", 12000], ["Jul 30", "Payment", 3000], ["Jul 30", "Interest", 360], ["Aug 30", "Payment", 3600], ["Aug 30", "Interest", 360], ["Sep 10", "Payment", 3300],
+  ]},
+  { id: "L-2411", name: "Maria Santos", principal: 60000, balance: 22800, rate: 3, term: 6, status: "Active", due: "Oct 5", nextAmt: 11800, nextDate: "Oct 5", nextIn: "24 days", paid: 62, source: "GCash · 0917***", ledger: [
+    ["Jul 5", "Disbursement", 60000], ["Jul 5", "Interest", 1800], ["Aug 5", "Payment", 12500], ["Aug 5", "Interest", 1800], ["Sep 5", "Payment", 12400], ["Sep 5", "Interest", 1800],
+  ]},
+  { id: "L-2412", name: "Carlo Navarro", principal: 55000, balance: 27500, rate: 3, term: 6, status: "Active", due: "Today", paid: 50, source: "Cash on hand", ledger: [
+    ["Jun 11", "Disbursement", 55000], ["Jul 11", "Payment", 9200], ["Jul 11", "Interest", 1650], ["Aug 11", "Payment", 9200], ["Aug 11", "Interest", 1650],
+  ]},
+  { id: "L-2408", name: "Jose Dela Cruz", principal: 32000, balance: 20800, rate: 3, term: 4, status: "Overdue", overdue: "4 days", due: "Sep 7", paid: 35, source: "BPI · *4471", ledger: [
+    ["Jun 20", "Disbursement", 32000], ["Jul 20", "Payment", 4800], ["Jul 20", "Interest", 960], ["Aug 20", "Payment", 4400], ["Aug 20", "Interest", 960], ["Sep 7", "Penalty", 240],
+  ]},
+  { id: "L-2409", name: "Nena Flores", principal: 40000, balance: 16400, rate: 3, term: 5, status: "Active", due: "Sep 25", paid: 59, source: "GCash · 0916***", guarantor: "Ben Tolentino", ledger: [
+    ["May 25", "Disbursement", 40000], ["Jun 25", "Payment", 8000], ["Jun 25", "Interest", 1200], ["Jul 25", "Payment", 8000], ["Jul 25", "Interest", 1200], ["Aug 25", "Payment", 7600], ["Aug 25", "Interest", 1200],
+  ]},
+  { id: "L-2413", name: "Ramon Aquino", principal: 48000, balance: 39200, rate: 3.5, term: 6, status: "Defaulted", due: "—", paid: 18, source: "Cash on hand", guarantor: "Ben Tolentino", ledger: [
+    ["Apr 12", "Disbursement", 48000], ["May 12", "Payment", 4800], ["May 12", "Interest", 1680], ["Jun 12", "Payment", 4000], ["Jun 12", "Interest", 1680],
+  ]},
+  { id: "L-2395", name: "Lita Mendoza", principal: 80000, balance: 0, rate: 3, term: 6, status: "Paid", due: "—", paid: 100, source: "BPI · *4471", guarantor: "Ben Tolentino", ledger: [
+    ["Mar 1", "Disbursement", 80000], ["Apr 1", "Payment", 13600], ["May 1", "Payment", 13600], ["Jun 1", "Payment", 13600], ["Jul 1", "Payment", 13600], ["Aug 1", "Payment", 13600], ["Sep 2", "Payment", 13960],
+  ]},
+  { id: "L-2415", name: "Grace Lim", principal: 26000, balance: 26000, rate: 3, term: 5, status: "Pending", due: "—", paid: 0, source: "GCash · 0919***", ledger: [] },
+];
+
+const inbox = [
+  { from: "GCash", text: "P 2,700 received from MARIA S SANTOS · 0917***4471", time: "Sep 11 · 10:42", loan: "L-2411", match: "Exact match" },
+  { from: "BPI", text: "P 5,000 credited from J D DELA CRUZ · *4471", time: "Sep 11 · 09:15", loan: "L-2408", match: "Likely match" },
+];
+
+const journal = [
+  ["Sep 5", "Maria Santos · loan payment", "Cash → Receivables", 12400, "Payment"],
+  ["Sep 5", "Interest earned · L-2411", "Receivables → Realized interest", 1800, "Interest"],
+  ["Sep 7", "Late penalty · L-2408", "Receivables → Penalty income", 240, "Penalty"],
+  ["Sep 2", "Lita Mendoza · loan fully paid", "Receivables → Cash", 13960, "Payment"],
+  ["Aug 25", "Nena Flores · loan payment", "Cash → Receivables", 7600, "Payment"],
+  ["Aug 20", "Jose Dela Cruz · loan payment", "Cash → Receivables", 4400, "Payment"],
+];
+
+const batch = [
+  { loan: "L-2408", name: "Jose Dela Cruz", amount: 8960, note: "Overdue 4 days · penalty P 240", late: true },
+  { loan: "L-2412", name: "Carlo Navarro", amount: 9300, note: "Due today" },
+];
+
+let lastLoanId = null;
+
+function show(id) {
+  ["view-door", "view-admin", "view-pay", "view-issue", "view-borrower", "view-guarantor"].forEach(v => {
+    const el = document.getElementById(v);
+    el.classList.toggle("hidden", v !== id);
+    if (v === id) { el.classList.remove("min-h-screen"); void el.offsetWidth; el.classList.add("min-h-screen"); }
+  });
+  window.scrollTo({ top: 0 });
+  document.querySelectorAll("#view-admin .dev").forEach(el => {
+    el.classList.remove("dev"); void el.offsetWidth; el.classList.add("dev");
+  });
+}
+
+function stageStamp(status, overdue) {
+  if (status === "Paid") return '<span class="stamp text-good -rotate-2">Paid · fixed</span>';
+  if (status === "Defaulted") return '<span class="stamp stamp-solid text-bad">Defaulted</span>';
+  if (status === "Overdue") return `<span class="stamp stamp-dash text-bad rotate-2">Overdue ${overdue}</span>`;
+  if (status === "Pending") return '<span class="stamp text-silverdim border-dashed">In the bath</span>';
+  return '<span class="stamp text-amber">Active</span>';
+}
+
+function printThumb(l, size) {
+  const p = l.paid;
+  const filter = l.status === "Paid" ? "none"
+    : l.status === "Pending" ? `blur(4px) brightness(.5) contrast(.75)`
+      : `blur(${(1 - p / 100) * 1.5}px) brightness(${0.6 + (p / 100) * 0.4}) contrast(${0.8 + (p / 100) * 0.2})`;
+  const initials = l.name.split(" ").map(w => w[0]).slice(0, 2).join("");
+  return `<span class="print-thumb papergrain text-ink grid place-items-center font-mono font-bold shrink-0" style="width:${size}px;height:${size}px;border-radius:4px;box-shadow:0 2px 6px rgba(0,0,0,.45), inset 0 0 0 1px rgba(43,32,21,.15)">
+    <span style="filter:${filter}">${initials}</span>
+  </span>`;
+}
+
+function loanRow(l, i, opts = {}) {
+  const dim = (l.status === "Paid" || l.status === "Pending") && !$("#show-paid")?.checked;
+  if (dim && opts.honorToggle) return "";
+  const progress = l.status === "Pending" ? 0 : l.paid;
+  return `<div class="dev border border-linestrong rounded-tray bg-bay2/70 px-4 py-3.5 flex items-center gap-4 hover:border-amberdeep transition-colors" style="animation-delay:${i * 70}ms">
+    ${printThumb(l, 40)}
+    <div class="min-w-0 flex-1">
+      <p class="text-paper font-semibold text-[15px] flex items-baseline gap-1.5 min-w-0"><span class="truncate">${l.name}</span><span class="font-mono text-xs text-silverdim shrink-0">${l.id}</span></p>
+      <p class="text-sm text-silverdim mt-0.5">${P(l.principal)} at ${l.rate}%/mo · ${l.term} mo${l.status === "Overdue" ? ` · <span class="text-bad">due Sep 7</span>` : l.status !== "Paid" && l.status !== "Defaulted" && l.status !== "Pending" ? ` · next due ${l.due}` : ""}</p>
+    </div>
+    <div class="hidden sm:block w-40">
+      <div class="h-1.5 rounded-full bg-bay overflow-hidden border border-line">
+        <div class="h-full rounded-full ${l.status === "Paid" ? "bg-good" : l.status === "Overdue" || l.status === "Defaulted" ? "bg-bad" : "bg-amber"}" style="width:${progress}%"></div>
+      </div>
+      <p class="text-[11px] font-mono text-silverdim mt-1 tnum whitespace-nowrap">${progress}% · ${P(l.balance)} to go</p>
+    </div>
+    <div class="text-right shrink-0">
+      <p class="font-mono font-bold text-paper text-[15px] tnum">${P(l.balance)}</p>
+      <p class="text-[11px] font-mono tracking-widest uppercase text-silverdim mt-0.5">balance</p>
+    </div>
+    ${stageStamp(l.status, l.overdue)}
+  </div>`;
+}
+
+function renderBay() {
+  $("#bay-table").innerHTML = loans.filter(l => l.status === "Active" || l.status === "Overdue").map((l, i) => loanRow(l, i)).join("");
+  $("#batch-list").innerHTML = batch.map(b => `
+    <div class="px-4 py-3.5 flex items-center gap-3">
+      <span class="w-1.5 h-1.5 rounded-full ${b.late ? "bg-bad" : "bg-amber"} shrink-0"></span>
+      <div class="min-w-0 flex-1">
+        <p class="text-sm text-paper font-medium truncate">${b.name} <span class="font-mono text-xs text-silverdim">${b.loan}</span></p>
+        <p class="text-xs ${b.late ? "text-bad" : "text-silverdim"} mt-0.5">${b.note}</p>
+      </div>
+      <span class="font-mono font-bold text-paper text-sm tnum">${P(b.amount)}</span>
+    </div>`).join("");
+  $("#seg-due").textContent = batch.length;
+}
+
+function renderPortfolio() {
+  $("#portfolio-table").innerHTML = loans.map((l, i) => loanRow(l, i, { honorToggle: true })).join("");
+}
+
+function renderLedger() {
+  const kind = k => ({ Payment: "text-good", Interest: "text-safelight", Penalty: "text-bad", Disbursement: "text-silver" })[k] || "text-silver";
+  $("#ledger-body").innerHTML = journal.map(([d, t, route, amt, k]) => `
+    <tr class="hover:bg-tray/50 transition-colors">
+      <td class="px-4 py-3 font-mono text-silverdim whitespace-nowrap">${d}</td>
+      <td class="px-4 py-3 text-paper">${t}</td>
+      <td class="px-4 py-3 font-mono text-xs text-silverdim">${route}</td>
+      <td class="px-4 py-3 text-right font-mono font-bold text-paper tnum">${P(amt)}</td>
+      <td class="px-4 py-3"><span class="stamp !border-1 !px-2 !py-1 !text-[11px] ${kind(k)}">${k}</span></td>
+    </tr>`).join("");
+}
+
+function renderUsers() {
+  const roleClass = { Admin: "text-amber", Guarantor: "text-safelight", Borrower: "text-good" };
+  $("#users-body").innerHTML = users.map(u => `
+    <tr class="hover:bg-tray/50 transition-colors">
+      <td class="px-4 py-3 text-paper font-medium">${u.name}</td>
+      <td class="px-4 py-3"><span class="stamp !border-1 !px-2 !py-1 !text-[11px] ${roleClass[u.role]}">${u.role}</span></td>
+      <td class="px-4 py-3 font-mono text-silverdim">${u.mobile || "—"}</td>
+    </tr>`).join("");
+}
+
+function renderInbox() {
+  $("#inbox-list").innerHTML = inbox.length ? inbox.map(m => `
+    <div class="dev border border-linestrong rounded-tray bg-bay2/70 p-4 flex flex-wrap items-center gap-4">
+      <div class="min-w-0 flex-1 basis-64">
+        <p class="flex items-center gap-2 text-sm"><span class="font-mono text-[11px] tracking-widest uppercase text-amber">${m.from}</span><span class="text-silverdim font-mono text-xs">${m.time}</span></p>
+        <p class="text-paper mt-1.5">${m.text}</p>
+        <p class="text-xs text-silverdim mt-1.5 font-mono">Suggests ${m.loan} · ${m.match}</p>
+      </div>
+      <button data-book="${m.loan}" class="text-sm font-semibold bg-amber text-ink px-4 py-2.5 rounded-md hover:bg-paper transition-colors whitespace-nowrap">Book as payment</button>
+    </div>`).join("") : `<p class="text-sm text-silverdim border border-dashed border-linestrong rounded-tray p-6 text-center">Inbox empty — every notification is booked.</p>`;
+  const b = $("#inbox-badge");
+  b.textContent = inbox.length;
+  b.classList.toggle("hidden", !inbox.length);
+}
+
+function renderBorrower() {
+  const mine = loans.filter(l => ["Maria Santos"].includes(l.name));
+  const owed = mine.reduce((s, l) => s + l.balance, 0);
+  const next = mine.slice().sort((a, b) => (a.nextIn || "999").localeCompare(b.nextIn, undefined, { numeric: true }))[0];
+  $("#borrower-owe").innerHTML = next ? `
+    <div class="dev border-y border-linestrong py-4 flex flex-wrap items-baseline gap-x-3 gap-y-1" style="animation-delay:.1s">
+      <p class="text-[11px] font-mono tracking-[0.16em] uppercase text-silverdim">You owe</p>
+      <p class="tnum font-bold text-lg text-paper">${P(owed)}</p>
+      <p class="text-sm text-silverdim">across ${mine.length} loans · next payment <span class="tnum font-bold text-amber">${P(next.nextAmt)}</span> due ${next.nextDate} · <span class="text-safelight">in ${next.nextIn}</span></p>
+    </div>` : "";
+  $("#borrower-prints").innerHTML = mine.map((l, i) => `
+    <div class="dev papergrain text-ink rounded-print p-5 sm:p-6 ${i % 2 ? "rotate-[0.4deg]" : "rotate-[-0.5deg]"} shadow-[0_10px_30px_rgba(0,0,0,.5)]" style="animation-delay:${i * 120}ms">
+      <div class="flex items-start justify-between gap-3">
+        <div>
+          <p class="font-mono text-xs tracking-widest text-inksoft flex items-baseline gap-1.5"><span class="truncate">${l.id}</span><span class="shrink-0">· ${l.rate}%/mo</span></p>
+          <p class="tnum font-bold text-4xl mt-1">${P(l.balance)}</p>
+          <p class="text-sm text-inksoft mt-1">left of ${P(l.principal)} · <span class="font-semibold text-ink">${l.paid}% paid</span></p>
+        </div>
+        <span class="stamp ${l.status === "Active" ? "text-amberdeep" : ""} rotate-2">${l.status}</span>
+      </div>
+      <div class="mt-4">
+        <div class="h-2 rounded-full bg-ink/10 overflow-hidden border border-ink/20">
+          <div class="h-full rounded-full bg-amberdeep" style="width:${l.paid}%"></div>
+        </div>
+        <div class="mt-1.5 flex justify-between font-mono text-[11px] uppercase tracking-wider text-inksoft">
+          <span>Received</span><span>${l.term} monthly payments</span><span>Paid</span>
+        </div>
+      </div>
+      <div class="mt-4 rounded-print border border-amberdeep/50 bg-amberdeep/10 px-3.5 py-2.5 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+        <span class="text-[11px] font-mono uppercase tracking-[0.16em] text-inksoft">Payment due</span>
+        <span class="tnum font-bold text-xl text-ink">${P(l.nextAmt)}</span>
+        <span class="text-sm text-inksoft">on <span class="font-semibold text-ink">${l.nextDate}</span> · <span class="font-semibold text-amberdeep">in ${l.nextIn}</span></span>
+      </div>
+      <div class="mt-4 flex flex-wrap items-center justify-between gap-3">
+        <div class="flex gap-2">
+          <button data-stmt class="text-sm font-semibold text-ink border border-ink/40 px-4 py-2.5 rounded-md hover:bg-ink/10 transition-colors">Statement</button>
+          <button data-expand="${l.id}" class="text-sm font-semibold text-paper bg-ink px-4 py-2.5 rounded-md hover:bg-inksoft transition-colors">Ledger</button>
+        </div>
+      </div>
+      <div id="led-${l.id}" class="hidden mt-4 border-t border-ink/20 pt-3">
+        <table class="w-full text-sm">
+          <tbody class="divide-y divide-ink/10">
+            ${l.ledger.map(([d, k, a]) => `<tr><td class="py-2 font-mono text-inksoft whitespace-nowrap">${d}</td><td class="py-2">${k === "Payment" ? "Your payment" : k}</td><td class="py-2 text-right tnum font-semibold ${k === "Payment" ? "text-ink" : "text-inksoft"}">${k === "Payment" ? "−" : "+"}${P(a).slice(2)}</td></tr>`).join("")}
+          </tbody>
+        </table>
+      </div>
+    </div>`).join("");
+  renderStatement(mine);
+}
+
+function renderStatement(mine) {
+  $("#statement-body").innerHTML = mine.flatMap(l => l.ledger.map(([d, k, a]) => `
+    <tr><td class="py-2.5 font-mono text-inksoft whitespace-nowrap">${d}, 2026</td><td class="py-2.5">${k === "Payment" ? "Loan payment" : k}</td><td class="py-2.5 text-right tnum font-semibold">${k === "Payment" ? "−" : "+"}${P(a).slice(2)}</td></tr>`)).join("");
+}
+
+function renderGuarantor() {
+  const g = loans.filter(l => l.guarantor === "Ben Tolentino" && l.balance > 0);
+  $("#guarantor-prints").innerHTML = g.map((l, i) => loanRow(l, i)).join("") + `
+    <div class="border border-linestrong rounded-tray bg-bay2/40 px-4 py-3.5 flex items-center gap-4">
+      ${printThumb({ name: "Lita Mendoza", paid: 100, status: "Paid" }, 40)}
+      <div class="min-w-0 flex-1">
+        <p class="text-silverdim font-medium text-[15px] flex items-baseline gap-1.5"><span class="truncate">Lita Mendoza</span><span class="font-mono text-xs shrink-0">L-2395</span></p>
+        <p class="text-sm text-silverdim mt-0.5">Your name came off this one: fully paid Sep 2.</p>
+      </div>
+      <span class="stamp text-good -rotate-2">Released</span>
+    </div>`;
+}
+
+document.addEventListener("click", e => {
+  const enter = e.target.closest("[data-enter]");
+  if (enter) {
+    const t = enter.dataset.enter;
+    if (t === "door") { show("view-door"); return; }
+    if (t === "admin") { show("view-admin"); navAdmin("bay"); renderAll(); return; }
+    if (t === "borrower") { renderBorrower(); show("view-borrower"); return; }
+    if (t === "guarantor") { renderGuarantor(); show("view-guarantor"); return; }
+  }
+  const panel = e.target.closest("[data-panel]");
+  if (panel) { navAdmin(panel.dataset.panel); return; }
+  const book = e.target.closest("[data-book]");
+  if (book) {
+    const id = book.dataset.book;
+    const m = inbox.find(x => x.loan === id);
+    const loan = loans.find(l => l.id === id);
+    if (m && loan) {
+      loan.balance = Math.max(0, loan.balance - 2500);
+      loan.paid = Math.round((1 - loan.balance / loan.principal) * 100);
+      loan.ledger.unshift(["Sep 11", "Payment", 2500]);
+      journal.unshift(["Sep 11", `${loan.name} · booked from ${m.from}`, `${m.from} → Receivables`, 2500, "Payment"]);
+      inbox.splice(inbox.indexOf(m), 1);
+      renderInbox(); renderAll();
+      toast(`Booked P 2,500 to ${loan.name} — the print develops a step.`);
+      lastLoanId = id;
+    }
+    return;
+  }
+  const expand = e.target.closest("[data-expand]");
+  if (expand) {
+    const el = document.getElementById("led-" + expand.dataset.expand);
+    el.classList.toggle("hidden");
+    return;
+  }
+  const stmt = e.target.closest("[data-stmt]");
+  if (stmt) { $("#statement").classList.remove("hidden"); return; }
+  if (e.target.closest("[data-close-statement]") || e.target === $("#statement")) { $("#statement").classList.add("hidden"); return; }
+});
+
+function navAdmin(p) {
+  if (p === "pay") { show("view-pay"); fillPaySelect(); return; }
+  if (p === "issue") { show("view-issue"); fillIssueSelect(); return; }
+  ["bay", "portfolio", "inbox", "ledger", "users"].forEach(k => {
+    document.getElementById("admin-" + k).classList.toggle("hidden", k !== p);
+  });
+  document.querySelectorAll(".adm-nav").forEach(b => {
+    const on = b.dataset.panel === p;
+    b.classList.toggle("bg-tray", on);
+    b.classList.toggle("text-amber", on);
+    b.classList.toggle("text-silver", !on);
+    if (on) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current");
+  });
+  show("view-admin");
+}
+
+function renderAll() { renderBay(); renderPortfolio(); renderLedger(); renderUsers(); renderInbox(); }
+
+function toast(msg) {
+  const t = $("#toast");
+  t.innerHTML = `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#5f8c3f" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg>${msg}`;
+  t.classList.remove("hidden");
+  t.classList.add("pulse-fix");
+  clearTimeout(t._h);
+  t._h = setTimeout(() => t.classList.add("hidden"), 4200);
+}
+
+function fillPaySelect() {
+  $("#pay-loan").innerHTML = loans.filter(l => l.status === "Active" || l.status === "Overdue").map(l => `<option value="${l.id}">${l.name} · ${l.id} · ${P(l.balance)} left</option>`).join("");
+  hintPay();
+}
+function hintPay() {
+  const l = loans.find(x => x.id === $("#pay-loan").value);
+  $("#pay-amount-hint").textContent = l ? `Balance ${P(l.balance)} · next due ${l.due}` : "";
+}
+$("#pay-loan").addEventListener("change", hintPay);
+
+$("#pay-form").addEventListener("submit", e => {
+  e.preventDefault();
+  const err = $("#pay-error");
+  const l = loans.find(x => x.id === $("#pay-loan").value);
+  const amt = parseFloat($("#pay-amount").value);
+  if (!l) { err.textContent = "Pick a loan first — which print is this payment for?"; err.classList.remove("hidden"); return; }
+  if (!amt || amt <= 0) { err.textContent = "Enter the amount that actually landed."; err.classList.remove("hidden"); return; }
+  if (amt > l.balance) { err.textContent = `That's more than the ${P(l.balance)} still owed. Record ${P(l.balance)} or less.`; err.classList.remove("hidden"); return; }
+  err.classList.add("hidden");
+  l.balance = Math.round(l.balance - amt);
+  l.paid = Math.min(100, Math.round((1 - l.balance / l.principal) * 100));
+  if (l.balance === 0) { l.status = "Paid"; l.due = "—"; }
+  l.ledger.unshift(["Sep 11", "Payment", amt]);
+  journal.unshift(["Sep 11", `${l.name} · loan payment`, `${$("#pay-src").value} → Receivables`, amt, "Payment"]);
+  lastLoanId = l.id;
+  renderAll();
+  toast(`${P(amt)} fixed in the ledger for ${l.name}${l.balance === 0 ? " — that loan is fully developed." : "."}`);
+  navAdmin("portfolio");
+  const row = $(`#portfolio-table .dev`);
+  if (row) row.classList.add("pulse-fix");
+  $("#pay-amount").value = "";
+});
+
+$("#pay-amount").addEventListener("input", () => $("#pay-error").classList.add("hidden"));
+
+$("#signin-btn").addEventListener("click", () => {
+  toast("Single sign-on is wired in the production build. This demo opens the doors directly.");
+});
+
+$("#is-rate").addEventListener("input", () => {
+  $("#is-rate-out").textContent = parseFloat($("#is-rate").value).toFixed(1) + "%";
+  previewIssue();
+});
+
+function fillIssueSelect() {
+  $("#is-borrower").innerHTML = users.filter(u => u.role === "Borrower").map(u => `<option>${u.name}</option>`).join("");
+  previewIssue();
+}
+function previewIssue() {
+  const p = parseFloat($("#is-principal").value) || 0;
+  const t = parseInt($("#is-term").value) || 1;
+  const r = parseFloat($("#is-rate").value) / 100;
+  const monthly = p / t + p * r;
+  $("#is-preview").innerHTML = `<p>Monthly payment: <span class="tnum font-bold text-paper">${P(Math.round(monthly))}</span> × ${t} months</p>
+  <p>Total interest: <span class="tnum font-semibold text-safelight">${P(Math.round(p * r * t))}</span> · total to collect: <span class="tnum font-semibold text-paper">${P(Math.round(p * (1 + r * t)))}</span></p>`;
+}
+$("#is-principal").addEventListener("input", previewIssue);
+$("#is-term").addEventListener("input", previewIssue);
+
+$("#issue-form").addEventListener("submit", e => {
+  e.preventDefault();
+  const err = $("#is-error");
+  const p = parseFloat($("#is-principal").value);
+  if (!p || p < 1000) { err.textContent = "Loans start at P 1,000."; err.classList.remove("hidden"); return; }
+  loans.unshift({
+    id: "L-24" + String(16 + loans.filter(l => l.status === "Pending").length), name: $("#is-borrower").value,
+    principal: p, balance: p, rate: parseFloat($("#is-rate").value), term: parseInt($("#is-term").value),
+    status: "Pending", due: "—", paid: 0, source: "Cash on hand",
+    guarantor: $("#is-guarantor").value === "None" ? undefined : $("#is-guarantor").value, ledger: [],
+  });
+  renderAll();
+  toast(`${$("#is-borrower").value}'s loan is in the bath — it develops when the first payment lands.`);
+  navAdmin("portfolio");
+});
+
+const form = $("#user-form");
+$("#toggle-user-form").addEventListener("click", () => { form.classList.toggle("hidden"); if (!form.classList.contains("hidden")) $("#uf-name").focus(); });
+$("#cancel-user").addEventListener("click", () => form.classList.add("hidden"));
+form.addEventListener("submit", e => {
+  e.preventDefault();
+  const name = $("#uf-name").value.trim();
+  if (!name) return;
+  users.push({ name, role: "Borrower", mobile: $("#uf-mobile").value });
+  $("#uf-name").value = ""; $("#uf-mobile").value = "";
+  form.classList.add("hidden");
+  renderUsers();
+  toast(`${name} is on the wall.`);
+});
+
+$("#insights-btn").addEventListener("click", () => {
+  $("#insights").innerHTML = `
+    <ul class="space-y-2.5 dev">
+      <li class="hand text-2xl text-paper leading-snug hand-note">Jose slipped twice now — confirm his October payment before lending him again.</li>
+      <li class="hand text-2xl text-silver leading-snug hand-note" style="animation-delay:.15s">You collect 92 cents of every peso lent this quarter — steady hands.</li>
+      <li class="hand text-2xl text-silver leading-snug hand-note" style="animation-delay:.3s">Nena's line will read "fixed" by November at this pace.</li>
+    </ul>`;
+});
+
+document.addEventListener("keydown", e => {
+  if (e.key !== "Escape") return;
+  if (!$("#statement").classList.contains("hidden")) $("#statement").classList.add("hidden");
+});
+
+renderAll();
+</script>
+</body>
+</html>

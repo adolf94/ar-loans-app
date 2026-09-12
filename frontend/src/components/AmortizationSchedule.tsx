@@ -1,15 +1,4 @@
 import React from 'react';
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableContainer,
-    TableHead,
-    TableRow,
-    Paper,
-    Typography,
-    Box
-} from '@mui/material';
 import dayjs from 'dayjs';
 
 interface AmortizationScheduleProps {
@@ -36,10 +25,8 @@ const AmortizationSchedule: React.FC<AmortizationScheduleProps> = ({
 
         let emi = 0;
         if (interestBase === 'principal') {
-            // Flat Rate
             emi = (p + (p * r * n)) / n;
         } else {
-            // Reducing Balance (EMI)
             if (r === 0) emi = p / n;
             else emi = (p * r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
         }
@@ -77,37 +64,35 @@ const AmortizationSchedule: React.FC<AmortizationScheduleProps> = ({
     if (schedule.length === 0) return null;
 
     return (
-        <Box sx={{ mt: 2 }}>
-            <Typography variant="subtitle2" gutterBottom fontWeight={700} color="primary">
-                Forthcoming Payments (Amortization Schedule)
-            </Typography>
-            <TableContainer component={Paper} variant="outlined" sx={{ maxHeight: 300 }}>
-                <Table size="small" stickyHeader>
-                    <TableHead>
-                        <TableRow>
-                            <TableCell sx={{ fontWeight: 700, bgcolor: 'grey.50' }}>#</TableCell>
-                            <TableCell sx={{ fontWeight: 700, bgcolor: 'grey.50' }}>Date</TableCell>
-                            <TableCell align="right" sx={{ fontWeight: 700, bgcolor: 'grey.50' }}>Payment</TableCell>
-                            <TableCell align="right" sx={{ fontWeight: 700, bgcolor: 'grey.50' }}>Principal</TableCell>
-                            <TableCell align="right" sx={{ fontWeight: 700, bgcolor: 'grey.50' }}>Interest</TableCell>
-                            <TableCell align="right" sx={{ fontWeight: 700, bgcolor: 'grey.50' }}>Balance</TableCell>
-                        </TableRow>
-                    </TableHead>
-                    <TableBody>
+        <div className="mt-2">
+            <p className="text-[11px] font-mono tracking-[0.16em] uppercase opacity-60 mb-1.5">Forthcoming payments (amortization schedule)</p>
+            <div className="overflow-x-auto max-h-[300px] overflow-y-auto border border-current/25 rounded-md">
+                <table className="w-full text-sm min-w-[640px]">
+                    <thead>
+                        <tr className="text-left text-[11px] font-mono uppercase tracking-[0.16em] opacity-60 border-b border-current/30">
+                            <th className="py-2 px-3 font-medium">#</th>
+                            <th className="py-2 px-3 font-medium">Date</th>
+                            <th className="py-2 px-3 text-right font-medium">Payment</th>
+                            <th className="py-2 px-3 text-right font-medium">Principal</th>
+                            <th className="py-2 px-3 text-right font-medium">Interest</th>
+                            <th className="py-2 px-3 text-right font-medium">Balance</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-current/15">
                         {schedule.map((row) => (
-                            <TableRow key={row.period} hover>
-                                <TableCell>{row.period}</TableCell>
-                                <TableCell>{row.date}</TableCell>
-                                <TableCell align="right">P {row.payment.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
-                                <TableCell align="right">P {row.principal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
-                                <TableCell align="right">P {row.interest.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
-                                <TableCell align="right" sx={{ fontWeight: 600 }}>P {row.balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
-                            </TableRow>
+                            <tr key={row.period}>
+                                <td className="py-2 px-3 font-mono text-xs opacity-70">{row.period}</td>
+                                <td className="py-2 px-3 font-mono text-xs whitespace-nowrap opacity-70">{row.date}</td>
+                                <td className="py-2 px-3 text-right font-mono tnum whitespace-nowrap">P {row.payment.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                <td className="py-2 px-3 text-right font-mono tnum whitespace-nowrap">P {row.principal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                <td className="py-2 px-3 text-right font-mono tnum whitespace-nowrap">P {row.interest.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                <td className="py-2 px-3 text-right font-mono tnum font-bold whitespace-nowrap">P {row.balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                            </tr>
                         ))}
-                    </TableBody>
-                </Table>
-            </TableContainer>
-        </Box>
+                    </tbody>
+                </table>
+            </div>
+        </div>
     );
 };
 

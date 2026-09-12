@@ -1,10 +1,4 @@
 import React, { useMemo, useState } from 'react';
-import {
-    Box, Typography, Button, Paper, Table, TableBody, TableCell,
-    TableContainer, TableHead, TableRow, Dialog, DialogTitle,
-    DialogContent, DialogActions, TextField, IconButton, Chip, Alert,
-    FormControl, InputLabel, Select, MenuItem, ListSubheader, Stack, Divider, CircularProgress
-} from '@mui/material';
 import { Link2, Unlink, RefreshCw, PlayCircle, Wallet } from 'lucide-react';
 import {
     useLinkedBalances, useFinanceAccounts, useFinanceAccountGroups, useAccountLinks,
@@ -17,11 +11,18 @@ import type { LinkedBalanceRow, IngestionRecord, FinanceAccount } from '../../re
 import { useLoans } from '../../repositories/loan';
 import { useUsers } from '../../repositories/user';
 import { useIsMobile } from '../../theme';
+import { Button, IconButton, Stamp, Dialog, Spinner, Divider, Label, Panel } from '../ui';
 
 const SECTIONS = ['Assets', 'Liabilities', 'Income', 'Expenses'];
 
 const money = (n: number | null | undefined) =>
     n == null ? '—' : `P ${n.toLocaleString()}`;
+
+const stampTone = (s: string): 'good' | 'bad' | 'silver' | 'amber' | 'safelight' =>
+    s === 'Completed' ? 'good'
+        : s === 'Failed' ? 'bad'
+            : s === 'Cancelled' ? 'silver'
+                : s === 'Processing' ? 'safelight' : 'amber';
 
 const LinkRow: React.FC<{ row: LinkedBalanceRow }> = ({ row }) => {
     const { data: financeAccounts = [] } = useFinanceAccounts();
@@ -29,7 +30,6 @@ const LinkRow: React.FC<{ row: LinkedBalanceRow }> = ({ row }) => {
     const { data: links = [] } = useAccountLinks();
     const upsert = useUpsertAccountLink();
     const remove = useDeleteAccountLink();
-    const isMobile = useIsMobile();
 
     const existingLink = links.find(l => l.loanAccountId === row.loanAccountId);
     const [selected, setSelected] = useState<string>(row.financeAccountId ?? '');
@@ -55,80 +55,53 @@ const LinkRow: React.FC<{ row: LinkedBalanceRow }> = ({ row }) => {
     const dirty = selected !== (row.financeAccountId ?? '');
 
     return (
-        <TableRow>
-            <TableCell>
-                <Typography fontWeight={600}>{row.loanAccountName}</Typography>
-                <Typography variant="caption" color="text.secondary">{row.section}</Typography>
-            </TableCell>
-            <TableCell align="right">{money(row.loanBalance)}</TableCell>
-            <TableCell>
-                <FormControl size="small" fullWidth>
-                    {isMobile ? (
-                        <Select
-                            native
-                            value={selected}
-                            onChange={(e) => setSelected(e.target.value)}
-                        >
-                            <option value="">Not linked</option>
-                            {groupedAccounts.map(([group, accounts]) => (
-                                <optgroup key={group} label={group}>
-                                    {accounts.map(f => (
-                                        <option key={f.id} value={f.id}>{f.name} ({f.accountType})</option>
-                                    ))}
-                                </optgroup>
+        <tr className="hover:bg-tray/50 transition-colors">
+            <td className="px-4 py-3">
+                <p className="text-sm text-paper font-semibold">{row.loanAccountName}</p>
+                <p className="text-xs text-silverdim">{row.section}</p>
+            </td>
+            <td className="px-4 py-3 text-right font-mono text-paper tnum">{money(row.loanBalance)}</td>
+            <td className="px-4 py-3">
+                <select
+                    className="w-full bg-bay border border-line rounded-md px-3 py-2 text-sm text-paper focus:border-amberdeep"
+                    value={selected}
+                    onChange={(e) => setSelected(e.target.value)}
+                >
+                    <option value="">Not linked</option>
+                    {groupedAccounts.map(([group, accounts]) => (
+                        <optgroup key={group} label={group}>
+                            {accounts.map(f => (
+                                <option key={f.id} value={f.id}>{f.name} ({f.accountType})</option>
                             ))}
-                        </Select>
-                    ) : (
-                        <Select
-                            value={selected}
-                            displayEmpty
-                            onChange={(e) => setSelected(e.target.value)}
-                            renderValue={(v) => v
-                                ? (financeAccounts.find(f => f.id === v)?.name ?? '(missing account)')
-                                : <em style={{ opacity: 0.6 }}>Not linked</em>}
-                        >
-                            <MenuItem value="">
-                                <em>Not linked</em>
-                            </MenuItem>
-                            {groupedAccounts.flatMap(([group, accounts]) => [
-                                <ListSubheader key={group} sx={{ bgcolor: 'background.paper', fontWeight: 700 }}>
-                                    {group}
-                                </ListSubheader>,
-                                ...accounts.map(f => (
-                                    <MenuItem key={f.id} value={f.id}>
-                                        <Box component="span" sx={{ flexGrow: 1 }}>{f.name}</Box>
-                                        <Box component="span" sx={{ opacity: 0.6, ml: 1 }}>{f.accountType}</Box>
-                                    </MenuItem>
-                                ))
-                            ])}
-                        </Select>
-                    )}
-                </FormControl>
-            </TableCell>
-            <TableCell align="right">{money(currentLink?.currentBalance)}</TableCell>
-            <TableCell align="right">
-                <Stack direction="row" spacing={1} justifyContent="flex-end" alignItems="center">
+                        </optgroup>
+                    ))}
+                </select>
+            </td>
+            <td className="px-4 py-3 text-right font-mono text-silver tnum">{money(currentLink?.currentBalance)}</td>
+            <td className="px-4 py-3">
+                <div className="flex justify-end items-center gap-2">
                     <Button
-                        size="small"
-                        variant={row.isLinked ? 'outlined' : 'contained'}
-                        startIcon={<Link2 size={14} />}
+                        size="sm"
+                        variant={row.isLinked ? 'outline' : 'amber'}
+                        startIcon={<Link2 size={14} strokeWidth={1.7} />}
                         disabled={!dirty || !selected || upsert.isPending}
                         onClick={() => upsert.mutate({ loanAccountId: row.loanAccountId, financeAccountId: selected })}>
                         {row.isLinked ? 'Update' : 'Link'}
                     </Button>
                     {existingLink && (
                         <IconButton
-                            size="small" color="error" disabled={remove.isPending}
+                            label="Unlink account"
+                            disabled={remove.isPending}
                             onClick={() => {
                                 if (window.confirm('Unlink this account? Existing mirrored transactions are kept in finance.'))
                                     remove.mutate(existingLink.id);
                             }}>
-                            <Unlink size={16} />
+                            <Unlink size={16} strokeWidth={1.7} />
                         </IconButton>
                     )}
-                </Stack>
-            </TableCell>
-        </TableRow>
+                </div>
+            </td>
+        </tr>
     );
 };
 
@@ -179,59 +152,95 @@ const IngestionProcessDialog: React.FC<{
     };
 
     return (
-        <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-            <DialogTitle>Process Notification into Loan Payment</DialogTitle>
-            <DialogContent>
-                <Stack spacing={2} sx={{ pt: 1 }}>
-                    {ingestion && (
-                        <Alert severity="info" variant="outlined">
-                            <Typography variant="body2" fontWeight={600}>{ingestionDisplayText(ingestion) ?? 'Ingestion event'}</Typography>
-                            <Typography variant="caption" color="text.secondary">ID: {ingestion.id}</Typography>
-                        </Alert>
+        <Dialog
+            open={open}
+            onClose={onClose}
+            title="Process Notification into Loan Payment"
+            width="max-w-xl"
+            actions={
+                <>
+                    <Button variant="ghost" onClick={onClose}>Cancel</Button>
+                    <Button onClick={onSubmit} disabled={!canSubmit}
+                        startIcon={process.isPending ? <Spinner size={16} /> : <PlayCircle size={18} strokeWidth={1.7} />}>
+                        {process.isPending ? 'Processing...' : 'Create Payment'}
+                    </Button>
+                </>
+            }
+        >
+            <div className="flex flex-col gap-4">
+                {ingestion && (
+                    <div className="border border-linestrong rounded-tray bg-tray/50 px-4 py-3 text-sm">
+                        <p className="font-semibold text-paper">{ingestionDisplayText(ingestion) ?? 'Ingestion event'}</p>
+                        <p className="text-xs text-silverdim font-mono mt-0.5">ID: {ingestion.id}</p>
+                    </div>
+                )}
+                <div>
+                    <Label>Loan</Label>
+                    <select
+                        className="w-full bg-bay border border-line rounded-md px-3 py-2.5 text-sm text-paper focus:border-amberdeep"
+                        value={loanId}
+                        onChange={(e) => setLoanId(e.target.value)}
+                    >
+                        {activeLoans.map(l => (
+                            <option key={l.id} value={l.id}>
+                                {userName(l.clientId)} — {l.alternateId} (bal {money(l.balance)})
+                            </option>
+                        ))}
+                    </select>
+                </div>
+                <div>
+                    <Label>Deposit To (linked account)</Label>
+                    <select
+                        className="w-full bg-bay border border-line rounded-md px-3 py-2.5 text-sm text-paper focus:border-amberdeep disabled:opacity-50"
+                        value={destinationAccountId}
+                        onChange={(e) => setDestination(e.target.value)}
+                        disabled={linkedAssetAccounts.length === 0}
+                    >
+                        {linkedAssetAccounts.map(b => (
+                            <option key={b.loanAccountId} value={b.loanAccountId}>
+                                {b.loanAccountName} ({money(b.loanBalance)})
+                            </option>
+                        ))}
+                    </select>
+                    {linkedAssetAccounts.length === 0 && (
+                        <p className="mt-1.5 text-xs text-bad">
+                            Link at least one Asset account (and Loan Receivables) above first.
+                        </p>
                     )}
-                    <FormControl fullWidth>
-                        <InputLabel>Loan</InputLabel>
-                        <Select value={loanId} label="Loan" onChange={(e) => setLoanId(e.target.value)}>
-                            {activeLoans.map(l => (
-                                <MenuItem key={l.id} value={l.id}>
-                                    {userName(l.clientId)} — {l.alternateId} (bal {money(l.balance)})
-                                </MenuItem>
-                            ))}
-                        </Select>
-                    </FormControl>
-                    <FormControl fullWidth disabled={linkedAssetAccounts.length === 0}>
-                        <InputLabel>Deposit To (linked account)</InputLabel>
-                        <Select value={destinationAccountId} label="Deposit To (linked account)"
-                            onChange={(e) => setDestination(e.target.value)}>
-                            {linkedAssetAccounts.map(b => (
-                                <MenuItem key={b.loanAccountId} value={b.loanAccountId}>
-                                    {b.loanAccountName} ({money(b.loanBalance)})
-                                </MenuItem>
-                            ))}
-                        </Select>
-                        {linkedAssetAccounts.length === 0 && (
-                            <Typography variant="caption" color="error" sx={{ mt: 0.5 }}>
-                                Link at least one Asset account (and Loan Receivables) above first.
-                            </Typography>
-                        )}
-                    </FormControl>
-                    <TextField label="Amount" type="number" value={amount}
-                        onChange={(e) => setAmount(e.target.value)} fullWidth />
-                    <TextField label="Date" type="date" value={date}
+                </div>
+                <div>
+                    <Label>Amount</Label>
+                    <input
+                        type="number"
+                        className="w-full bg-bay border border-line rounded-md px-3 py-2.5 text-sm text-paper tnum focus:border-amberdeep"
+                        value={amount}
+                        onChange={(e) => setAmount(e.target.value)}
+                    />
+                </div>
+                <div>
+                    <Label>Date</Label>
+                    <input
+                        type="date"
+                        className="w-full bg-bay border border-line rounded-md px-3 py-2.5 text-sm text-paper focus:border-amberdeep"
+                        value={date}
                         onChange={(e) => setDate(e.target.value)}
-                        InputLabelProps={{ shrink: true }} fullWidth />
-                    <TextField label="Note / Reference" value={note}
-                        onChange={(e) => setNote(e.target.value)} fullWidth multiline minRows={2} />
-                    {process.isError && <Alert severity="error">{errorMessage()}</Alert>}
-                </Stack>
-            </DialogContent>
-            <DialogActions>
-                <Button onClick={onClose}>Cancel</Button>
-                <Button variant="contained" onClick={onSubmit} disabled={!canSubmit}
-                    startIcon={process.isPending ? <CircularProgress size={16} /> : <PlayCircle size={18} />}>
-                    {process.isPending ? 'Processing...' : 'Create Payment'}
-                </Button>
-            </DialogActions>
+                    />
+                </div>
+                <div>
+                    <Label>Note / Reference</Label>
+                    <textarea
+                        rows={2}
+                        className="w-full bg-bay border border-line rounded-md px-3 py-2.5 text-sm text-paper focus:border-amberdeep"
+                        value={note}
+                        onChange={(e) => setNote(e.target.value)}
+                    />
+                </div>
+                {process.isError && (
+                    <div className="border border-bad/60 rounded-tray bg-bad/10 px-4 py-3 text-sm text-bad" role="alert">
+                        {errorMessage()}
+                    </div>
+                )}
+            </div>
         </Dialog>
     );
 };
@@ -243,64 +252,68 @@ const IngestionsSection: React.FC = () => {
     const [open, setOpen] = useState(false);
 
     return (
-        <Box>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                <Typography variant="h6" fontWeight={700}>Notifications (Ingestions)</Typography>
-                <Stack direction="row" spacing={1} alignItems="center">
-                    <FormControl size="small">
-                        <Select value={status} onChange={(e) => setStatus(e.target.value)} size="small">
-                            <MenuItem value="Pending">Pending</MenuItem>
-                            <MenuItem value="Confirmed">Confirmed</MenuItem>
-                            <MenuItem value="Dismissed">Dismissed</MenuItem>
-                        </Select>
-                    </FormControl>
-                    <IconButton size="small" onClick={() => refetch()} disabled={isFetching}>
-                        <RefreshCw size={16} />
+        <div>
+            <div className="flex justify-between items-center flex-wrap gap-3 mb-3">
+                <h2 className="text-paper font-semibold text-lg tracking-tight">Notifications (Ingestions)</h2>
+                <div className="flex items-center gap-2">
+                    <select
+                        className="bg-bay border border-line rounded-md px-3 py-2 text-sm text-paper focus:border-amberdeep"
+                        value={status}
+                        onChange={(e) => setStatus(e.target.value)}
+                    >
+                        <option value="Pending">Pending</option>
+                        <option value="Confirmed">Confirmed</option>
+                        <option value="Dismissed">Dismissed</option>
+                    </select>
+                    <IconButton label="Refresh ingestions" onClick={() => refetch()} disabled={isFetching}>
+                        <RefreshCw size={16} strokeWidth={1.7} className={isFetching ? 'animate-spin' : ''} />
                     </IconButton>
-                </Stack>
-            </Box>
+                </div>
+            </div>
 
-            <TableContainer component={Paper} variant="outlined">
-                <Table size="small">
-                    <TableHead>
-                        <TableRow>
-                            <TableCell>Reference / Description</TableCell>
-                            <TableCell>Amount</TableCell>
-                            <TableCell>Date</TableCell>
-                            <TableCell align="right">Action</TableCell>
-                        </TableRow>
-                    </TableHead>
-                    <TableBody>
-                        {isLoading && (
-                            <TableRow><TableCell colSpan={4}><CircularProgress size={20} /></TableCell></TableRow>
-                        )}
-                        {!isLoading && ingestions.length === 0 && (
-                            <TableRow><TableCell colSpan={4} align="center">No {status.toLowerCase()} ingestions</TableCell></TableRow>
-                        )}
-                        {ingestions.map((ing) => {
-                            const amt = ingestionAmount(ing);
-                            return (
-                                <TableRow key={ing.id}>
-                                    <TableCell>
-                                        <Typography variant="body2">{ingestionDisplayText(ing) ?? '(no description)'}</Typography>
-                                        <Typography variant="caption" color="text.secondary">{ing.id}</Typography>
-                                    </TableCell>
-                                    <TableCell>{amt != null ? money(amt) : '—'}</TableCell>
-                                    <TableCell>{ingestionDate(ing) ?? '—'}</TableCell>
-                                    <TableCell align="right">
-                                        {status === 'Pending' && (
-                                            <Button size="small" variant="contained" startIcon={<Wallet size={14} />}
-                                                onClick={() => { setSelected(ing); setOpen(true); }}>
-                                                Process
-                                            </Button>
-                                        )}
-                                    </TableCell>
-                                </TableRow>
-                            );
-                        })}
-                    </TableBody>
-                </Table>
-            </TableContainer>
+            <div className="overflow-x-auto">
+                <Panel pad={false} className="min-w-[560px]">
+                    <table className="w-full text-sm">
+                        <thead>
+                            <tr className="text-left text-[11px] font-mono tracking-[0.16em] uppercase text-silverdim border-b border-linestrong">
+                                <th className="px-4 py-3 font-medium">Reference / Description</th>
+                                <th className="px-4 py-3 font-medium text-right">Amount</th>
+                                <th className="px-4 py-3 font-medium">Date</th>
+                                <th className="px-4 py-3 font-medium text-right">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-line/70">
+                            {isLoading && (
+                                <tr><td colSpan={4} className="px-4 py-4"><Spinner size={20} /></td></tr>
+                            )}
+                            {!isLoading && ingestions.length === 0 && (
+                                <tr><td colSpan={4} className="px-4 py-4 text-center text-sm text-silverdim">No {status.toLowerCase()} ingestions</td></tr>
+                            )}
+                            {ingestions.map((ing) => {
+                                const amt = ingestionAmount(ing);
+                                return (
+                                    <tr key={ing.id} className="hover:bg-tray/50 transition-colors">
+                                        <td className="px-4 py-3">
+                                            <p className="text-sm text-paper">{ingestionDisplayText(ing) ?? '(no description)'}</p>
+                                            <p className="text-xs text-silverdim font-mono">{ing.id}</p>
+                                        </td>
+                                        <td className="px-4 py-3 text-right font-mono font-bold text-paper tnum">{amt != null ? money(amt) : '—'}</td>
+                                        <td className="px-4 py-3 font-mono text-silverdim">{ingestionDate(ing) ?? '—'}</td>
+                                        <td className="px-4 py-3 text-right">
+                                            {status === 'Pending' && (
+                                                <Button size="sm" startIcon={<Wallet size={14} strokeWidth={1.7} />}
+                                                    onClick={() => { setSelected(ing); setOpen(true); }}>
+                                                    Process
+                                                </Button>
+                                            )}
+                                        </td>
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </table>
+                </Panel>
+            </div>
 
             {open && (
                 <IngestionProcessDialog
@@ -310,68 +323,61 @@ const IngestionsSection: React.FC = () => {
                     onClose={() => setOpen(false)}
                 />
             )}
-        </Box>
+        </div>
     );
 };
-
-type ChipColor = 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning';
-const statusColor = (s: string): ChipColor =>
-    s === 'Completed' ? 'success'
-        : s === 'Failed' ? 'error'
-            : s === 'Cancelled' ? 'default'
-                : s === 'Processing' ? 'info' : 'warning';
 
 const SyncStatusSection: React.FC = () => {
     const { data: items = [], refetch, isFetching } = useFinanceSyncItems();
     const retry = useRetryFinanceSyncItems();
 
     return (
-        <Box>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                <Typography variant="h6" fontWeight={700}>Sync Queue</Typography>
-                <Box sx={{ display: 'flex', gap: 1 }}>
-                    <IconButton size="small" onClick={() => retry.mutate()} disabled={retry.isPending}>
-                        <PlayCircle size={16} />
+        <div>
+            <div className="flex justify-between items-center flex-wrap gap-3 mb-3">
+                <h2 className="text-paper font-semibold text-lg tracking-tight">Sync Queue</h2>
+                <div className="flex gap-2">
+                    <IconButton label="Run sync retry" onClick={() => retry.mutate()} disabled={retry.isPending}>
+                        <PlayCircle size={16} strokeWidth={1.7} />
                     </IconButton>
-                    <IconButton size="small" onClick={() => refetch()} disabled={isFetching}>
-                        <RefreshCw size={16} />
+                    <IconButton label="Refresh sync queue" onClick={() => refetch()} disabled={isFetching}>
+                        <RefreshCw size={16} strokeWidth={1.7} className={isFetching ? 'animate-spin' : ''} />
                     </IconButton>
-                </Box>
-            </Box>
-            <TableContainer component={Paper} variant="outlined">
-                <Table size="small">
-                    <TableHead>
-                        <TableRow>
-                            <TableCell>Kind</TableCell>
-                            <TableCell>Status</TableCell>
-                            <TableCell>Attempts</TableCell>
-                            <TableCell>Finance Tx</TableCell>
-                            <TableCell>Detail</TableCell>
-                            <TableCell>Updated</TableCell>
-                        </TableRow>
-                    </TableHead>
-                    <TableBody>
-                        {items.length === 0 && (
-                            <TableRow><TableCell colSpan={6} align="center">No sync activity yet</TableCell></TableRow>
-                        )}
-                        {items.map(it => (
-                            <TableRow key={it.id}>
-                                <TableCell>{it.kind}</TableCell>
-                                <TableCell><Chip size="small" label={it.status} color={statusColor(it.status)} /></TableCell>
-                                <TableCell>{it.attempts}</TableCell>
-                                <TableCell>{it.financeTransactionId ?? '—'}</TableCell>
-                                <TableCell>
-                                    <Typography variant="caption" color={it.lastError ? 'error' : 'text.secondary'}>
+                </div>
+            </div>
+            <div className="overflow-x-auto">
+                <Panel pad={false} className="min-w-[640px]">
+                    <table className="w-full text-sm">
+                        <thead>
+                            <tr className="text-left text-[11px] font-mono tracking-[0.16em] uppercase text-silverdim border-b border-linestrong">
+                                <th className="px-4 py-3 font-medium">Kind</th>
+                                <th className="px-4 py-3 font-medium">Status</th>
+                                <th className="px-4 py-3 font-medium text-right">Attempts</th>
+                                <th className="px-4 py-3 font-medium">Finance Tx</th>
+                                <th className="px-4 py-3 font-medium">Detail</th>
+                                <th className="px-4 py-3 font-medium">Updated</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-line/70">
+                            {items.length === 0 && (
+                                <tr><td colSpan={6} className="px-4 py-4 text-center text-sm text-silverdim">No sync activity yet</td></tr>
+                            )}
+                            {items.map(it => (
+                                <tr key={it.id} className="hover:bg-tray/50 transition-colors">
+                                    <td className="px-4 py-3 text-paper">{it.kind}</td>
+                                    <td className="px-4 py-3"><Stamp tone={stampTone(it.status)}>{it.status}</Stamp></td>
+                                    <td className="px-4 py-3 text-right font-mono text-silver tnum">{it.attempts}</td>
+                                    <td className="px-4 py-3 font-mono text-silverdim">{it.financeTransactionId ?? '—'}</td>
+                                    <td className={`px-4 py-3 text-xs ${it.lastError ? 'text-bad' : 'text-silverdim'}`}>
                                         {it.lastError ?? ''}
-                                    </Typography>
-                                </TableCell>
-                                <TableCell>{new Date(it.updatedAt).toLocaleString()}</TableCell>
-                            </TableRow>
-                        ))}
-                    </TableBody>
-                </Table>
-            </TableContainer>
-        </Box>
+                                    </td>
+                                    <td className="px-4 py-3 font-mono text-xs text-silverdim">{new Date(it.updatedAt).toLocaleString()}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </Panel>
+            </div>
+        </div>
     );
 };
 
@@ -383,67 +389,67 @@ const FinanceSettingsTab: React.FC = () => {
     const bySection = (section: string) => balances.filter(a => a.section === section);
 
     return (
-        <Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
-                <Typography variant="h5" fontWeight="bold">Finance Integration</Typography>
-                <Chip
-                    size="small"
-                    color={financeEnabled ? 'success' : 'default'}
-                    label={financeEnabled ? 'Enabled' : 'Disabled'}
-                />
-            </Box>
+        <div>
+            <div className="flex items-center gap-3 mb-2 flex-wrap">
+                <h2 className="text-paper font-semibold text-xl tracking-tight">Finance Integration</h2>
+                <Stamp tone={financeEnabled ? 'good' : 'silver'} dashed={!financeEnabled}>
+                    {financeEnabled ? 'Enabled' : 'Disabled'}
+                </Stamp>
+            </div>
             {!financeEnabled && (
-                <Alert severity="info" variant="outlined" sx={{ mb: 3 }}>
+                <div className="border border-linestrong rounded-tray bg-tray/50 px-4 py-3 text-sm text-silver mb-4 mt-3">
                     The integration is currently disabled, so nothing is mirrored to finance and
                     notifications can&apos;t be processed yet. You can still configure account links
-                    now; flip <code>enableFinanceIntegration</code> on in <code>config.js</code> (and
+                    now; flip <code className="font-mono text-amber">enableFinanceIntegration</code> on in <code className="font-mono text-amber">config.js</code> (and
                     enable it in the backend) to activate it.
-                </Alert>
+                </div>
             )}
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+            <p className="text-sm text-silverdim mb-5 max-w-2xl">
                 Map loan-app ledger accounts to finance-app accounts. Only entries whose debit and credit
                 accounts are both linked are mirrored to finance.
-            </Typography>
+            </p>
 
             {SECTIONS.map(section => {
                 const rows = bySection(section);
                 if (rows.length === 0) return null;
                 return (
-                    <Box key={section} sx={{ mb: 4 }}>
-                        <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 1 }}>{section}</Typography>
-                        <TableContainer component={Paper} variant="outlined">
-                            <Table size="small">
-                                <TableHead>
-                                    <TableRow>
-                                        <TableCell>Loan Account</TableCell>
-                                        <TableCell align="right">Loan Balance</TableCell>
-                                        {!isMobile && <TableCell>Finance Account</TableCell>}
-                                        {!isMobile && <TableCell align="right">Finance Balance</TableCell>}
-                                        <TableCell align="right">Actions</TableCell>
-                                    </TableRow>
-                                </TableHead>
-                                <TableBody>
-                                    {rows.map(r => (
-                                        <LinkRow key={`${r.loanAccountId}:${r.financeAccountId ?? ''}`} row={r} />
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </TableContainer>
-                    </Box>
+                    <div key={section} className="mb-6">
+                        <p className="text-paper font-semibold mb-2">{section}</p>
+                        <div className="overflow-x-auto">
+                            <Panel pad={false} className="min-w-[560px]">
+                                <table className="w-full text-sm">
+                                    <thead>
+                                        <tr className="text-left text-[11px] font-mono tracking-[0.16em] uppercase text-silverdim border-b border-linestrong">
+                                            <th className="px-4 py-3 font-medium">Loan Account</th>
+                                            <th className="px-4 py-3 font-medium text-right">Loan Balance</th>
+                                            {!isMobile && <th className="px-4 py-3 font-medium">Finance Account</th>}
+                                            {!isMobile && <th className="px-4 py-3 font-medium text-right">Finance Balance</th>}
+                                            <th className="px-4 py-3 font-medium text-right">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-line/70">
+                                        {rows.map(r => (
+                                            <LinkRow key={`${r.loanAccountId}:${r.financeAccountId ?? ''}`} row={r} />
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </Panel>
+                        </div>
+                    </div>
                 );
             })}
 
-            {isLoading && <CircularProgress size={24} />}
+            {isLoading && <Spinner size={24} />}
 
             {financeEnabled && (
                 <>
-                    <Divider sx={{ my: 4 }} />
+                    <Divider className="my-6" />
                     <IngestionsSection />
-                    <Divider sx={{ my: 4 }} />
+                    <Divider className="my-6" />
                     <SyncStatusSection />
                 </>
             )}
-        </Box>
+        </div>
     );
 };
 

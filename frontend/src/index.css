@@ -1,13 +1,106 @@
-/* Reset default Vite styles to allow MUI to handle the layout */
-body {
-  margin: 0;
-  padding: 0;
-  min-height: 100vh;
-  background-color: #f8fafc;
-  /* Match theme background.default */
-  font-family: "Inter", sans-serif;
+@import "tailwindcss";
+
+@theme {
+  --color-bay: #150d07;
+  --color-bay2: #1f1409;
+  --color-tray: #271a0e;
+  --color-trayedge: #3a2817;
+  --color-amber: #ffb224;
+  --color-amberdeep: #b97a15;
+  --color-safelight: #f4a63a;
+  --color-readout: #ffc247;
+  --color-paper: #f6efe2;
+  --color-paperdim: #e2d7c1;
+  --color-silver: #cfc4b2;
+  --color-silverdim: #9a8c74;
+  --color-ink: #2b2015;
+  --color-inksoft: #6f5c43;
+  --color-good: #5fd98d;
+  --color-bad: #f87171;
+  --color-line: #3a2a18;
+  --color-linestrong: #4d3620;
+  --font-sans: "Barlow", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+  --font-hand: "Caveat", cursive;
+  --radius-tray: 10px;
+  --radius-print: 6px;
 }
 
-#root {
-  width: 100%;
+:root { color-scheme: dark; }
+
+html, body { margin: 0; padding: 0; }
+body {
+  background:
+    radial-gradient(120% 90% at 18% -10%, rgba(255,178,36,.16), rgba(255,178,36,.05) 42%, transparent 70%),
+    radial-gradient(140% 120% at 50% 120%, rgba(0,0,0,.55), transparent 60%),
+    #150d07;
+  min-height: 100vh;
+  font-family: "Barlow", system-ui, sans-serif;
+  color: #cfc4b2;
+  -webkit-font-smoothing: antialiased;
+}
+body::before {
+  content: "";
+  position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.035 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+body::after {
+  content: "";
+  position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  background: radial-gradient(120% 100% at 50% 40%, transparent 55%, rgba(5,2,0,.5) 100%);
+}
+#root { position: relative; z-index: 1; width: 100%; }
+
+::selection { background: #ffb224; color: #2b2015; }
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: #1f1409; }
+::-webkit-scrollbar-thumb { background: #4d3620; border-radius: 8px; border: 2px solid #1f1409; }
+::-webkit-scrollbar-thumb:hover { background: #b97a15; }
+input, select, textarea { caret-color: #ffb224; }
+:focus-visible { outline: 2px solid #ffb224; outline-offset: 2px; border-radius: 4px; }
+
+.tnum { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
+.seg {
+  font-family: "IBM Plex Mono", monospace;
+  font-weight: 700;
+  letter-spacing: .05em;
+  color: #ffc247;
+}
+.hand { font-family: "Caveat", cursive; }
+.hand-note { transform: rotate(-2deg); }
+
+.stamp {
+  display: inline-flex; align-items: center; gap: .35rem;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: .6875rem; font-weight: 600; letter-spacing: .14em;
+  text-transform: uppercase; white-space: nowrap;
+  border: 2px solid currentColor; border-radius: 4px;
+  padding: .28rem .5rem; line-height: 1;
+}
+.stamp-dash { border-style: dashed; }
+.stamp-solid { background: rgba(248,113,113,.14); }
+
+.papergrain {
+  background-color: #f6efe2;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='p'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.1' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 .35 0 0 0 0 .27 0 0 0 0 .18 0 0 0 0.05 0'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23p)'/%3E%3C/svg%3E");
+}
+
+.dev { animation: develop 1s cubic-bezier(.22,.9,.3,1) both; }
+@keyframes develop {
+  from { opacity: .25; filter: blur(7px) brightness(.45) contrast(.7); transform: translateY(6px); }
+  to   { opacity: 1;   filter: none; transform: none; }
+}
+.pulse-fix { animation: fixflash 1.2s ease-out 1; }
+@keyframes fixflash {
+  0% { box-shadow: 0 0 0 0 rgba(255,178,36,.55); }
+  100% { box-shadow: 0 0 0 14px rgba(255,178,36,0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dev, .pulse-fix { animation: none; }
+}
+
+@media print {
+  body > *:not(.print-sheet) { display: none !important; }
+  body { background: #fff; }
+  .print-sheet { position: static !important; display: block !important; }
 }

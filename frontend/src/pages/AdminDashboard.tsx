@@ -1,19 +1,4 @@
 import { useState, useMemo } from 'react';
-import {
-    Grid,
-    Paper,
-    Typography,
-    Box,
-    Tabs,
-    Tab,
-    Button,
-    Card,
-    CardContent,
-    Stack,
-    Avatar,
-    Fab,
-    Tooltip
-} from '@mui/material';
 import PortfolioTab from '../components/admin/PortfolioTab';
 import UsersTab from '../components/admin/UsersTab';
 import LedgerTab from '../components/admin/LedgerTab';
@@ -26,22 +11,11 @@ import PaymentDialog from '../components/dialogs/PaymentDialog';
 import LedgerDialog from '../components/dialogs/LedgerDialog';
 import MessagesTab from '../components/admin/MessagesTab';
 import {
-    TrendingUp,
-    CreditCard,
-    Landmark,
     Sparkles,
-    History,
-    PieChart,
-    Coins,
-    Briefcase,
     Plus,
     UserPlus,
     FilePlus,
-    Wallet,
-    Settings,
-    Users,
-    Link2,
-    MessageSquare
+    Wallet
 } from 'lucide-react';
 import { analyzePortfolio } from '../services/aiService';
 import { useUsers, useCreateUser, useUpdateUser } from '../repositories/user';
@@ -51,6 +25,7 @@ import type { User } from '../@types/types';
 import { useAccounts } from '../repositories/account';
 import { accountIds } from '../components/accountConstants';
 import { useIsMobile } from '../theme';
+import { Tabs, Button, Panel, SectionTitle, Figure } from '../components/ui';
 
 interface TabPanelProps {
     children?: React.ReactNode;
@@ -62,7 +37,7 @@ function TabPanel(props: TabPanelProps) {
     const { children, value, index, ...other } = props;
     return (
         <div role="tabpanel" hidden={value !== index} {...other}>
-            {value === index && <Box sx={{ py: 3 }}>{children}</Box>}
+            {value === index && <div className="pt-6">{children}</div>}
         </div>
     );
 }
@@ -137,10 +112,10 @@ const AdminDashboard: React.FC = () => {
     };
 
     return (
-        <Box>
-            <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 4 }}>
-                <Typography variant="h4" sx={{ fontWeight: 700 }}>Lender Overview</Typography>
-                <Stack direction="row" spacing={2}>
+        <div className="max-w-7xl mx-auto px-5 sm:px-8 py-8">
+            <div className="flex items-center justify-between flex-wrap gap-4 mb-8">
+                <SectionTitle>Lender Overview</SectionTitle>
+                <div className="flex flex-wrap items-center gap-3">
                     <UserDialog
                         openOverride={openUserDialog}
                         onCloseOverride={() => {
@@ -151,231 +126,149 @@ const AdminDashboard: React.FC = () => {
                         onUpdateUser={handleUpdateUser}
                         userToEdit={editingUser}
                     >
-                        <Button
-                            variant="outlined"
-                            startIcon={<UserPlus size={18} />}
-                            onClick={() => {
-                                setEditingUserId(null);
-                                setOpenUserDialog(true);
-                            }}
-                        >
+                        <Button variant="outline" startIcon={<UserPlus size={18} strokeWidth={1.7} />} onClick={() => {
+                            setEditingUserId(null);
+                            setOpenUserDialog(true);
+                        }}>
                             Add User
                         </Button>
                     </UserDialog>
-                    <Button
-                        variant="contained"
-                        startIcon={<Sparkles size={18} />}
-                        onClick={handleAiAnalysis}
-                        disabled={isAiLoading}
-                        sx={{
-                            background: 'linear-gradient(45deg, #7c3aed 30%, #2563eb 90%)',
-                            boxShadow: '0 4px 14px 0 rgba(124, 58, 237, 0.39)',
-                        }}
-                    >
+                    <Button startIcon={<Sparkles size={18} strokeWidth={1.7} />} onClick={handleAiAnalysis} disabled={isAiLoading} loading={isAiLoading}>
                         {isAiLoading ? 'Analyzing...' : 'AI Portfolio Insights'}
                     </Button>
-                </Stack>
-            </Stack>
+                </div>
+            </div>
 
-            <Grid container spacing={{ xs: 1.5, sm: 3 }} sx={{ mb: 4 }}>
-                {[
-                    { label: 'Loan Receivables', value: summary.receivables, icon: <Coins size={isMobile ? 16 : 24} />, color: 'primary.main' },
-                    { label: 'Liquid Asset', value: summary.totalAssets - summary.receivables, icon: <Landmark size={isMobile ? 16 : 24} />, color: 'info.main' },
-                    { label: 'Realized Interest', value: summary.realizedInterest, icon: <TrendingUp size={isMobile ? 16 : 24} />, color: 'success.main' },
-                    { label: 'Accrued Interest', value: summary.accruedInterest, icon: <CreditCard size={isMobile ? 16 : 24} />, color: 'secondary.main' },
-                ].map((item, idx) => (
-                    <Grid size={{ xs: 6, sm: 4, md: 3 }} key={idx}>
-                        <Card sx={{
-                            height: '100%',
-                            position: 'relative',
-                            overflow: 'hidden',
-                            borderRadius: { xs: 2, sm: 3 },
-                        }}>
-                            <CardContent sx={{ p: { xs: 1.5, sm: 2, md: 3 }, '&:last-child': { pb: { xs: 1.5, sm: 2, md: 3 } } }}>
-                                <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
-                                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-                                        <Avatar sx={{ bgcolor: `${item.color}15`, color: item.color }}>{item.icon}</Avatar>
-                                    </Box>
-                                    <Typography variant="body2" color="text.secondary" fontWeight={500}>{item.label}</Typography>
-                                    <Typography variant="h5" fontWeight={700}>P {item.value.toLocaleString()}</Typography>
-                                </Box>
-                                <Box sx={{ display: { xs: 'block', sm: 'none' } }}>
-                                    <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
-                                        <Avatar sx={{ bgcolor: `${item.color}15`, color: item.color, width: 28, height: 28 }}>{item.icon}</Avatar>
-                                        <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ lineHeight: 1.2 }}>{item.label}</Typography>
-                                    </Stack>
-                                    <Typography variant="h6" fontWeight={700} sx={{ fontSize: '1.1rem', pl: 0.5 }}>P {item.value.toLocaleString()}</Typography>
-                                </Box>
-                            </CardContent>
-                        </Card>
-                    </Grid>
-                ))}
-            </Grid>
+            <div className="border-y border-linestrong py-4 grid grid-cols-2 md:grid-cols-4 gap-x-8 gap-y-3 dev mb-6">
+                <Figure value={`P ${summary.receivables.toLocaleString()}`} label="Loan Receivables" tone="silver" />
+                <Figure value={`P ${(summary.totalAssets - summary.receivables).toLocaleString()}`} label="Liquid Asset" tone="silver" />
+                <Figure value={`P ${summary.realizedInterest.toLocaleString()}`} label="Realized Interest" tone="good" />
+                <Figure value={`P ${summary.accruedInterest.toLocaleString()}`} label="Accrued Interest" tone="safelight" />
+            </div>
 
             {aiAnalysis && (
-                <Paper sx={{ p: 3, mb: 4, border: '1px solid', borderColor: 'primary.light', bgcolor: 'primary.50' }}>
-                    <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
-                        <Sparkles size={20} color="#2563eb" />
-                        <Typography variant="h6" color="primary" fontWeight={700}>AI Financial Insight</Typography>
-                    </Stack>
-                    <Typography variant="body1" sx={{ whiteSpace: 'pre-line' }}>{aiAnalysis}</Typography>
-                </Paper>
+                <Panel className="mb-6 dev">
+                    <SectionTitle className="mb-3" action={
+                        <button
+                            className="text-xs font-mono uppercase tracking-[0.16em] text-amber hover:text-paper transition-colors"
+                            onClick={handleAiAnalysis}
+                            disabled={isAiLoading}
+                        >
+                            Read
+                        </button>
+                    }>
+                        Read the room
+                    </SectionTitle>
+                    <div className="space-y-2">
+                        {aiAnalysis.split('\n').filter(line => line.trim()).map((line, i) => (
+                            <p key={i} className="hand text-2xl text-paper leading-snug hand-note">{line}</p>
+                        ))}
+                    </div>
+                </Panel>
             )}
 
-            <Paper sx={{ width: '100%', borderRadius: 3 }}>
-                <Box sx={{
-                    borderBottom: 1,
-                    borderColor: 'divider',
-                    px: { xs: 1, sm: 2 },
-                    display: 'flex',
-                    flexDirection: { xs: 'column', md: 'row' },
-                    justifyContent: 'space-between',
-                    alignItems: { xs: 'stretch', md: 'center' },
-                    gap: { xs: 1, md: 0 }
-                }}>
+            <Panel pad={false} className="overflow-hidden">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 md:gap-0 border-b border-line px-2 sm:px-4">
                     <Tabs
-                        value={tabValue}
-                        onChange={(_, v) => setTabValue(v)}
-                        variant="scrollable"
-                        scrollButtons="auto"
-                        allowScrollButtonsMobile
-                        sx={{
-                            minHeight: { xs: 48, sm: 64 },
-                            '& .MuiTab-root': {
-                                minHeight: { xs: 48, sm: 64 },
-                                fontSize: { xs: '0.75rem', sm: '0.875rem' }
-                            }
-                        }}
-                    >
-                        <Tab label="Active Portfolio" icon={<Briefcase size={18} />} iconPosition="start" />
-                        <Tab label="System Users" icon={<Users size={18} />} iconPosition="start" />
-                        <Tab label="Ledger" icon={<History size={18} />} iconPosition="start" />
-                        <Tab label="Balance Sheet" icon={<PieChart size={18} />} iconPosition="start" />
-                        <Tab label="Interest Rules" icon={<Settings size={18} />} iconPosition="start" />
-                        <Tab label="Finance" icon={<Link2 size={18} />} iconPosition="start" />
-                        <Tab label="System Messages" icon={<MessageSquare size={18} />} iconPosition="start" />
-                    </Tabs>
-                    <Box sx={{
-                        pr: { xs: 0, md: 2 },
-                        pb: { xs: 1, md: 0 },
-                        display: { xs: 'none', sm: 'block' }
-                    }}>
+                        value={String(tabValue)}
+                        onChange={(v) => setTabValue(Number(v))}
+                        items={[
+                            { value: '0', label: 'Active Portfolio' },
+                            { value: '1', label: 'System Users' },
+                            { value: '2', label: 'Ledger' },
+                            { value: '3', label: 'Balance Sheet' },
+                            { value: '4', label: 'Interest Rules' },
+                            { value: '5', label: 'Finance' },
+                            { value: '6', label: 'System Messages' }
+                        ]}
+                        className="flex-1 min-w-0"
+                    />
+                    <div className="pb-2 md:pb-0 md:pr-2 hidden sm:block">
                         {tabValue === 0 && (
                             <LoanDialog
                                 onAddLoan={() => { }}
                                 currentLoansCount={loans.length}
                             >
-                                <Button startIcon={<FilePlus size={18} />}>New Loan</Button>
+                                <Button size="sm" startIcon={<FilePlus size={18} strokeWidth={1.7} />}>New Loan</Button>
                             </LoanDialog>
                         )}
                         {tabValue === 2 && (
-                            <Stack direction="row" spacing={1}>
+                            <div className="flex gap-2">
                                 <PaymentDialog
                                     onAddPayment={() => { }}
                                 >
-                                    <Button startIcon={<Wallet size={18} />} >Record Payment</Button>
+                                    <Button size="sm" startIcon={<Wallet size={18} strokeWidth={1.7} />}>Record Payment</Button>
                                 </PaymentDialog>
                                 <LedgerDialog
                                     onAddLedger={(e) => createEntryMutation.mutate(e)}
                                     currentLedgerCount={entries.length}
                                 >
-                                    <Button startIcon={<Plus size={18} />} >Manual Entry</Button>
+                                    <Button size="sm" startIcon={<Plus size={18} strokeWidth={1.7} />}>Manual Entry</Button>
                                 </LedgerDialog>
-                            </Stack>
+                            </div>
                         )}
-                    </Box>
-                </Box>
+                    </div>
+                </div>
 
-                <TabPanel value={tabValue} index={0}>
-                    <PortfolioTab />
-                </TabPanel>
+                <div className="px-2 sm:px-4">
+                    <TabPanel value={tabValue} index={0}>
+                        <PortfolioTab />
+                    </TabPanel>
 
-                <TabPanel value={tabValue} index={1}>
-                    <UsersTab onEditUser={handleEditUser} />
-                </TabPanel>
+                    <TabPanel value={tabValue} index={1}>
+                        <UsersTab onEditUser={handleEditUser} />
+                    </TabPanel>
 
-                <TabPanel value={tabValue} index={2}>
-                    <LedgerTab />
-                </TabPanel>
+                    <TabPanel value={tabValue} index={2}>
+                        <LedgerTab />
+                    </TabPanel>
 
-                <TabPanel value={tabValue} index={3}>
-                    <BalanceSheetTab />
-                </TabPanel>
+                    <TabPanel value={tabValue} index={3}>
+                        <BalanceSheetTab />
+                    </TabPanel>
 
-                <TabPanel value={tabValue} index={4}>
-                    <InterestRulesTab />
-                </TabPanel>
+                    <TabPanel value={tabValue} index={4}>
+                        <InterestRulesTab />
+                    </TabPanel>
 
-                <TabPanel value={tabValue} index={5}>
-                    <FinanceSettingsTab />
-                </TabPanel>
+                    <TabPanel value={tabValue} index={5}>
+                        <FinanceSettingsTab />
+                    </TabPanel>
 
-                <TabPanel value={tabValue} index={6}>
-                    <MessagesTab />
-                </TabPanel>
-            </Paper>
+                    <TabPanel value={tabValue} index={6}>
+                        <MessagesTab />
+                    </TabPanel>
+                </div>
+            </Panel>
 
             {isMobile && (
                 <>
                     {tabValue === 0 && (
-                        <Stack
-                            spacing={1}
-                            sx={{
-                                position: 'fixed',
-                                bottom: 16,
-                                right: 16,
-                                zIndex: 1000,
-                                textAlign: "center"
-                            }}
-                        >
+                        <div className="fixed bottom-6 right-6 z-[1000] flex flex-col gap-2 sm:hidden">
                             <PaymentDialog onAddPayment={() => { }}>
-                                <Tooltip title="Record Payment" placement='left' >
-                                    <Fab
-                                        color="secondary"
-                                        aria-label="record payment"
-                                        size="medium"
-                                    >
-                                        <Wallet size={20} />
-                                    </Fab>
-                                </Tooltip>
+                                <Button variant="amber" className="!px-3 !py-3 shadow-lg" title="Record Payment" aria-label="record payment">
+                                    <Wallet size={20} strokeWidth={1.7} />
+                                </Button>
                             </PaymentDialog>
-                            <LoanDialog onAddLoan={() => { }} currentLoansCount={0} >
-                                <Tooltip title="Issue Loan" placement='left' >
-                                    <Fab
-                                        color="primary"
-                                        aria-label="new loan"
-                                        size="large"
-                                    >
-                                        <FilePlus size={24} />
-                                    </Fab>
-                                </Tooltip>
+                            <LoanDialog onAddLoan={() => { }} currentLoansCount={0}>
+                                <Button variant="amber" className="!px-3.5 !py-3.5 shadow-lg" title="Issue Loan" aria-label="new loan">
+                                    <FilePlus size={24} strokeWidth={1.7} />
+                                </Button>
                             </LoanDialog>
-                        </Stack>
+                        </div>
                     )}
                     {tabValue === 2 && (
-                        <Stack
-                            spacing={1}
-                            sx={{
-                                position: 'fixed',
-                                bottom: 16,
-                                right: 16,
-                                zIndex: 1000
-                            }}
-                        >
+                        <div className="fixed bottom-6 right-6 z-[1000] flex flex-col gap-2 sm:hidden">
                             <LedgerDialog currentLedgerCount={0} onAddLedger={(e) => createEntryMutation.mutate(e)}>
-                                <Fab
-                                    color="secondary"
-                                    aria-label="manual entry"
-                                    size="medium"
-                                >
-                                    <Plus size={20} />
-                                </Fab>
+                                <Button variant="amber" className="!px-3 !py-3 shadow-lg" title="Manual Entry" aria-label="manual entry">
+                                    <Plus size={20} strokeWidth={1.7} />
+                                </Button>
                             </LedgerDialog>
-                        </Stack>
+                        </div>
                     )}
                 </>
             )}
-        </Box>
+        </div>
     );
 };
 

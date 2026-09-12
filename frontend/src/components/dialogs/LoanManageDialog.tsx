@@ -1,35 +1,13 @@
 import React, { useMemo, useState } from 'react';
-import {
-    Dialog,
-    DialogTitle,
-    DialogContent,
-    DialogActions,
-    Button,
-    Typography,
-    Stack,
-    Box,
-    Table,
-    TableBody,
-    TableCell,
-    TableContainer,
-    TableHead,
-    TableRow,
-    Paper,
-    Chip,
-    IconButton,
-    Tooltip,
-    Divider,
-    Collapse
-} from '@mui/material';
-import { useIsMobile } from '../../theme';
+import { Button, Dialog, IconButton, Paper, Stamp } from '../ui';
 
-import { Trash2, Receipt, ArrowUpDown, Calendar, User as UserIcon, Wallet, Image as ImageIcon, ChevronDown, ChevronRight, X } from 'lucide-react';
+import { Trash2, Receipt, ArrowUpDown, Calendar, User as UserIcon, Wallet, Image as ImageIcon, ChevronDown, ChevronRight } from 'lucide-react';
 
 import type { Loan, User } from '../../@types/types';
 import dayjs from 'dayjs';
 import { useDeleteLoan } from '../../repositories/loan';
 import PaymentDialog from './PaymentDialog';
-import { useConfirm } from 'material-ui-confirm';
+import { useConfirm } from '../ui';
 import { useDeleteEntry, useEntries } from '../../repositories/entry';
 import ImageViewerDialog from './ImageViewerDialog';
 import AmortizationSchedule from '../AmortizationSchedule';
@@ -54,11 +32,9 @@ const LoanManageDialog: React.FC<LoanManageDialogProps> = ({
     const deleteLoan = useDeleteLoan();
     const deleteEntry = useDeleteEntry();
     const confirm = useConfirm();
-    const isMobile = useIsMobile();
     const { data: entries = [] } = useEntries();
     const [showSchedule, setShowSchedule] = useState(false);
 
-    // Build a map from entry ID to fileId for quick lookup
     const entryFileMap = useMemo(() => {
         const map = new Map<string, string>();
         entries.forEach(e => {
@@ -69,116 +45,91 @@ const LoanManageDialog: React.FC<LoanManageDialogProps> = ({
 
     if (!loan) return null;
 
-    const handleDeleteLoan = () => {
-        confirm({
+    const handleDeleteLoan = async () => {
+        if (await confirm({
             title: 'Confirm Loan Deletion',
             description: 'WARNING: Are you sure you want to PERMANENTLY DELETE this loan and ALL associated transactions? This action will revert all financial effects and cannot be undone.',
             confirmationText: 'Permanently Delete',
             cancellationText: 'Cancel',
-            confirmationButtonProps: { color: 'error', variant: 'contained' },
-        })
-            .then(async (res) => {
-                if (!res.confirmed) return;
-                await deleteLoan.mutateAsync(loan.id);
-                onClose();
-            })
-            .catch(() => {
-                /* Cancelled - do nothing */
-            });
+        })) {
+            await deleteLoan.mutateAsync(loan.id);
+            onClose();
+        }
     };
 
 
-    const handleDeleteEntry = (entryId: string) => {
-        confirm({
+    const handleDeleteEntry = async (entryId: string) => {
+        if (await confirm({
             title: 'Confirm Entry Deletion',
             description: 'WARNING: Are you sure you want to PERMANENTLY DELETE this entry? This action cannot be undone and will affect account balances.',
             confirmationText: 'Permanently Delete',
             cancellationText: 'Cancel',
-            confirmationButtonProps: { color: 'error', variant: 'contained' },
-        })
-            .then(async (res) => {
-                if (!res.confirmed) return;
-                await deleteEntry.mutateAsync(entryId);
-                // No onClose() here - let the user stay and see updated list
-            })
-            .catch(() => {
-                /* Cancelled - do nothing */
-            });
+        })) {
+            await deleteEntry.mutateAsync(entryId);
+        }
     }
 
+    const statusTone = loan.status === 'Active' ? 'amber'
+        : loan.status === 'Paid' ? 'good'
+            : loan.status === 'Defaulted' ? 'bad'
+                : 'silver';
+    const typeTone = (t: string) => t === 'payment' ? 'good' : t === 'interest' ? 'amber' : t === 'penalty' ? 'bad' : 'safelight';
 
+    const summary = (
+        <div className="border border-linestrong rounded-tray bg-bay2/70 p-4 grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-3">
+            <div>
+                <p className="text-[11px] font-mono tracking-[0.16em] uppercase text-silverdim flex items-center gap-1.5"><UserIcon size={13} strokeWidth={1.7} /> Client</p>
+                <p className="text-paper font-semibold text-sm mt-1">{user?.name || `ID: ${loan.clientId}`}</p>
+            </div>
+            <div>
+                <p className="text-[11px] font-mono tracking-[0.16em] uppercase text-silverdim flex items-center gap-1.5"><Wallet size={13} strokeWidth={1.7} /> Principal</p>
+                <p className="text-paper font-semibold text-sm mt-1 tnum font-mono">P {loan.principal.toLocaleString()}</p>
+            </div>
+            <div>
+                <p className="text-[11px] font-mono tracking-[0.16em] uppercase text-silverdim flex items-center gap-1.5"><ArrowUpDown size={13} strokeWidth={1.7} /> Current Balance</p>
+                <p className="text-amber font-semibold text-sm mt-1 tnum font-mono">P {loan.balance.toLocaleString()}</p>
+            </div>
+            <div>
+                <p className="text-[11px] font-mono tracking-[0.16em] uppercase text-silverdim flex items-center gap-1.5"><Calendar size={13} strokeWidth={1.7} /> Date Started</p>
+                <p className="text-paper font-semibold text-sm mt-1 font-mono tnum">{dayjs(loan.date).format('MMM DD, YYYY')}</p>
+            </div>
+        </div>
+    );
 
+    const transactions = [...(loan.transactions || [])].sort((a, b) => dayjs(b.dateStart).valueOf() - dayjs(a.dateStart).valueOf());
 
     return (
-        <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth fullScreen={isMobile}>
-            <DialogTitle sx={{ pb: 1 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Typography variant="h6" fontWeight={700}>
+        <Dialog open={open} onClose={onClose} width="max-w-3xl">
+            <div className="flex items-center justify-between gap-4 flex-wrap mb-5">
+                <div className="flex items-center gap-3 min-w-0">
+                    <h2 className="text-paper font-semibold text-xl tracking-tight truncate">
                         Manage Loan: {loan.alternateId || loan.id}
-                    </Typography>
-                    <Stack direction="row" spacing={1} alignItems="center">
-                        <Chip
-                            label={loan.status}
-                            color={loan.status === 'Active' ? 'info' : loan.status === 'Paid' ? 'success' : 'default'}
-                            size="small"
-                            sx={{ fontWeight: 600 }}
-                        />
-                        {!readOnly && (
-                            <Tooltip title="Delete Loan and all transactions">
-                                <IconButton size="small" color="error" onClick={handleDeleteLoan}>
-                                    <Trash2 size={18} />
-                                </IconButton>
-                            </Tooltip>
-                        )}
-                    </Stack>
-                </Box>
-            </DialogTitle>
+                    </h2>
+                    <Stamp tone={statusTone} solid={loan.status === 'Defaulted'} dashed={loan.status === 'Pending'} rotate={loan.status === 'Paid' ? -2 : undefined}>
+                        {loan.status}
+                    </Stamp>
+                </div>
+                {!readOnly && (
+                    <IconButton label="Delete Loan and all transactions" onClick={handleDeleteLoan} className="text-bad hover:text-bad hover:border-bad">
+                        <Trash2 size={16} strokeWidth={1.7} />
+                    </IconButton>
+                )}
+            </div>
 
+            <div className="space-y-6">
+                {summary}
 
-            <DialogContent>
-                <Stack spacing={3} sx={{ mt: 1 }}>
-                    {/* Loan Summary Header */}
-                    <Paper variant="outlined" sx={{ p: 2, bgcolor: 'grey.50' }}>
-                        <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 2 }}>
-                            <Box>
-                                <Typography variant="caption" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                    <UserIcon size={14} /> Client
-                                </Typography>
-                                <Typography variant="body2" fontWeight={600}>{user?.name || `ID: ${loan.clientId}`}</Typography>
-                            </Box>
-                            <Box>
-                                <Typography variant="caption" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                    <Wallet size={14} /> Principal
-                                </Typography>
-                                <Typography variant="body2" fontWeight={600}>P {loan.principal.toLocaleString()}</Typography>
-                            </Box>
-                            <Box>
-                                <Typography variant="caption" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                    <ArrowUpDown size={14} /> Current Balance
-                                </Typography>
-                                <Typography variant="body2" fontWeight={600} color="primary.main">P {loan.balance.toLocaleString()}</Typography>
-                            </Box>
-                            <Box>
-                                <Typography variant="caption" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                    <Calendar size={14} /> Date Started
-                                </Typography>
-                                <Typography variant="body2" fontWeight={600}>{dayjs(loan.date).format('MMM DD, YYYY')}</Typography>
-                            </Box>
-                        </Box>
-                    </Paper>
-
-                    {loan.showAmortization && (
-                        <Box sx={{ mt: 1 }}>
-                            <Button
-                                size="small"
-                                variant="text"
-                                onClick={() => setShowSchedule(!showSchedule)}
-                                startIcon={showSchedule ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                                sx={{ textTransform: 'none', color: 'primary.main', fontWeight: 600 }}
-                            >
-                                {showSchedule ? 'Hide' : 'View'} Forthcoming Payments
-                            </Button>
-                            <Collapse in={showSchedule}>
+                {loan.showAmortization && (
+                    <div>
+                        <button
+                            onClick={() => setShowSchedule(!showSchedule)}
+                            className="inline-flex items-center gap-1 text-xs font-mono tracking-[0.16em] uppercase text-silverdim hover:text-amber transition-colors"
+                        >
+                            {showSchedule ? <ChevronDown size={14} strokeWidth={1.7} /> : <ChevronRight size={14} strokeWidth={1.7} />}
+                            {showSchedule ? 'Hide' : 'View'} Forthcoming Payments
+                        </button>
+                        {showSchedule && (
+                            <div className="mt-3">
                                 <AmortizationSchedule
                                     principal={loan.principal}
                                     interestRate={loan.interestRate}
@@ -186,98 +137,78 @@ const LoanManageDialog: React.FC<LoanManageDialogProps> = ({
                                     startDate={loan.date}
                                     interestBase={loan.interestBase || 'principal'}
                                 />
-                            </Collapse>
-                        </Box>
-                    )}
+                            </div>
+                        )}
+                    </div>
+                )}
 
-                    <Divider>
-                        <Typography variant="overline" color="text.secondary" fontWeight={700}>
-                            Transaction History
-                        </Typography>
-                    </Divider>
-
-                    {/* Transaction History Table */}
-                    <TableContainer component={Paper} variant="outlined" sx={{ maxHeight: 300 }}>
-                        <Table size="small" stickyHeader>
-                            <TableHead>
-                                <TableRow>
-                                    <TableCell sx={{ fontWeight: 700 }}>Date</TableCell>
-                                    <TableCell sx={{ fontWeight: 700 }}>Type</TableCell>
-                                    <TableCell align="right" sx={{ fontWeight: 700 }}>Amount</TableCell>
-                                </TableRow>
-                            </TableHead>
-                            <TableBody>
-                                {loan.transactions && loan.transactions.length > 0 ? (
-                                    [...loan.transactions].sort((a, b) => dayjs(b.dateStart).valueOf() - dayjs(a.dateStart).valueOf()).map((tx) => {
-                                        const txFileId = entryFileMap.get(tx.ledgerId);
-                                        return (
-                                            <TableRow key={tx.ledgerId} hover>
-                                                <TableCell>{dayjs(tx.dateStart).format('MMM DD, YYYY')}</TableCell>
-                                                <TableCell>
-                                                    <Stack direction="row" alignItems="center" spacing={0.5}>
-                                                        <Chip
-                                                            label={tx.type}
-                                                            size="small"
-                                                            variant="outlined"
-                                                            onDelete={(tx.type == "payment" && !readOnly) ? () => {
-                                                                handleDeleteEntry(tx.ledgerId)
-                                                            } : undefined}
-                                                            color={tx.type === 'payment' ? 'success' : tx.type === 'interest' ? 'warning' : tx.type === 'penalty' ? 'error' : 'primary'}
-                                                            sx={{ textTransform: 'capitalize', height: 20, fontSize: '0.65rem' }}
-                                                        />
-                                                        {txFileId && (
-                                                            <ImageViewerDialog fileId={txFileId}>
-                                                                <Tooltip title="View screenshot">
-                                                                    <IconButton size="small" sx={{ opacity: 0.6, '&:hover': { opacity: 1 } }}>
-                                                                        <ImageIcon size={14} />
-                                                                    </IconButton>
-                                                                </Tooltip>
-                                                            </ImageViewerDialog>
-                                                        )}
-                                                    </Stack>
-                                                </TableCell>
-                                                <TableCell align="right" sx={{ fontWeight: 600 }}>
-                                                    {tx.type === 'payment' ? '-' : '+'} P {tx.amount.toLocaleString()}
-                                                </TableCell>
-                                            </TableRow>
-                                        );
-                                    })
-                                ) : (
-                                    <TableRow>
-                                        <TableCell colSpan={3} align="center" sx={{ py: 3 }}>
-                                            <Typography variant="body2" color="text.secondary italic">
-                                                No transactions found
-                                            </Typography>
-                                        </TableCell>
-                                    </TableRow>
+                <div>
+                    <p className="text-[11px] font-mono tracking-[0.16em] uppercase text-silverdim mb-2">Transaction History</p>
+                    <Paper className="overflow-x-auto max-h-[300px] overflow-y-auto">
+                        <table className="w-full text-sm min-w-[640px]">
+                            <thead className="sticky top-0 bg-paper">
+                                <tr className="text-left text-[11px] font-mono tracking-[0.16em] uppercase text-inksoft border-b border-ink/30">
+                                    <th className="px-3 py-2.5 font-medium">Date</th>
+                                    <th className="px-3 py-2.5 font-medium">Type</th>
+                                    <th className="px-3 py-2.5 font-medium text-right">Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-ink/15">
+                                {transactions.length > 0 ? transactions.map((tx) => {
+                                    const txFileId = entryFileMap.get(tx.ledgerId);
+                                    return (
+                                        <tr key={tx.ledgerId} className="hover:bg-ink/5 transition-colors">
+                                            <td className="px-3 py-2 font-mono tnum text-ink whitespace-nowrap">{dayjs(tx.dateStart).format('MMM DD, YYYY')}</td>
+                                            <td className="px-3 py-2">
+                                                <div className="flex items-center gap-2">
+                                                    <Stamp tone={typeTone(tx.type)} className="capitalize">{tx.type}</Stamp>
+                                                    {txFileId && (
+                                                        <ImageViewerDialog fileId={txFileId}>
+                                                            <button title="View screenshot" className="p-1 rounded text-inksoft hover:text-ink transition-colors">
+                                                                <ImageIcon size={13} strokeWidth={1.7} />
+                                                            </button>
+                                                        </ImageViewerDialog>
+                                                    )}
+                                                    {tx.type == "payment" && !readOnly && (
+                                                        <button title="Delete entry" onClick={() => handleDeleteEntry(tx.ledgerId)} className="p-1 rounded text-inksoft hover:text-bad transition-colors">
+                                                            <Trash2 size={13} strokeWidth={1.7} />
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </td>
+                                            <td className="px-3 py-2 text-right font-mono font-bold text-ink tnum whitespace-nowrap">
+                                                {tx.type === 'payment' ? '-' : '+'} P {tx.amount.toLocaleString()}
+                                            </td>
+                                        </tr>
+                                    );
+                                }) : (
+                                    <tr>
+                                        <td colSpan={3} className="px-3 py-6 text-center text-sm text-inksoft italic">
+                                            No transactions found
+                                        </td>
+                                    </tr>
                                 )}
-                            </TableBody>
-                        </Table>
-                    </TableContainer>
+                            </tbody>
+                        </table>
+                    </Paper>
+                </div>
 
-                    <Divider>
-                        <Typography variant="overline" color="text.secondary" fontWeight={700}>
-                            Comments & Notes
-                        </Typography>
-                    </Divider>
-
+                <div>
+                    <p className="text-[11px] font-mono tracking-[0.16em] uppercase text-silverdim mb-3">Comments & Notes</p>
                     <CommentSection loanId={loan.id} />
+                </div>
+            </div>
 
-                </Stack>
-            </DialogContent>
-            <DialogActions sx={{ px: 3, pb: 2 }}>
-                <Button onClick={onClose} variant="outlined">Close</Button>
+            <div className="mt-6 pt-4 border-t border-line flex items-center justify-end gap-3">
+                <Button variant="ghost" onClick={onClose}>Close</Button>
                 {loan.status === 'Active' && (
                     <PaymentDialog onAddPayment={() => { }} initialLoanId={loan.id} initialUserId={loan.clientId}>
-                        <Button variant="contained" startIcon={<Receipt size={18} />}>
+                        <Button variant="amber" startIcon={<Receipt size={16} strokeWidth={1.7} />}>
                             Pay Now
                         </Button>
                     </PaymentDialog>
                 )}
-            </DialogActions>
-
-
-
+            </div>
         </Dialog>
     );
 };

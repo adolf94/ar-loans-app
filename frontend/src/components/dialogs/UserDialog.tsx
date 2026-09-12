@@ -1,21 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import {
-    Dialog,
-    DialogTitle,
-    DialogContent,
-    DialogActions,
-    Button,
-    TextField,
-    FormControl,
-    InputLabel,
-    Select,
-    MenuItem,
-    Stack,
-    Divider,
-    IconButton,
-    Typography,
-    Box
-} from '@mui/material';
+import { Button, Dialog, IconButton, Input, Select } from '../ui';
 import { Plus, Trash2, Camera, Sparkles, QrCode } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import type { UserRole, User, UserAccount } from '../../@types/types';
@@ -92,7 +76,6 @@ const UserDialog: React.FC<UserDialogProps> = ({
             setInternalOpen(false);
         }
 
-        // Only reset if we're not editing (to avoid flickering while closing)
         if (!userToEdit) {
             setNewUser({
                 id: uuidv7(),
@@ -121,17 +104,6 @@ const UserDialog: React.FC<UserDialogProps> = ({
                 });
                 setAccounts(userToEdit.accounts || []);
             }
-            // else {
-            //     // Reset for new user
-            //     setNewUser({
-            //         id: uuidv7(),
-            //         fullName: '',
-            //         role: 'Client' as UserRole,
-            //         mobileNumber: '',
-            //         email: ''
-            //     });
-            //     setAccounts([]);
-            // }
         }
     }, [open, userToEdit]);
 
@@ -144,16 +116,13 @@ const UserDialog: React.FC<UserDialogProps> = ({
         reader.onload = async (e) => {
             const base64 = e.target?.result as string;
 
-            // Try local QR decode first
             const qrData = await decodeQRCode(base64);
             let finalData = null;
 
             if (qrData) {
                 try {
-                    // Try to parse as JSON first
                     finalData = JSON.parse(qrData);
                 } catch {
-                    // If not JSON, check if it's a PH QR code (standard EMV QR starts with 000201)
                     if (qrData.startsWith('000201')) {
                         const extracted = PHQRParser.extract(qrData);
                         finalData = {
@@ -166,12 +135,10 @@ const UserDialog: React.FC<UserDialogProps> = ({
                             fullName: extracted.receiver
                         };
                     } else {
-                        // Fallback to AI for general text QR
                         finalData = await extractDataFromImage(base64, 'User');
                     }
                 }
             } else {
-                // No QR found, use AI Vision
                 finalData = await extractDataFromImage(base64, 'User');
             }
 
@@ -216,7 +183,6 @@ const UserDialog: React.FC<UserDialogProps> = ({
 
         if (userToEdit && onUpdateUser) {
             onUpdateUser(user);
-            // If updating, and not externally controlled, close the dialog
             if (openOverride === undefined) {
                 setInternalOpen(false);
             }
@@ -238,10 +204,12 @@ const UserDialog: React.FC<UserDialogProps> = ({
                     if ((children.props as any).onClick) (children.props as any).onClick(e);
                 }
             })}
-            <Dialog open={open} onClose={onClose}>
-                <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    {userToEdit ? 'Update User' : 'Add New User'}
-                    <Box>
+            <Dialog open={open} onClose={onClose} width="max-w-lg">
+                <div className="flex items-center justify-between gap-3 mb-5">
+                    <h2 className="text-paper font-semibold text-xl tracking-tight">
+                        {userToEdit ? 'Update User' : 'Add New User'}
+                    </h2>
+                    <div className="flex items-center gap-2">
                         <input
                             type="file"
                             accept="image/*"
@@ -249,160 +217,133 @@ const UserDialog: React.FC<UserDialogProps> = ({
                             id="user-scan-input"
                             onChange={handleImageUpload}
                         />
-                        <label htmlFor="user-scan-input">
-                            <Button
-                                component="span"
-                                variant="outlined"
-                                size="small"
-                                startIcon={isScanning ? <Sparkles className="animate-pulse" size={16} /> : <Camera size={16} />}
-                                disabled={isScanning}
-                                sx={{ borderRadius: 2 }}
-                            >
-                                {isScanning ? 'Scanning...' : 'AI Scan'}
-                            </Button>
+                        <label
+                            htmlFor="user-scan-input"
+                            title={isScanning ? 'Scanning...' : 'Scan a QR code or ID photo'}
+                            className={`inline-flex items-center gap-2 text-sm px-3 py-1.5 rounded-md border border-linestrong text-silver hover:text-paper hover:border-amberdeep transition-colors cursor-pointer ${isScanning ? 'opacity-50 pointer-events-none' : ''}`}
+                        >
+                            {isScanning ? <Sparkles size={16} className="animate-pulse" /> : <Camera size={16} strokeWidth={1.7} />}
+                            {isScanning ? 'Scanning...' : 'AI Scan'}
                         </label>
-                    </Box>
-                </DialogTitle>
-                <DialogContent>
-                    <Stack spacing={2} sx={{ mt: 1 }}>
-                        <TextField
-                            label="Full Name"
-                            fullWidth
-                            value={newUser.fullName}
-                            onChange={(e) => setNewUser({ ...newUser, fullName: e.target.value })}
-                        />
-                        <TextField
-                            label="Mobile Number"
-                            fullWidth
-                            value={newUser.mobileNumber}
-                            onChange={(e) => setNewUser({ ...newUser, mobileNumber: e.target.value })}
-                        />
-                        <TextField
-                            label="Email"
-                            fullWidth
-                            value={newUser.email}
-                            onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
-                        />
-                        <FormControl fullWidth>
-                            <InputLabel>Role</InputLabel>
-                            <Select
-                                value={newUser.role}
-                                label="Role"
-                                onChange={(e) => setNewUser({ ...newUser, role: e.target.value as UserRole })}
-                            >
-                                <MenuItem value="Client">Client (Borrower)</MenuItem>
-                                <MenuItem value="Guarantor">Guarantor</MenuItem>
-                                <MenuItem value="Admin">Admin</MenuItem>
-                            </Select>
-                        </FormControl>
+                    </div>
+                </div>
 
-                        {newUser.role === 'Client' && rules.length > 0 && (
-                            <FormControl fullWidth>
-                                <InputLabel>Default Interest template</InputLabel>
-                                <Select
-                                    value={newUser.defaultInterestRuleId}
-                                    label="Default Interest template"
-                                    onChange={(e) => setNewUser({ ...newUser, defaultInterestRuleId: e.target.value })}
-                                >
-                                    <MenuItem value="">None</MenuItem>
-                                    {rules.map(r => (
-                                        <MenuItem key={r.id} value={r.id}>{r.name} ({r.interestPerMonth}%)</MenuItem>
-                                    ))}
-                                </Select>
-                            </FormControl>
+                <div className="space-y-4">
+                    <Input
+                        label="Full Name"
+                        value={newUser.fullName}
+                        onChange={(e) => setNewUser({ ...newUser, fullName: e.target.value })}
+                        error={!newUser.fullName ? 'Enter a full name — the user is filed under it.' : ''}
+                    />
+                    <Input
+                        label="Mobile Number"
+                        value={newUser.mobileNumber}
+                        onChange={(e) => setNewUser({ ...newUser, mobileNumber: e.target.value })}
+                    />
+                    <Input
+                        label="Email"
+                        type="email"
+                        value={newUser.email}
+                        onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+                    />
+                    <Select
+                        label="Role"
+                        value={newUser.role}
+                        onChange={(e) => setNewUser({ ...newUser, role: e.target.value as UserRole })}
+                        options={[
+                            { value: 'Client', label: 'Client (Borrower)' },
+                            { value: 'Guarantor', label: 'Guarantor' },
+                            { value: 'Admin', label: 'Admin' }
+                        ]}
+                    />
+
+                    {newUser.role === 'Client' && rules.length > 0 && (
+                        <Select
+                            label="Default Interest template"
+                            value={newUser.defaultInterestRuleId}
+                            onChange={(e) => setNewUser({ ...newUser, defaultInterestRuleId: e.target.value })}
+                            options={[
+                                { value: '', label: 'None' },
+                                ...rules.map(r => ({ value: r.id, label: `${r.name} (${r.interestPerMonth}%)` }))
+                            ]}
+                        />
+                    )}
+
+                    <div className="pt-2">
+                        <p className="text-[11px] font-mono tracking-[0.16em] uppercase text-silverdim mb-2">Disbursement Accounts</p>
+
+                        {viewQrAccount && (
+                            <div className="border border-linestrong rounded-tray bg-bay2/70 p-4 flex flex-col items-center text-center mb-3">
+                                <p className="text-[11px] font-mono tracking-[0.16em] uppercase text-silverdim">QR Code — {viewQrAccount.bank}</p>
+                                <div className="bg-white rounded-md p-3 mt-3 shadow-[0_2px_12px_rgba(0,0,0,.5)]">
+                                    {viewQrAccount.qrData && (
+                                        <QRCodeSVG value={viewQrAccount.qrData} size={250} level="H" includeMargin />
+                                    )}
+                                </div>
+                                <p className="text-paper font-semibold mt-3">{viewQrAccount.name}</p>
+                                <p className="text-sm text-silverdim">{viewQrAccount.accountNumber}</p>
+                                <Button variant="ghost" size="sm" className="mt-3" onClick={() => setViewQrAccount(null)}>Close</Button>
+                            </div>
                         )}
 
-                        <Divider sx={{ my: 1 }} />
-                        <Typography variant="subtitle2" color="text.secondary" sx={{ fontWeight: 600 }}>
-                            Disbursement Accounts
-                        </Typography>
-
-                        {accounts.map((acc, index) => (
-                            <Box key={index} sx={{ p: 1.5, border: '1px solid', borderColor: 'divider', borderRadius: 1, position: 'relative' }}>
-                                <Typography variant="body2" sx={{ fontWeight: 600 }}>{acc.name}</Typography>
-                                <Typography variant="caption" display="block">{acc.bank} - {acc.accountNumber}</Typography>
-                                <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
-                                    {acc.qrData && (
-                                        <Button
-                                            size="small"
-                                            variant="outlined"
-                                            startIcon={<QrCode size={14} />}
-                                            onClick={() => setViewQrAccount(acc)}
-                                            sx={{ py: 0, height: 24, fontSize: '0.7rem' }}
+                        {accounts.length > 0 && (
+                            <div className="divide-y divide-line/70 border border-linestrong rounded-tray bg-bay2/70 mb-3">
+                                {accounts.map((acc, index) => (
+                                    <div key={index} className="relative px-4 py-3">
+                                        <p className="text-sm font-semibold text-paper">{acc.name}</p>
+                                        <p className="text-xs text-silverdim font-mono mt-0.5">{acc.bank} - {acc.accountNumber}</p>
+                                        <div className="mt-2 flex items-center gap-2">
+                                            {acc.qrData && (
+                                                <Button size="sm" variant="outline" startIcon={<QrCode size={13} strokeWidth={1.7} />} onClick={() => setViewQrAccount(acc)}>
+                                                    View QR
+                                                </Button>
+                                            )}
+                                        </div>
+                                        <IconButton
+                                            label="Remove account"
+                                            onClick={() => handleRemoveAccount(index)}
+                                            className="absolute right-2 top-2 border-transparent hover:text-bad hover:border-bad"
                                         >
-                                            View QR
-                                        </Button>
-                                    )}
-                                </Stack>
-                                <IconButton
-                                    size="small"
-                                    onClick={() => handleRemoveAccount(index)}
-                                    sx={{ position: 'absolute', right: 4, top: 4, color: 'error.main' }}
-                                >
-                                    <Trash2 size={16} />
-                                </IconButton>
-                            </Box>
-                        ))}
+                                            <Trash2 size={15} strokeWidth={1.7} />
+                                        </IconButton>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
 
-                        <Stack direction="row" spacing={1}>
-                            <TextField
+                        <div className="grid grid-cols-2 gap-3">
+                            <Input
                                 label="Bank"
-                                size="small"
                                 value={newAccount.bank}
                                 onChange={(e) => setNewAccount({ ...newAccount, bank: e.target.value })}
                             />
-                            <TextField
+                            <Input
                                 label="Acc Num"
-                                size="small"
                                 value={newAccount.accountNumber}
                                 onChange={(e) => setNewAccount({ ...newAccount, accountNumber: e.target.value })}
                             />
-                        </Stack>
-                        <Stack direction="row" spacing={1} alignItems="center">
-                            <TextField
-                                label="Account Name"
-                                fullWidth
-                                size="small"
-                                value={newAccount.name}
-                                onChange={(e) => setNewAccount({ ...newAccount, name: e.target.value })}
-                            />
-                            <Button variant="outlined" size="small" onClick={handleAddAccount} startIcon={<Plus size={16} />}>
+                        </div>
+                        <div className="mt-3 flex items-end gap-2">
+                            <div className="flex-1">
+                                <Input
+                                    label="Account Name"
+                                    value={newAccount.name}
+                                    onChange={(e) => setNewAccount({ ...newAccount, name: e.target.value })}
+                                />
+                            </div>
+                            <Button variant="outline" size="md" onClick={handleAddAccount} startIcon={<Plus size={15} strokeWidth={2.2} />} className="mb-0.5">
                                 Add
                             </Button>
-                        </Stack>
-                    </Stack>
-                </DialogContent>
-                <DialogActions>
-                    <Button onClick={onClose}>Cancel</Button>
-                    <Button onClick={handleSubmit} variant="contained" disabled={!newUser.fullName}>
-                        {userToEdit ? 'Save Changes' : 'Add User'}
-                    </Button>
-                </DialogActions>
-            </Dialog>
+                        </div>
+                    </div>
+                </div>
 
-            {/* QR Code Viewer Dialog */}
-            <Dialog open={!!viewQrAccount} onClose={() => setViewQrAccount(null)} maxWidth="xs" fullWidth>
-                <DialogTitle sx={{ textAlign: 'center' }}>
-                    QR Code - {viewQrAccount?.bank}
-                </DialogTitle>
-                <DialogContent sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: 4 }}>
-                    {viewQrAccount?.qrData && (
-                        <Box sx={{ p: 2, bgcolor: 'white', borderRadius: 2, boxShadow: 2 }}>
-                            <QRCodeSVG value={viewQrAccount.qrData} size={250} level="H" includeMargin />
-                        </Box>
-                    )}
-                    <Typography variant="h6" sx={{ mt: 3, fontWeight: 700 }}>
-                        {viewQrAccount?.name}
-                    </Typography>
-                    <Typography variant="body1" color="text.secondary">
-                        {viewQrAccount?.accountNumber}
-                    </Typography>
-                </DialogContent>
-                <DialogActions sx={{ justifyContent: 'center', pb: 3 }}>
-                    <Button onClick={() => setViewQrAccount(null)} variant="outlined" sx={{ borderRadius: 2 }}>
-                        Close
+                <div className="mt-6 pt-4 border-t border-line flex items-center justify-end gap-3">
+                    <Button variant="ghost" onClick={onClose}>Cancel</Button>
+                    <Button onClick={handleSubmit} disabled={!newUser.fullName}>
+                        {userToEdit ? 'Save user' : 'Add User'}
                     </Button>
-                </DialogActions>
+                </div>
             </Dialog>
         </>
     );

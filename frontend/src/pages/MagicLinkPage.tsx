@@ -1,14 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { 
-    Box, 
-    CircularProgress, 
-    Typography, 
-    useTheme
-} from '@mui/material';
 import { useAuth } from '@adolf94/ar-auth-client';
+import { Spinner } from '../components/ui';
 
 const MagicLinkPage: React.FC = () => {
-    const theme = useTheme();
     const { login, isLoading: authLoading } = useAuth();
     const [initiated, setInitiated] = useState(false);
 
@@ -23,7 +17,7 @@ const MagicLinkPage: React.FC = () => {
         if (linkState && !authLoading && !initiated) {
             setInitiated(true);
             console.log("MagicLinkPage: Initiating redirect for state:", linkState);
-            
+
             // Persist the state manually to ensure it survives redirects
             if (linkState) sessionStorage.setItem("magic_link_state", linkState);
 
@@ -38,36 +32,10 @@ const MagicLinkPage: React.FC = () => {
     }, [authLoading, initiated, login, linkState]);
 
     return (
-        <Box
-            sx={{
-                minHeight: '100vh',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 3,
-                background: `radial-gradient(circle at 50% 50%, ${theme.palette.primary.light}05 0%, ${theme.palette.background.default} 100%)`,
-            }}
-        >
-            <CircularProgress 
-                size={48} 
-                thickness={4}
-                sx={{
-                    color: theme.palette.primary.main,
-                }}
-            />
-            <Typography 
-                variant="body1" 
-                color="text.secondary" 
-                fontWeight={500}
-                sx={{ 
-                    letterSpacing: '0.5px',
-                    opacity: 0.8
-                }}
-            >
-                logging you in....
-            </Typography>
-        </Box>
+        <div className="min-h-screen flex flex-col items-center justify-center gap-4">
+            <Spinner size={44} />
+            <p className="text-sm text-silverdim tracking-wide">logging you in....</p>
+        </div>
     );
 };
 

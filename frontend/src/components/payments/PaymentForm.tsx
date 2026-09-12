@@ -1,22 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import {
-    Button,
-    TextField,
-    FormControl,
-    InputLabel,
-    Select,
-    MenuItem,
-    Stack,
-    Box,
-    IconButton,
-    Tooltip,
-    Typography,
-    Alert,
-    DialogTitle,
-    DialogContent,
-    DialogActions
-} from '@mui/material';
-import { Camera, Sparkles, Download } from 'lucide-react';
+import { Button, IconButton, Input, Select } from '../ui';
+import { Camera, Sparkles, Download, CheckCircle2 } from 'lucide-react';
 import type { Payment } from '../../@types/types';
 import { v7 as uuidv7 } from "uuid"
 import { useAccounts, type Account } from '../../repositories/account';
@@ -76,8 +60,8 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
     const [imported, setImported] = useState<IngestionRecord | null>(null);
     const [resolvedClientHint, setResolvedClientHint] = useState<string | null>(null);
     const [pickerOpen, setPickerOpen] = useState(false);
+    const [attempted, setAttempted] = useState(false);
 
-    // Fetch only active loans for payment
     const { data: activeLoans = [] } = useLoansFiltered('Active');
     const { data: users = [] } = useUsers();
     const { data: accounts = [] } = useAccounts();
@@ -94,7 +78,6 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
         try {
             const data = await identifyTransaction(file);
             if (data) {
-                //get user By accountId
                 const acct = await getBankAccountByAccountId(data.recipientAcct)
                     .catch(err => {
                         console.error("Error getting bank account:", err);
@@ -114,12 +97,10 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
             console.error("Error identifying transaction:", error);
         } finally {
             setIsScanning(false);
-            // Reset input
             event.target.value = '';
         }
     };
 
-    // ---- Ingestion prefill ----
     const { data: linkedIngestion } = useIngestion(ingestionId, financeOn);
 
     const applyIngestion = async (record: IngestionRecord) => {
@@ -129,7 +110,6 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
         const note = ingestionNote(record);
         const ref = ingestionLoanReference(record);
 
-        // Direct loan-reference match first, then client resolution.
         let loan = ref
             ? activeLoans.find(l => l.alternateId === ref || l.id === ref)
             : undefined;
@@ -165,10 +145,10 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
         if (!linkedIngestion || appliedIngestionRef.current === linkedIngestion.id) return;
         appliedIngestionRef.current = linkedIngestion.id;
         void applyIngestion(linkedIngestion);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [linkedIngestion]);
 
     const handleAdd = async () => {
+        setAttempted(true);
         if (!(await validateDate(newPayment.date))) {
             return;
         }
@@ -177,13 +157,13 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
             ...newPayment,
         };
         const data = await createPayment.mutateAsync(payment)
-        onSubmitted(data);
+        onSubmitted(data as unknown as Payment);
     };
 
     const isInline = variant === 'inline';
 
     const headerActions = (
-        <Box sx={{ display: 'flex', gap: 0.5 }}>
+        <div className="flex items-center gap-1.5">
             <input
                 type="file"
                 accept="image/*"
@@ -191,89 +171,76 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
                 id={`payment-scan-input-${variant}`}
                 onChange={handleImageUpload}
             />
-            <label htmlFor={`payment-scan-input-${variant}`}>
-                <Tooltip title={isScanning ? 'Scanning...' : 'Scan Receipt'}>
-                    <IconButton
-                        component="span"
-                        size="small"
-                        disabled={isScanning}
-                        sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}
-                    >
-                        {isScanning ? <Sparkles className="animate-pulse" size={16} /> : <Camera size={16} />}
-                    </IconButton>
-                </Tooltip>
+            <label
+                htmlFor={`payment-scan-input-${variant}`}
+                title={isScanning ? 'Scanning...' : 'Scan Receipt'}
+                className={`inline-flex cursor-pointer ${isScanning ? 'opacity-50 pointer-events-none' : ''}`}
+            >
+                <span className="p-2 border border-line rounded-md text-silver hover:text-amber hover:border-amberdeep transition-colors inline-flex" title={isScanning ? 'Scanning...' : 'Scan Receipt'}>
+                    {isScanning ? <Sparkles size={16} className="animate-pulse" strokeWidth={1.7} /> : <Camera size={16} strokeWidth={1.7} />}
+                </span>
             </label>
             {financeOn && (
-                <Tooltip title="Import from Ingestion">
-                    <IconButton
-                        size="small"
-                        onClick={() => setPickerOpen(true)}
-                        sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}
-                    >
-                        <Download size={16} />
-                    </IconButton>
-                </Tooltip>
+                <IconButton label="Import from Ingestion" onClick={() => setPickerOpen(true)}>
+                    <Download size={16} strokeWidth={1.7} />
+                </IconButton>
             )}
-        </Box>
+        </div>
     );
 
+    const loanOptions = activeLoans.filter(l => l.status === 'Active').map(l => ({
+        value: l.id,
+        label: `L${l.alternateId} (${users.find(u => u.id === l.clientId)?.name} / B: ${l.balance})`
+    }));
+
     const body = (
-        <Stack spacing={2} sx={{ mt: isInline ? 0 : 1 }}>
+        <div className="space-y-4">
             {imported && (
-                <Alert severity="success" variant="outlined">
-                    <Typography variant="body2" fontWeight={600}>Imported from ingestion</Typography>
-                    <Typography variant="caption" color="text.secondary">
-                        {ingestionDisplayText(imported) ?? 'Notification'} · {imported.id}
-                    </Typography>
-                    {resolvedClientHint && (
-                        <Typography variant="caption" color="text.secondary" display="block">
-                            Client: {resolvedClientHint} — select their loan to continue.
-                        </Typography>
-                    )}
-                </Alert>
+                <div className="border border-dashed border-linestrong rounded-md px-3.5 py-3 flex items-start gap-2.5">
+                    <CheckCircle2 size={16} className="text-good shrink-0 mt-0.5" />
+                    <div>
+                        <p className="text-sm font-semibold text-good">Imported from ingestion</p>
+                        <p className="text-xs text-silverdim mt-0.5">
+                            {ingestionDisplayText(imported) ?? 'Notification'} · {imported.id}
+                        </p>
+                        {resolvedClientHint && (
+                            <p className="text-xs text-silverdim mt-1">
+                                Client: {resolvedClientHint} — select their loan to continue.
+                            </p>
+                        )}
+                    </div>
+                </div>
             )}
-            <FormControl fullWidth>
-                <InputLabel>Active Loan</InputLabel>
-                <Select
-                    value={newPayment.loanId}
-                    label="Active Loan"
-                    onChange={(e) => setNewPayment({ ...newPayment, loanId: e.target.value, userId: activeLoans.find(f => f.id == e.target.value)?.clientId ?? "" })}
-                >
-                    {activeLoans.filter(l => l.status === 'Active').map(l => (
-                        <MenuItem key={l.id} value={l.id}>
-                            L{l.alternateId} ({users.find(u => u.id === l.clientId)?.name} / B: {l.balance})
-                        </MenuItem>
-                    ))}
-                </Select>
-            </FormControl>
-            <TextField
-                label="Payment Amount"
+            <Select
+                label="Active Loan"
+                value={newPayment.loanId}
+                onChange={(e) => setNewPayment({ ...newPayment, loanId: e.target.value, userId: activeLoans.find(f => f.id == e.target.value)?.clientId ?? "" })}
+                options={[{ value: '', label: 'Select a loan', disabled: true }, ...loanOptions]}
+            />
+            {attempted && !newPayment.loanId && (
+                <p className="text-xs text-bad">Pick an active loan — a payment must land on a line.</p>
+            )}
+            <Input
+                label="Payment Amount (P)"
                 type="number"
-                fullWidth
+                className="tnum text-lg"
                 value={newPayment.amount}
                 onChange={(e) => setNewPayment({ ...newPayment, amount: Number(e.target.value) })}
+                error={attempted && newPayment.amount == 0 ? 'Amount is zero — enter the figure that was received.' : ''}
             />
-            <TextField
+            <Input
                 label="Date"
                 type="date"
-                fullWidth
                 value={newPayment.date}
                 onChange={(e) => setNewPayment({ ...newPayment, date: e.target.value })}
-                slotProps={{ inputLabel: { shrink: true } }}
             />
-            <FormControl fullWidth>
-                <InputLabel>Destination Account (Asset)</InputLabel>
-                <Select
-                    value={newPayment.destinationAcctId}
-                    label="Source Account (Asset)"
-                    onChange={(e) => setNewPayment({ ...newPayment, destinationAcctId: e.target.value })}
-                >
-                    {assetAccounts.map((a: Account) => (
-                        <MenuItem key={a.id} value={a.id}>{a.name}</MenuItem>
-                    ))}
-                </Select>
-            </FormControl>
-        </Stack>
+            <Select
+                label="Destination Account (Asset)"
+                value={newPayment.destinationAcctId}
+                onChange={(e) => setNewPayment({ ...newPayment, destinationAcctId: e.target.value })}
+                options={[{ value: '', label: 'Select account', disabled: true }, ...assetAccounts.map((a: Account) => ({ value: a.id, label: a.name }))]}
+            />
+        </div>
     );
 
     const submitDisabled = !newPayment.loanId || newPayment.amount == 0 || createPayment.isPending;
@@ -286,50 +253,53 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
         />
     ) : null;
 
+    const footer = (
+        <div className="mt-6 flex items-center justify-end gap-3">
+            <Button variant="ghost" onClick={onCancel}>Cancel</Button>
+            <Button
+                onClick={handleAdd}
+                disabled={submitDisabled}
+                loading={createPayment.isPending}
+            >
+                {createPayment.isPending ? 'Recording...' : submitLabel}
+            </Button>
+        </div>
+    );
+
     if (isInline) {
         return (
-            <Box sx={{ maxWidth: 520, mx: 'auto' }}>
-                <Stack direction="row" spacing={1} alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
-                    <Typography variant="h6" fontWeight={700}>Record Loan Payment</Typography>
-                    {headerActions}
-                </Stack>
-                {body}
-                <Stack direction="row" spacing={1} justifyContent="flex-end" sx={{ mt: 3 }}>
-                    <Button onClick={onCancel}>Cancel</Button>
-                    <Button
-                        onClick={handleAdd}
-                        variant="contained"
-                        disabled={submitDisabled}
-                    >
-                        {createPayment.isPending ? 'Recording...' : submitLabel}
-                    </Button>
-                </Stack>
+            <div className="max-w-xl mx-auto">
+                <div className="border border-linestrong rounded-tray bg-bay2/70 p-5 sm:p-6">
+                    <div className="flex items-center justify-between gap-3 mb-5">
+                        <h2 className="text-paper font-semibold text-xl tracking-tight">Record Loan Payment</h2>
+                        {headerActions}
+                    </div>
+                    {body}
+                    {footer}
+                </div>
                 {picker}
-            </Box>
+            </div>
         );
     }
 
-    // Dialog variant: rendered inside <Dialog> by the wrapper.
     return (
         <>
-            <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                Record Loan Payment
+            <div className="flex items-center justify-between gap-3 mb-5">
+                <h2 className="text-paper font-semibold text-xl tracking-tight">Record Loan Payment</h2>
                 {headerActions}
-            </DialogTitle>
-            <DialogContent>
-                {body}
-            </DialogContent>
-            {picker}
-            <DialogActions>
-                <Button onClick={onCancel}>Cancel</Button>
+            </div>
+            {body}
+            <div className="mt-6 pt-4 border-t border-line flex items-center justify-end gap-3">
+                <Button variant="ghost" onClick={onCancel}>Cancel</Button>
                 <Button
                     onClick={handleAdd}
-                    variant="contained"
                     disabled={submitDisabled}
+                    loading={createPayment.isPending}
                 >
                     {createPayment.isPending ? 'Recording...' : submitLabel}
                 </Button>
-            </DialogActions>
+            </div>
+            {picker}
         </>
     );
 };

@@ -1,9 +1,5 @@
 import React, { useState } from 'react';
-import {
-    Dialog,
-    useMediaQuery,
-    useTheme
-} from '@mui/material';
+import { Dialog } from '../ui';
 import type { Loan } from '../../@types/types';
 import LoanForm from '../loans/LoanForm';
 
@@ -16,13 +12,11 @@ interface LoanDialogProps {
 }
 
 const LoanDialog: React.FC<LoanDialogProps> = ({ onAddLoan, fixedGuarantorId, ingestionId, children }) => {
-    const theme = useTheme();
-    const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
     const [open, setOpen] = useState(false);
 
     return <>
         {children && React.isValidElement(children) && React.cloneElement(children as React.ReactElement<{ onClick?: () => void }>, { onClick: () => setOpen(true) })}
-        <Dialog open={open} onClose={() => setOpen(false)} maxWidth="xs" fullScreen={isMobile} fullWidth>
+        <Dialog open={open} onClose={() => setOpen(false)} width="max-w-lg">
             {open && (
                 <LoanForm
                     key={ingestionId ?? 'blank'}

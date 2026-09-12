@@ -1,8 +1,4 @@
 import React, { useEffect } from 'react';
-import {
-    Box,
-    useTheme
-} from '@mui/material';
 import Login from '../components/login/Login';
 import { useNavigate } from '@tanstack/react-router';
 import { jwtDecode } from 'jwt-decode';
@@ -12,13 +8,12 @@ interface LoginPageProps {
 }
 
 const LoginPage: React.FC<LoginPageProps> = ({ }) => {
-    const theme = useTheme();
     const navigate = useNavigate()
 
     const handlePostLogin = (token: string, user: any) => {
         const config = window.webConfig
         const userRoles = user.scopes && user.scopes.length > 0 ? user.scopes : (Array.isArray(user.role) ? user.role : [user.role || 'user']);
-        
+
         if (userRoles.includes(config.adminRole)) {
             return navigate({ to: "/admin" })
         }
@@ -31,7 +26,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ }) => {
     useEffect(() => {
         const token = localStorage.getItem("id_token");
         const refreshToken = localStorage.getItem("refresh_token");
-        
+
         // Only auto-login if both tokens exist
         if (refreshToken && token) {
             try {
@@ -45,18 +40,11 @@ const LoginPage: React.FC<LoginPageProps> = ({ }) => {
     }, [])
 
 
-    return <Box
-        sx={{
-            minHeight: '100vh',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            background: `radial-gradient(circle at 50% 50%, ${theme.palette.primary.light}05 0%, ${theme.palette.background.default} 100%)`,
-        }}
-    >
-        <Login onLogin={handlePostLogin} />
-    </Box>
-
+    return (
+        <div className="min-h-screen flex items-center justify-center px-6 py-12">
+            <Login onLogin={handlePostLogin} />
+        </div>
+    );
 };
 
 export default LoginPage;

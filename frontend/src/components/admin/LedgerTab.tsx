@@ -1,27 +1,10 @@
 import React, { useMemo, useState, useRef, useEffect, useCallback } from 'react';
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableContainer,
-    TableHead,
-    TableRow,
-    Typography,
-    useMediaQuery,
-    useTheme,
-    Stack,
-    IconButton,
-    Tooltip,
-    CircularProgress,
-    Skeleton
-} from '@mui/material';
 import { Image as ImageIcon } from 'lucide-react';
 import { useEntries, type Entry } from '../../repositories/entry';
 import { useAccounts } from '../../repositories/account';
 import dayjs from 'dayjs';
 import ImageViewerDialog from '../dialogs/ImageViewerDialog';
-
-// Image viewer dialog component
+import { Spinner, Skeleton, Panel } from '../ui';
 
 interface LedgerTabProps {
     ledger?: any[]; // Keep for backward compatibility but not used
@@ -30,11 +13,15 @@ interface LedgerTabProps {
 const PAGE_SIZE = 30;
 const LOAD_MORE_SIZE = 20;
 
+const toneClass = (section?: string, positiveIsGood?: boolean) => {
+    const isGood = ["Asset", "Income"].indexOf(section ?? '') > -1 === positiveIsGood;
+    if (!section) return 'text-silver';
+    return isGood ? 'text-good' : 'text-bad';
+};
+
 const LedgerRow = (props: { entry: Entry }) => {
     let entry = props.entry;
     const { data: accounts = [] } = useAccounts();
-    const theme = useTheme();
-    const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
     const hasFile = !!entry.fileId && entry.fileId !== '';
 
@@ -58,118 +45,38 @@ const LedgerRow = (props: { entry: Entry }) => {
         };
     }, [entry]);
 
-    if (isMobile) {
-        return (
-            <TableRow key={entry.id} hover>
-                <TableCell sx={{ px: 1.5, py: 1 }}>
-                    <Stack spacing={0.25}>
-                        <Stack direction="row" alignItems="center" spacing={0.5}>
-                            <Typography variant="body2" fontWeight={600} sx={{ flex: 1, fontSize: '0.8rem' }}>
-                                {entry.description}
-                            </Typography>
-                            {hasFile && (
-                                <ImageViewerDialog fileId={entry.fileId}>
-                                    <IconButton
-                                        size="small"
-                                        sx={{ opacity: 0.7, '&:hover': { opacity: 1 }, p: 0.25 }}
-                                    >
-                                        <ImageIcon size={14} />
-                                    </IconButton>
-                                </ImageViewerDialog>
-                            )}
-                        </Stack>
-                        <Stack direction="row" spacing={0.5} alignItems="center">
-                            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem' }}>
-                                {dayjs(entry.date).format("MMM DD")}
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary">·</Typography>
-                            <Typography
-                                variant="caption"
-                                sx={{ color: credit.color, fontWeight: 600, fontSize: '0.65rem' }}
-                            >
-                                CR: {credit.name}
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary">→</Typography>
-                            <Typography
-                                variant="caption"
-                                sx={{ color: debit.color, fontWeight: 600, fontSize: '0.65rem' }}
-                            >
-                                DR: {debit.name}
-                            </Typography>
-                        </Stack>
-                    </Stack>
-                </TableCell>
-                <TableCell align="right" sx={{ px: 1.5, py: 1, whiteSpace: 'nowrap' }}>
-                    <Typography variant="body2" fontWeight={700} sx={{ fontSize: '0.8rem' }}>
-                        P {entry.amount.toLocaleString()}
-                    </Typography>
-                </TableCell>
-            </TableRow>
-        );
-    }
+    const creditClass = credit.name ? toneClass(credit.section, true) : 'text-silver';
+    const debitClass = debit.name ? toneClass(debit.section, false) : 'text-silver';
 
-    return <>
-        <TableRow key={entry.id} hover>
-            <TableCell>
-                <Typography variant="body2">{dayjs(entry.date).format("MMM DD")}</Typography>
-            </TableCell>
-            <TableCell>
-                <Stack direction="row" alignItems="center" spacing={0.5}>
-                    <Typography variant="body2">{entry.description}</Typography>
+    return (
+        <tr className="hover:bg-tray/50 transition-colors">
+            <td className="px-4 py-3 font-mono text-silverdim whitespace-nowrap">{dayjs(entry.date).format("MMM DD")}</td>
+            <td className="px-4 py-3 text-paper">
+                <span className="inline-flex items-center gap-2">
+                    {entry.description}
                     {hasFile && (
-                        <Tooltip title="View screenshot">
-                            <ImageViewerDialog fileId={entry.fileId}>
-                                <IconButton
-                                    size="small"
-                                    sx={{ opacity: 0.7, '&:hover': { opacity: 1 } }}
-                                >
-                                    <ImageIcon size={16} />
-                                </IconButton>
-                            </ImageViewerDialog>
-                        </Tooltip>
+                        <ImageViewerDialog fileId={entry.fileId}>
+                            <button
+                                className="p-1 border border-line rounded-md text-silver hover:text-amber hover:border-amberdeep transition-colors opacity-70 hover:opacity-100"
+                                title="View screenshot"
+                            >
+                                <ImageIcon size={14} strokeWidth={1.7} />
+                            </button>
+                        </ImageViewerDialog>
                     )}
-                </Stack>
-            </TableCell>
-            <TableCell>
-                <Typography
-                    variant="body2"
-                    sx={{
-                        color: credit.color,
-                        fontWeight: 600
-                    }}
-                >
-                    {credit.name}
-                </Typography>
-            </TableCell>
-            <TableCell>
-                <Typography
-                    variant="body2"
-                    sx={{
-                        color: debit.color,
-                        fontWeight: 600
-                    }}
-                >
-                    {debit.name}
-                </Typography>
-            </TableCell>
-            <TableCell align="right">
-                <Typography
-                    variant="body2"
-                    sx={{ fontWeight: 600 }}
-                >
-                    P {entry.amount.toLocaleString()}
-                </Typography>
-            </TableCell>
-        </TableRow>
-    </>;
+                </span>
+            </td>
+            <td className={`px-4 py-3 font-semibold ${creditClass}`}>{credit.name}</td>
+            <td className={`px-4 py-3 font-semibold ${debitClass}`}>{debit.name}</td>
+            <td className="px-4 py-3 text-right font-mono font-bold text-paper tnum whitespace-nowrap">P {entry.amount.toLocaleString()}</td>
+        </tr>
+    );
 };
 
 
 const LedgerTab: React.FC<LedgerTabProps> = () => {
     const { data: items = [], isLoading: isLoadingEntries } = useEntries();
-    const theme = useTheme();
     const { data: accounts = [], isLoading: isLoadingAccounts } = useAccounts();
-    const isMobile = useMediaQuery(theme.breakpoints.down('md'));
     const isLoading = isLoadingEntries || isLoadingAccounts;
     const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
     const sentinelRef = useRef<HTMLTableRowElement>(null);
@@ -215,78 +122,57 @@ const LedgerTab: React.FC<LedgerTabProps> = () => {
     }, [hasMore, loadMore]);
 
     return (
-        <TableContainer ref={containerRef} sx={{ maxHeight: 'calc(100vh - 300px)', overflowX: 'auto' }}>
-            <Table stickyHeader size={isMobile ? 'small' : 'medium'}>
-                <TableHead>
-                    <TableRow>
-                        {isMobile ? (
+        <div ref={containerRef} className="max-h-[calc(100vh-300px)] overflow-x-auto">
+            <Panel pad={false} className="min-w-[640px] overflow-hidden">
+                <table className="w-full text-sm">
+                    <thead>
+                        <tr className="text-left text-[11px] font-mono tracking-[0.16em] uppercase text-silverdim border-b border-linestrong">
+                            <th className="px-4 py-3 font-medium">Date</th>
+                            <th className="px-4 py-3 font-medium">Description</th>
+                            <th className="px-4 py-3 font-medium">Credit Account</th>
+                            <th className="px-4 py-3 font-medium">Debit Account</th>
+                            <th className="px-4 py-3 font-medium text-right">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-line/70">
+                        {isLoading ? (
+                            [...Array(10)].map((_, i) => (
+                                <tr key={i}>
+                                    <td className="px-4 py-3"><Skeleton className="h-4 w-16" /></td>
+                                    <td className="px-4 py-3"><Skeleton className="h-4 w-48" /></td>
+                                    <td className="px-4 py-3"><Skeleton className="h-4 w-24" /></td>
+                                    <td className="px-4 py-3"><Skeleton className="h-4 w-24" /></td>
+                                    <td className="px-4 py-3"><Skeleton className="h-4 w-20 ml-auto" /></td>
+                                </tr>
+                            ))
+                        ) : visibleEntries.length > 0 ? (
                             <>
-                                <TableCell sx={{ fontWeight: 700 }}>Entry</TableCell>
-                                <TableCell align="right" sx={{ fontWeight: 700 }}>Amount</TableCell>
+                                {visibleEntries.map((entry) => <LedgerRow entry={entry} key={entry.id} />)}
+                                {hasMore && (
+                                    <tr ref={sentinelRef}>
+                                        <td colSpan={5} className="px-4 py-3 text-center border-none">
+                                            <div className="flex items-center justify-center gap-2">
+                                                <Spinner size={16} />
+                                                <span className="text-xs text-silverdim">
+                                                    Showing {visibleCount} of {entries.length} entries
+                                                </span>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                )}
                             </>
                         ) : (
-                            <>
-                                <TableCell sx={{ fontWeight: 700 }}>Date</TableCell>
-                                <TableCell sx={{ fontWeight: 700, minWidth: 250 }}>Description</TableCell>
-                                <TableCell sx={{ fontWeight: 700, minWidth: 150 }}>Credit Account</TableCell>
-                                <TableCell sx={{ fontWeight: 700, minWidth: 150 }}>Debit Account</TableCell>
-                                <TableCell align="right" sx={{ fontWeight: 700, minWidth: 100 }}>Amount</TableCell>
-                            </>
+                            <tr>
+                                <td colSpan={5} className="px-4 py-6 text-center text-sm text-silverdim">
+                                    No ledger entries found.
+                                </td>
+                            </tr>
                         )}
-                    </TableRow>
-                </TableHead>
-                <TableBody>
-                    {isLoading ? (
-                        [...Array(10)].map((_, i) => (
-                            <TableRow key={i}>
-                                {isMobile ? (
-                                    <>
-                                        <TableCell><Skeleton variant="text" width="80%" /><Skeleton variant="text" width="40%" /></TableCell>
-                                        <TableCell align="right"><Skeleton variant="text" width="60%" /></TableCell>
-                                    </>
-                                ) : (
-                                    <>
-                                        <TableCell><Skeleton variant="text" /></TableCell>
-                                        <TableCell><Skeleton variant="text" /></TableCell>
-                                        <TableCell><Skeleton variant="text" /></TableCell>
-                                        <TableCell><Skeleton variant="text" /></TableCell>
-                                        <TableCell align="right"><Skeleton variant="text" /></TableCell>
-                                    </>
-                                )}
-                            </TableRow>
-                        ))
-                    ) : visibleEntries.length > 0 ? (
-                        <>
-                            {visibleEntries.map((entry) => <LedgerRow entry={entry} key={entry.id} />)}
-                            {hasMore && (
-                                <TableRow ref={sentinelRef}>
-                                    <TableCell
-                                        colSpan={isMobile ? 2 : 5}
-                                        align="center"
-                                        sx={{ py: 2, border: 'none' }}
-                                    >
-                                        <Stack direction="row" spacing={1} justifyContent="center" alignItems="center">
-                                            <CircularProgress size={16} thickness={5} />
-                                            <Typography variant="caption" color="text.secondary">
-                                                Showing {visibleCount} of {entries.length} entries
-                                            </Typography>
-                                        </Stack>
-                                    </TableCell>
-                                </TableRow>
-                            )}
-                        </>
-                    ) : (
-                        <TableRow>
-                            <TableCell colSpan={isMobile ? 2 : 5} align="center" sx={{ py: 4, color: 'text.secondary' }}>
-                                No ledger entries found.
-                            </TableCell>
-                        </TableRow>
-                    )}
-                </TableBody>
-            </Table>
-        </TableContainer>
+                    </tbody>
+                </table>
+            </Panel>
+        </div>
     );
 };
 
 export default LedgerTab;
-

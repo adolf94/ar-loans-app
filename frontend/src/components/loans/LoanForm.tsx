@@ -1,27 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import dayjs from 'dayjs';
-import {
-    Button,
-    TextField,
-    FormControl,
-    InputLabel,
-    Select,
-    MenuItem,
-    Stack,
-    Box,
-    IconButton,
-    Tooltip,
-    Collapse,
-    Typography,
-    FormHelperText,
-    FormControlLabel,
-    Switch,
-    Alert,
-    DialogTitle,
-    DialogContent,
-    DialogActions
-} from '@mui/material';
-import { Camera, Sparkles, UserPlus, ChevronDown, ChevronRight, Download } from 'lucide-react';
+import { Button, Checkbox, IconButton, Input, Select } from '../ui';
+import { Camera, Sparkles, UserPlus, ChevronDown, ChevronRight, Download, CheckCircle2 } from 'lucide-react';
 import type { User, Loan, UserAccount } from '../../@types/types';
 import { identifyTransaction, type IdentifiedTransaction } from '../../repositories/file';
 import UserDialog from '../dialogs/UserDialog';
@@ -113,6 +93,7 @@ const LoanForm: React.FC<LoanFormProps> = ({
     const [isScanning, setIsScanning] = useState(false);
     const [imported, setImported] = useState<IngestionRecord | null>(null);
     const [pickerOpen, setPickerOpen] = useState(false);
+    const [attempted, setAttempted] = useState(false);
 
     const createLoan = useCreateLoan();
     const { data: accounts = [] } = useAccounts();
@@ -144,14 +125,13 @@ const LoanForm: React.FC<LoanFormProps> = ({
         if (typeof otherUpdates === 'function') {
             setNewLoan(prev => {
                 const newValue = otherUpdates(prev);
-                return { ...newValue, ...updates };
+                return { ...newValue, ...updates } as LoanFormState;
             });
         } else {
             setNewLoan(prev => ({ ...prev, ...updates, ...otherUpdates }));
         }
     };
 
-    // ---- Ingestion prefill ----
     const { data: linkedIngestion } = useIngestion(ingestionId, financeOn);
 
     const resolveClientId = (record: IngestionRecord) => resolveIngestionClientId(record, users);
@@ -198,10 +178,10 @@ const LoanForm: React.FC<LoanFormProps> = ({
         if (!linkedIngestion || appliedIngestionRef.current === linkedIngestion.id) return;
         appliedIngestionRef.current = linkedIngestion.id;
         void applyIngestion(linkedIngestion);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [linkedIngestion]);
 
     const handleAdd = async () => {
+        setAttempted(true);
         if (!(await validateDate(newLoan.date))) return;
 
         const loan: Loan = {
@@ -293,7 +273,7 @@ const LoanForm: React.FC<LoanFormProps> = ({
     const isInline = variant === 'inline';
 
     const headerActions = (
-        <Box sx={{ display: 'flex', gap: 0.5 }}>
+        <div className="flex items-center gap-1.5">
             <input
                 type="file"
                 accept="image/*"
@@ -301,110 +281,86 @@ const LoanForm: React.FC<LoanFormProps> = ({
                 id={`loan-scan-input-${variant}`}
                 onChange={handleImageUpload}
             />
-            <label htmlFor={`loan-scan-input-${variant}`}>
-                <Tooltip title={isScanning ? 'Scanning...' : 'Scan Receipt'}>
-                    <IconButton
-                        component="span"
-                        size="small"
-                        disabled={isScanning}
-                        sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}
-                    >
-                        {isScanning ? <Sparkles className="animate-pulse" size={16} /> : <Camera size={16} />}
-                    </IconButton>
-                </Tooltip>
+            <label
+                htmlFor={`loan-scan-input-${variant}`}
+                className={`inline-flex cursor-pointer ${isScanning ? 'opacity-50 pointer-events-none' : ''}`}
+            >
+                <span className="p-2 border border-line rounded-md text-silver hover:text-amber hover:border-amberdeep transition-colors inline-flex" title={isScanning ? 'Scanning...' : 'Scan Receipt'}>
+                    {isScanning ? <Sparkles size={16} className="animate-pulse" strokeWidth={1.7} /> : <Camera size={16} strokeWidth={1.7} />}
+                </span>
             </label>
             {financeOn && (
-                <Tooltip title="Import from Ingestion">
-                    <IconButton
-                        size="small"
-                        onClick={() => setPickerOpen(true)}
-                        sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}
-                    >
-                        <Download size={16} />
-                    </IconButton>
-                </Tooltip>
+                <IconButton label="Import from Ingestion" onClick={() => setPickerOpen(true)}>
+                    <Download size={16} strokeWidth={1.7} />
+                </IconButton>
             )}
-        </Box>
-    );
-
-    const header = (
-        <Stack direction="row" spacing={1} alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
-            <Typography variant="h6" fontWeight={700}>Issue New Loan</Typography>
-            {headerActions}
-        </Stack>
+        </div>
     );
 
     const body = (
-        <Stack spacing={2} sx={{ mt: isInline ? 0 : 1 }}>
+        <div className="space-y-5">
             {imported && (
-                <Alert severity="success" variant="outlined">
-                    <Typography variant="body2" fontWeight={600}>Imported from ingestion</Typography>
-                    <Typography variant="caption" color="text.secondary">
-                        {ingestionDisplayText(imported) ?? 'Notification'} · {imported.id}
-                    </Typography>
-                </Alert>
+                <div className="border border-dashed border-linestrong rounded-md px-3.5 py-3 flex items-start gap-2.5">
+                    <CheckCircle2 size={16} className="text-good shrink-0 mt-0.5" />
+                    <div>
+                        <p className="text-sm font-semibold text-good">Imported from ingestion</p>
+                        <p className="text-xs text-silverdim mt-0.5">
+                            {ingestionDisplayText(imported) ?? 'Notification'} · {imported.id}
+                        </p>
+                    </div>
+                </div>
             )}
-            <Stack direction="row" spacing={1} alignItems="center">
-                <FormControl fullWidth>
-                    <InputLabel>Client</InputLabel>
+
+            <div className="flex items-end gap-2">
+                <div className="flex-1">
                     <Select
-                        value={newLoan.clientId}
                         label="Client"
+                        value={newLoan.clientId}
                         onChange={(e) => { handleSelectUser(e.target.value); }}
-                    >
-                        {users.map(u => (
-                            <MenuItem key={u.id} value={u.id}>{u.name}</MenuItem>
-                        ))}
-                    </Select>
+                        options={[{ value: '', label: 'Select a client', disabled: true }, ...users.map(u => ({ value: u.id, label: u.name }))]}
+                    />
                     {newLoan.interestRuleId && (
-                        <FormHelperText>
-                            <Sparkles size={12} /> Template: {rules.find(r => r.id === newLoan.interestRuleId)?.name}
-                        </FormHelperText>
+                        <p className="mt-1.5 text-xs text-silverdim inline-flex items-center gap-1.5">
+                            <Sparkles size={12} className="text-amber" /> Template: {rules.find(r => r.id === newLoan.interestRuleId)?.name}
+                        </p>
                     )}
-                </FormControl>
+                </div>
                 <UserDialog onAddUser={handleAddUser} imgData={imgData}>
-                    <Tooltip title="Add New Client">
-                        <IconButton color="primary" sx={{ border: '1px solid', borderColor: 'primary.light', borderRadius: 2 }}>
-                            <UserPlus size={20} />
-                        </IconButton>
-                    </Tooltip>
+                    <IconButton label="Add New Client" className="mb-0.5">
+                        <UserPlus size={18} strokeWidth={1.7} />
+                    </IconButton>
                 </UserDialog>
-            </Stack>
-            <TextField
+            </div>
+
+            <Input
                 label="Date"
                 type="date"
-                fullWidth
                 value={newLoan.date}
                 onChange={(e) => setNewLoan({ ...newLoan, date: e.target.value })}
-                slotProps={{ inputLabel: { shrink: true } }}
             />
-            <TextField
-                label="Principal Amount"
+            <Input
+                label="Principal Amount (P)"
                 type="number"
-                fullWidth
+                className="tnum text-lg"
                 value={newLoan.principal}
                 onChange={(e) => setNewLoan({ ...newLoan, principal: Number(e.target.value) })}
             />
-            <TextField
+            <Input
                 label="Monthly Interest Rate (%)"
                 type="number"
-                fullWidth
+                className="tnum"
                 value={newLoan.interestRate}
                 onChange={(e) => setNewLoan({ ...newLoan, interestRate: Number(e.target.value) })}
             />
-            <FormControlLabel
-                control={
-                    <Switch
-                        checked={newLoan.showAmortization}
-                        onChange={(e) => setNewLoan({ ...newLoan, showAmortization: e.target.checked })}
-                    />
-                }
+            <Checkbox
                 label="Show Amortization Schedule"
+                checked={newLoan.showAmortization}
+                onChange={(e) => setNewLoan({ ...newLoan, showAmortization: e.target.checked })}
             />
             {newLoan.showAmortization && (
-                <Box sx={{ p: 1, bgcolor: 'primary.50', borderRadius: 1, border: '1px dashed', borderColor: 'primary.main' }}>
-                    <Typography variant="caption" color="primary.main" fontWeight={600}>
-                        Expected Monthly Payment:
+                <div className="border border-dashed border-linestrong rounded-md px-3.5 py-3 flex items-baseline justify-between gap-4">
+                    <span className="text-[11px] font-mono tracking-[0.16em] uppercase text-silverdim">Expected Monthly Payment</span>
+                    <span className="font-mono font-bold text-amber tnum">
                         P {(() => {
                             const p = newLoan.principal;
                             const r = newLoan.interestRate / 100;
@@ -419,26 +375,25 @@ const LoanForm: React.FC<LoanFormProps> = ({
                                 return emi.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
                             }
                         })()}
-                    </Typography>
-                </Box>
+                    </span>
+                </div>
             )}
-            <Button
-                size="small"
-                variant="text"
-                onClick={() => setShowAdvanced(!showAdvanced)}
-                startIcon={showAdvanced ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                sx={{ alignSelf: 'flex-start', textTransform: 'none', fontSize: '0.8rem', color: 'text.secondary', px: 0.5, minHeight: 0, py: 0.5 }}
-            >
-                Advanced Settings
-            </Button>
-            <Collapse in={showAdvanced}>
-                <Stack spacing={2} sx={{ mt: 1 }}>
-                    {rules.length > 0 && (
-                        <FormControl fullWidth size="small">
-                            <InputLabel>Interest Template</InputLabel>
+
+            <div className="border-t border-line pt-3">
+                <button
+                    type="button"
+                    onClick={() => setShowAdvanced(!showAdvanced)}
+                    className="inline-flex items-center gap-1 text-xs font-mono tracking-[0.16em] uppercase text-silverdim hover:text-amber transition-colors"
+                >
+                    {showAdvanced ? <ChevronDown size={14} strokeWidth={1.7} /> : <ChevronRight size={14} strokeWidth={1.7} />}
+                    Advanced Settings
+                </button>
+                {showAdvanced && (
+                    <div className="mt-4 border border-linestrong rounded-tray bg-tray/50 p-4 space-y-4">
+                        {rules.length > 0 && (
                             <Select
-                                value={newLoan.interestRuleId}
                                 label="Interest Template"
+                                value={newLoan.interestRuleId}
                                 onChange={(e) => {
                                     const selectedId = e.target.value;
                                     const updates: Partial<LoanFormState> = { interestRuleId: selectedId };
@@ -456,111 +411,104 @@ const LoanForm: React.FC<LoanFormProps> = ({
                                     }
                                     setNewLoan(prev => ({ ...prev, ...updates }));
                                 }}
-                            >
-                                <MenuItem value="">Custom / Manual</MenuItem>
-                                {rules.map((r) => (
-                                    <MenuItem key={r.id} value={r.id}>{r.name} ({r.interestPerMonth}%)</MenuItem>
-                                ))}
-                            </Select>
-                        </FormControl>
-                    )}
-                    <TextField
-                        label="Grace Period (Days)"
-                        type="number"
-                        fullWidth
-                        size="small"
-                        value={newLoan.gracePeriodDays}
-                        onChange={(e) => setNewLoan({ ...newLoan, gracePeriodDays: Number(e.target.value) })}
-                    />
-                    <TextField
-                        label="Grace Period Interest (%)"
-                        type="number"
-                        fullWidth
-                        size="small"
-                        value={newLoan.gracePeriodInterest}
-                        onChange={(e) => setNewLoan({ ...newLoan, gracePeriodInterest: Number(e.target.value) })}
-                    />
-                    <TextField
-                        label="Late Payment Penalty (%)"
-                        type="number"
-                        fullWidth
-                        size="small"
-                        value={newLoan.latePaymentPenalty}
-                        onChange={(e) => setNewLoan({ ...newLoan, latePaymentPenalty: Number(e.target.value) })}
-                    />
-                    <TextField
-                        label="Term (Months)"
-                        type="number"
-                        fullWidth
-                        size="small"
-                        value={newLoan.termMonths}
-                        onChange={(e) => setNewLoan({ ...newLoan, termMonths: Number(e.target.value) })}
-                    />
-                    <FormControl fullWidth size="small">
-                        <InputLabel>Interest Computed On</InputLabel>
+                                options={[
+                                    { value: '', label: 'Custom / Manual' },
+                                    ...rules.map((r) => ({ value: r.id, label: `${r.name} (${r.interestPerMonth}%)` }))
+                                ]}
+                            />
+                        )}
+                        <div className="grid sm:grid-cols-2 gap-4">
+                            <Input
+                                label="Grace Period (Days)"
+                                type="number"
+                                className="tnum"
+                                value={newLoan.gracePeriodDays}
+                                onChange={(e) => setNewLoan({ ...newLoan, gracePeriodDays: Number(e.target.value) })}
+                            />
+                            <Input
+                                label="Grace Period Interest (%)"
+                                type="number"
+                                className="tnum"
+                                value={newLoan.gracePeriodInterest}
+                                onChange={(e) => setNewLoan({ ...newLoan, gracePeriodInterest: Number(e.target.value) })}
+                            />
+                            <Input
+                                label="Late Payment Penalty (%)"
+                                type="number"
+                                className="tnum"
+                                value={newLoan.latePaymentPenalty}
+                                onChange={(e) => setNewLoan({ ...newLoan, latePaymentPenalty: Number(e.target.value) })}
+                            />
+                            <Input
+                                label="Term (Months)"
+                                type="number"
+                                className="tnum"
+                                value={newLoan.termMonths}
+                                onChange={(e) => setNewLoan({ ...newLoan, termMonths: Number(e.target.value) })}
+                            />
+                        </div>
                         <Select
-                            value={newLoan.interestBase}
                             label="Interest Computed On"
+                            value={newLoan.interestBase}
                             onChange={(e) => setNewLoan({ ...newLoan, interestBase: e.target.value as 'principal' | 'balance' | 'principalBalance' })}
-                        >
-                            <MenuItem value="principal">Original Principal</MenuItem>
-                            <MenuItem value="balance">Remaining Balance (Capped at Principal)</MenuItem>
-                            <MenuItem value="principalBalance">Principal Balance (Principal first payout)</MenuItem>
-                        </Select>
-                    </FormControl>
-                    <FormControl fullWidth size="small">
-                        <InputLabel>Grace Period Activation</InputLabel>
+                            options={[
+                                { value: 'principal', label: 'Original Principal' },
+                                { value: 'balance', label: 'Remaining Balance (Capped at Principal)' },
+                                { value: 'principalBalance', label: 'Principal Balance (Principal first payout)' }
+                            ]}
+                        />
                         <Select
-                            value={newLoan.recurringGracePeriod ? 'monthly' : 'start'}
                             label="Grace Period Activation"
+                            value={newLoan.recurringGracePeriod ? 'monthly' : 'start'}
                             onChange={(e) => setNewLoan({ ...newLoan, recurringGracePeriod: e.target.value === 'monthly' })}
-                        >
-                            <MenuItem value="start">Start of Loan Only</MenuItem>
-                            <MenuItem value="monthly">Monthly Basis (Every Month)</MenuItem>
-                        </Select>
-                    </FormControl>
-                </Stack>
-            </Collapse>
-            <FormControl fullWidth>
-                <InputLabel>Guarantor (Optional)</InputLabel>
-                <Select
-                    value={newLoan.guarantorId}
-                    label="Guarantor (Optional)"
-                    onChange={(e) => setNewLoan({ ...newLoan, guarantorId: e.target.value })}
-                    disabled={!!fixedGuarantorId}
-                >
-                    <MenuItem value="">None</MenuItem>
-                    {users.filter(u => ['Guarantor', "Admin"].indexOf(u.role) > -1).map(u => (
-                        <MenuItem key={u.id} value={u.id}>{u.name}</MenuItem>
-                    ))}
-                </Select>
-            </FormControl>
-            <FormControl fullWidth>
-                <InputLabel>Source Account (Asset)</InputLabel>
-                <Select
-                    value={newLoan.sourceAcct}
-                    label="Source Account (Asset)"
-                    onChange={(e) => setNewLoan({ ...newLoan, sourceAcct: e.target.value })}
-                >
-                    {assetAccounts.map((a: Account) => (
-                        <MenuItem key={a.id} value={a.id}>{a.name}</MenuItem>
-                    ))}
-                </Select>
-            </FormControl>
-        </Stack>
+                            options={[
+                                { value: 'start', label: 'Start of Loan Only' },
+                                { value: 'monthly', label: 'Monthly Basis (Every Month)' }
+                            ]}
+                        />
+                    </div>
+                )}
+            </div>
+
+            <Select
+                label="Guarantor (Optional)"
+                value={newLoan.guarantorId}
+                onChange={(e) => setNewLoan({ ...newLoan, guarantorId: e.target.value })}
+                disabled={!!fixedGuarantorId}
+                options={[
+                    { value: '', label: 'None' },
+                    ...users.filter(u => ['Guarantor', "Admin"].indexOf(u.role) > -1).map(u => ({ value: u.id, label: u.name }))
+                ]}
+            />
+            <Select
+                label="Source Account (Asset)"
+                value={newLoan.sourceAcct}
+                onChange={(e) => setNewLoan({ ...newLoan, sourceAcct: e.target.value })}
+                options={[{ value: '', label: 'Select account', disabled: true }, ...assetAccounts.map((a: Account) => ({ value: a.id, label: a.name }))]}
+            />
+            {attempted && !newLoan.sourceAcct && (
+                <p className="text-xs text-bad">Choose a source account — the money has to come from somewhere.</p>
+            )}
+            {attempted && !newLoan.clientId && (
+                <p className="text-xs text-bad">Pick a client — the loan needs a borrower before it can be issued.</p>
+            )}
+            {attempted && newLoan.clientId && newLoan.principal <= 0 && (
+                <p className="text-xs text-bad">Principal is zero — enter the amount being released.</p>
+            )}
+        </div>
     );
 
     const actions = (
-        <Stack direction="row" spacing={1} justifyContent="flex-end" sx={{ mt: isInline ? 3 : 0 }}>
-            <Button onClick={onCancel}>Cancel</Button>
+        <div className="mt-6 flex items-center justify-end gap-3">
+            <Button variant="ghost" onClick={onCancel}>Cancel</Button>
             <Button
                 onClick={handleAdd}
-                variant="contained"
                 disabled={!newLoan.clientId || newLoan.principal <= 0 || !newLoan.sourceAcct || createLoan.isPending}
+                loading={createLoan.isPending}
             >
                 {createLoan.isPending ? 'Issuing...' : submitLabel}
             </Button>
-        </Stack>
+        </div>
     );
 
     const picker = financeOn ? (
@@ -573,36 +521,38 @@ const LoanForm: React.FC<LoanFormProps> = ({
 
     if (isInline) {
         return (
-            <Box sx={{ maxWidth: 520, mx: 'auto' }}>
-                {header}
-                {body}
-                {actions}
+            <div className="max-w-xl mx-auto">
+                <div className="border border-linestrong rounded-tray bg-bay2/70 p-5 sm:p-6">
+                    <div className="flex items-center justify-between gap-3 mb-5">
+                        <h2 className="text-paper font-semibold text-xl tracking-tight">Issue New Loan</h2>
+                        {headerActions}
+                    </div>
+                    {body}
+                    {actions}
+                </div>
                 {picker}
-            </Box>
+            </div>
         );
     }
 
-    // Dialog variant: rendered inside <Dialog> by the wrapper.
     return (
         <>
-            <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                Issue New Loan
+            <div className="flex items-center justify-between gap-3 mb-5">
+                <h2 className="text-paper font-semibold text-xl tracking-tight">Issue New Loan</h2>
                 {headerActions}
-            </DialogTitle>
-            <DialogContent>
-                {body}
-            </DialogContent>
-            {picker}
-            <DialogActions>
-                <Button onClick={onCancel}>Cancel</Button>
+            </div>
+            {body}
+            <div className="mt-6 pt-4 border-t border-line flex items-center justify-end gap-3">
+                <Button variant="ghost" onClick={onCancel}>Cancel</Button>
                 <Button
                     onClick={handleAdd}
-                    variant="contained"
                     disabled={!newLoan.clientId || newLoan.principal <= 0 || !newLoan.sourceAcct || createLoan.isPending}
+                    loading={createLoan.isPending}
                 >
                     {createLoan.isPending ? 'Issuing...' : submitLabel}
                 </Button>
-            </DialogActions>
+            </div>
+            {picker}
         </>
     );
 };
