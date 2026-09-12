@@ -44,7 +44,7 @@ const rootRoute = createRootRoute({
 const indexRoute = createRoute({
     getParentRoute: () => rootRoute,
     path: '/',
-    component: () => <LoginPage onLogin={() => { router.navigate({ to: '/admin' }); }} />,
+    component: () => <LoginPage />,
 });
 
 const adminRoute = createRoute({

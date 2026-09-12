@@ -1,48 +1,43 @@
-import React, { useEffect } from 'react';
-import Login from '../components/login/Login';
+import React, { useEffect, useRef } from 'react';
 import { useNavigate } from '@tanstack/react-router';
-import { jwtDecode } from 'jwt-decode';
+import { getUserManager, useAuth } from '@adolf94/ar-auth-client';
+import { Spinner } from '../components/ui';
 
-interface LoginPageProps {
-    onLogin: () => void;
-}
-
-const LoginPage: React.FC<LoginPageProps> = ({ }) => {
-    const navigate = useNavigate()
-
-    const handlePostLogin = (token: string, user: any) => {
-        const config = window.webConfig
-        const userRoles = user.scopes && user.scopes.length > 0 ? user.scopes : (Array.isArray(user.role) ? user.role : [user.role || 'user']);
-
-        if (userRoles.includes(config.adminRole)) {
-            return navigate({ to: "/admin" })
-        }
-        if (userRoles.includes(config.guarantorRole)) {
-            return navigate({ to: "/guarantor" })
-        }
-        return navigate({ to: "/client" })
-    }
+const LoginPage: React.FC = () => {
+    const { user, isAuthenticated, isLoading } = useAuth();
+    const navigate = useNavigate();
+    const attempted = useRef(false);
 
     useEffect(() => {
-        const token = localStorage.getItem("id_token");
-        const refreshToken = localStorage.getItem("refresh_token");
+        if (isLoading) return;
 
-        // Only auto-login if both tokens exist
-        if (refreshToken && token) {
-            try {
-                handlePostLogin(token, jwtDecode<any>(token));
-            } catch (e) {
-                console.error("Failed to decode token on mount", e);
-                localStorage.removeItem("id_token");
-                localStorage.removeItem("refresh_token");
+        if (isAuthenticated && user) {
+            const config = window.webConfig;
+            const roles = user.scopes?.length ? user.scopes : (user.roles || []);
+
+            if (roles.includes(config.adminRole)) {
+                navigate({ to: "/admin" });
+            } else if (roles.includes(config.guarantorRole)) {
+                navigate({ to: "/guarantor" });
+            } else {
+                navigate({ to: "/client" });
             }
+            return;
         }
-    }, [])
 
+        // No local login UI: hand the browser straight to the identity server.
+        // One attempt per page load to avoid loops when auth fails.
+        if (!attempted.current) {
+            attempted.current = true;
+            getUserManager().signinRedirect()
+                .catch((err) => console.error('Login redirect failed:', err));
+        }
+    }, [isAuthenticated, isLoading, user, navigate]);
 
     return (
-        <div className="min-h-screen flex items-center justify-center px-6 py-12">
-            <Login onLogin={handlePostLogin} />
+        <div className="min-h-screen flex flex-col items-center justify-center gap-4">
+            <Spinner size={44} />
+            <p className="text-sm text-silverdim tracking-wide">Redirecting to sign in...</p>
         </div>
     );
 };

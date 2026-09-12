@@ -1,10 +1,21 @@
-import axios, { AxiosError, type AxiosInstance, type AxiosRequestConfig } from 'axios';
+import axios, { type AxiosRequestConfig } from 'axios';
 import { setBackdropLoading } from '../components/BackdropLoader';
-import { showLogin } from '../components/login/LoginPrompt';
 
 
 
 import { getUserManager, refreshAccessToken } from '@adolf94/ar-auth-client';
+
+let isRedirecting = false;
+
+// Navigate the browser to the identity server instead of opening a login popup.
+// The page unloads during the redirect, so callers should not expect a token back.
+export const redirectToLogin = () => {
+    if (isRedirecting) return;
+    isRedirecting = true;
+    getUserManager().signinRedirect()
+        .catch((err) => console.error('Login redirect failed:', err))
+        .finally(() => { isRedirecting = false; });
+};
 
 let isRefreshing = false;
 let failedQueue = [];
@@ -54,15 +65,12 @@ export const getToken = async (force?: boolean, config?: AxiosRequestConfig, axi
             console.warn('Library silent refresh failed', err);
         }
 
-        // 2. If refresh failed, trigger manual login dialog
+        // 2. If refresh failed, redirect the browser to the identity server
         if (!accessToken) {
-            console.warn('Initiating manual login dialog fallback');
-            accessToken = await showLogin();
-        }
-
-        if (!accessToken) {
-            processQueue(new Error('Login canceled by user.'));
-            return Promise.reject(new Error('Token refresh aborted (Login canceled).'));
+            console.warn('Silent refresh failed. Redirecting to login.');
+            redirectToLogin();
+            processQueue(new Error('Redirecting to login.'));
+            return Promise.reject(new Error('Redirecting to login.'));
         }
 
         processQueue(null, accessToken);
@@ -76,65 +84,6 @@ export const getToken = async (force?: boolean, config?: AxiosRequestConfig, axi
         setBackdropLoading(false);
         isRefreshing = false;
     }
-};
-
-
-
-const handle401 = async (error: AxiosError, instance: AxiosInstance, addLog: (message: string, status: 'info' | 'success' | 'error' | 'warning') => void): Promise<any> => {
-  const originalRequest = error.config;
-
-  // 1. Check if the error is due to a 401 and hasn't been retried
-  if (error.response?.status === 401 && !originalRequest._retry) {
-      originalRequest._retry = true;
-
-      // Queue the request logic (Manual P-Queue Logic)
-      return new Promise((resolve, reject) => {
-          
-          const retryRequest = async () => {
-              let newAccessToken: string = '';
-
-              if (!isRefreshing) {
-                  isRefreshing = true;
-                  addLog('401 hit. Initiating login (Fallback).', 'error');
-
-                  const dialogToken = await showLogin(); 
-                  
-                  if (!dialogToken) {
-                      const cancelError = new Error('Login canceled by user.');
-                      processQueue(cancelError);
-                      throw cancelError;
-                  }
-
-                  newAccessToken = dialogToken;
-                  processQueue(null, newAccessToken);
-              } else {
-                  addLog('401 hit. Request queued (Refresh in progress).', 'warning');
-                  // Wait for the ongoing refresh
-                  return new Promise<string>((res, rej) => {
-                      failedQueue.push({ resolve: res, reject: rej });
-                  }).then(token => { newAccessToken = token; });
-              }
-
-              // Retry the original request with the new token
-              originalRequest.headers = originalRequest.headers || {};
-              originalRequest.headers['Authorization'] = `Bearer ${newAccessToken}`;
-              addLog(`Retrying ${originalRequest.url} with new token.`, 'info');
-              
-              // The retry call returns a promise that resolves the result of the second request
-              return instance.get(originalRequest.url || '', originalRequest);
-
-          };
-          
-          retryRequest().then(resolve).catch(err => {
-              isRefreshing = false; // Ensure lock is released if we failed the retry
-              reject(err);
-          });
-
-      });
-  }
-
-  // Default error handling (non-401 or final retry failure)
-  return Promise.reject(error);
 };
 
 

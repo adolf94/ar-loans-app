@@ -4,7 +4,6 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { defaultUserInfo, UserInfoContext } from './components/useUserInfo';
 import { BackdropLoaderProvider } from './components/BackdropLoader';
-import LoginPrompt from './components/login/LoginPrompt';
 import { ToastProvider, useToast, ConfirmProvider } from './components/ui';
 import { jwtDecode } from 'jwt-decode'
 import { syncUser } from './services/apiService';
@@ -87,7 +86,6 @@ function AppContent({ userInfo, setUserInfo, init }: any) {
   return (
     <UserInfoContext.Provider value={{ userInfo, setUserInfo, hasRole }}>
       {init && !isLoading && <RouterProvider router={router} context={{ auth: { user: userInfo, hasRole } }} />}
-      <LoginPrompt />
     </UserInfoContext.Provider>
   );
 }
