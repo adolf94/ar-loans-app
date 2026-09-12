@@ -49,7 +49,8 @@ jobs:
               "scope": "openid profile email api://${{vars.API_CLIENT_ID}}/admin api://${{vars.API_CLIENT_ID}}/guarantor",
               "authority": "${{ vars.AUTHORITY }}",
               "adminRole": "api://${{vars.API_CLIENT_ID}}/admin",
-              "guarantorRole": "api://${{vars.API_CLIENT_ID}}/guarantor"
+              "guarantorRole": "api://${{vars.API_CLIENT_ID}}/guarantor",
+              "enableFinanceIntegration": ${{ vars.ENABLE_FINANCE_INTEGRATION || 'false' }}
             }
           
       - name: Build And Deploy Preparation
