@@ -5,6 +5,7 @@ using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
@@ -148,7 +149,9 @@ namespace Ar.Loans.Api.Services
             {
                 var request = new HttpRequestMessage(HttpMethod.Post, $"{_config.Finance.BaseUrl.TrimEnd('/')}/transactions");
                 request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
-                request.Content = JsonContent.Create(body, options: JsonOptions);
+                // StringContent (buffered, Content-Length) instead of JsonContent: the Azure
+                // Functions host drops chunked request bodies sent across host.docker.internal.
+                request.Content = new StringContent(JsonSerializer.Serialize(body, JsonOptions), Encoding.UTF8, "application/json");
 
                 var response = await _httpClient.SendAsync(request);
                 var text = await response.Content.ReadAsStringAsync();
@@ -259,12 +262,15 @@ namespace Ar.Loans.Api.Services
                 var body = new ConfirmIngestionRequest
                 {
                     UserId = userId,
-                    TransactionId = transactionId
+                    TransactionId = transactionId,
+                    SkipLearning = true
                 };
 
                 var request = new HttpRequestMessage(HttpMethod.Post, $"{ingester}/ingestions/{Uri.EscapeDataString(ingestionId)}/confirm-status");
                 request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
-                request.Content = JsonContent.Create(body, options: JsonOptions);
+                // StringContent (buffered, Content-Length) instead of JsonContent: the Azure
+                // Functions host drops chunked request bodies sent across host.docker.internal.
+                request.Content = new StringContent(JsonSerializer.Serialize(body, JsonOptions), Encoding.UTF8, "application/json");
 
                 var response = await _httpClient.SendAsync(request);
                 if (!response.IsSuccessStatusCode)
@@ -341,5 +347,6 @@ namespace Ar.Loans.Api.Services
     {
         [JsonPropertyName("user_id")] public string UserId { get; set; } = string.Empty;
         [JsonPropertyName("transaction_id")] public string TransactionId { get; set; } = string.Empty;
+        [JsonPropertyName("skip_learning")] public bool SkipLearning { get; set; }
     }
 }

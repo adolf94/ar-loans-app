@@ -107,6 +107,7 @@ public class FinanceServiceTests
         using var doc = JsonDocument.Parse(req.Body!);
         Assert.Equal("user-123", doc.RootElement.GetProperty("user_id").GetString());
         Assert.Equal("tx-5", doc.RootElement.GetProperty("transaction_id").GetString());
+        Assert.True(doc.RootElement.GetProperty("skip_learning").GetBoolean());
     }
 
     [Fact]
