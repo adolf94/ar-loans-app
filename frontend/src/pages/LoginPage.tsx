@@ -1,17 +1,25 @@
 import React, { useEffect, useRef } from 'react';
-import { useNavigate } from '@tanstack/react-router';
+import { useNavigate, useRouter } from '@tanstack/react-router';
 import { getUserManager, useAuth } from '@adolf94/ar-auth-client';
+import { takeDeepLink } from '../services/api';
 import { Spinner } from '../components/ui';
 
 const LoginPage: React.FC = () => {
     const { user, isAuthenticated, isLoading } = useAuth();
     const navigate = useNavigate();
+    const router = useRouter();
     const attempted = useRef(false);
 
     useEffect(() => {
         if (isLoading) return;
 
         if (isAuthenticated && user) {
+            const deepLink = takeDeepLink();
+            if (deepLink) {
+                router.history.push(deepLink);
+                return;
+            }
+
             const config = window.webConfig;
             const roles = user.scopes?.length ? user.scopes : (user.roles || []);
 
@@ -32,7 +40,7 @@ const LoginPage: React.FC = () => {
             getUserManager().signinRedirect()
                 .catch((err) => console.error('Login redirect failed:', err));
         }
-    }, [isAuthenticated, isLoading, user, navigate]);
+    }, [isAuthenticated, isLoading, user, navigate, router]);
 
     return (
         <div className="min-h-screen flex flex-col items-center justify-center gap-4">

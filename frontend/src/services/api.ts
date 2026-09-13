@@ -5,6 +5,27 @@ import { setBackdropLoading } from '../components/BackdropLoader';
 
 import { getUserManager, refreshAccessToken } from '@adolf94/ar-auth-client';
 
+const DEEP_LINK_KEY = 'ar_deep_link';
+
+// Remember the current path so the deep link survives the login redirect.
+// First save wins: auth redirects bounce through other routes, and the
+// originally requested deep link is the one worth restoring.
+export const saveDeepLink = () => {
+    if (sessionStorage.getItem(DEEP_LINK_KEY)) return;
+    const target = window.location.pathname + window.location.search + window.location.hash;
+    if (target.length > 1 && !target.startsWith('//') && !target.startsWith('/callback')) {
+        sessionStorage.setItem(DEEP_LINK_KEY, target);
+    }
+};
+
+// Return (and clear) a previously saved deep link if it is a safe same-app path.
+export const takeDeepLink = (): string | null => {
+    const saved = sessionStorage.getItem(DEEP_LINK_KEY);
+    if (!saved) return null;
+    sessionStorage.removeItem(DEEP_LINK_KEY);
+    return saved.startsWith('/') && !saved.startsWith('//') ? saved : null;
+};
+
 let isRedirecting = false;
 
 // Navigate the browser to the identity server instead of opening a login popup.
@@ -12,6 +33,7 @@ let isRedirecting = false;
 export const redirectToLogin = () => {
     if (isRedirecting) return;
     isRedirecting = true;
+    saveDeepLink();
     getUserManager().signinRedirect()
         .catch((err) => console.error('Login redirect failed:', err))
         .finally(() => { isRedirecting = false; });

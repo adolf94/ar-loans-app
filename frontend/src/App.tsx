@@ -18,6 +18,7 @@ const queryClient = new QueryClient({
 });
 
 import { AuthProvider, useAuth } from '@adolf94/ar-auth-client';
+import { saveDeepLink } from './services/api';
 
 const authConfig = {
   authority: window.webConfig.authority,
@@ -99,6 +100,7 @@ function App() {
     const token = localStorage.getItem("id_token");
 
     if (!token) {
+      saveDeepLink();
       setInit(true)
       return
     }

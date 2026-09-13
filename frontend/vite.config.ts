@@ -14,7 +14,13 @@ export default defineConfig({
       registerType: 'autoUpdate',
       injectRegister: 'auto',
       filename: 'service-worker.js',
-      includeAssets: ['vite.svg', 'config.js'],
+      includeAssets: ['vite.svg'],
+      workbox: {
+        // config.js is environment configuration that can change independently
+        // of app code — it must never be precached or the SW serves a stale copy.
+        globPatterns: ['**/*.{js,css,html}'],
+        globIgnores: ['**/config.js'],
+      },
       manifest: {
         name: 'LendFlow | AI Loan Management',
         short_name: 'LendFlow',

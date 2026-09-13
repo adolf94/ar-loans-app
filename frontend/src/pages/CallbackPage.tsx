@@ -1,13 +1,15 @@
 import React, { useEffect } from 'react';
 import { useAuth } from '@adolf94/ar-auth-client';
-import { useNavigate } from '@tanstack/react-router';
+import { useNavigate, useRouter } from '@tanstack/react-router';
 import useUserInfo from '../components/useUserInfo';
+import { takeDeepLink } from '../services/api';
 import { Spinner } from '../components/ui';
 
 const CallbackPage: React.FC = () => {
     const { isAuthenticated, isLoading } = useAuth();
     const { userInfo } = useUserInfo();
     const navigate = useNavigate();
+    const router = useRouter();
 
     useEffect(() => {
         // If we are in a popup, the AuthProvider's signinPopupCallback
@@ -18,6 +20,12 @@ const CallbackPage: React.FC = () => {
 
         // If authenticated and the backend sync (in App.tsx) has finished
         if (!isLoading && isAuthenticated && userInfo.isAuthenticated) {
+            const deepLink = takeDeepLink();
+            if (deepLink) {
+                router.history.push(deepLink);
+                return;
+            }
+
             const config = window.webConfig;
             const userRoles = userInfo.role || [];
 
@@ -29,7 +37,7 @@ const CallbackPage: React.FC = () => {
                 navigate({ to: "/client", replace: true });
             }
         }
-    }, [isAuthenticated, isLoading, userInfo.isAuthenticated, userInfo.role, navigate]);
+    }, [isAuthenticated, isLoading, userInfo.isAuthenticated, userInfo.role, navigate, router]);
 
     // Handle error state (e.g. login failed or cancelled)
     useEffect(() => {
