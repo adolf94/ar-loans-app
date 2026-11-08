@@ -35,7 +35,8 @@ public class FinanceSyncProcessorTests
         var config = TestHelpers.BuildAppConfig(financeEnabled: true, useDeleteForReversal: useDeleteForReversal);
         var db = TestHelpers.CreateContext(financeEnabled: financeEnabledContext);
         var (finance, handler, _) = TestHelpers.CreateFinanceService(config);
-        var processor = new FinanceSyncProcessor(db, finance, config, NullLogger<FinanceSyncProcessor>.Instance);
+        var telegram = TestHelpers.CreateTelegramService(config, db);
+        var processor = new FinanceSyncProcessor(db, finance, config, telegram, NullLogger<FinanceSyncProcessor>.Instance);
         return (processor, db, handler);
     }
 

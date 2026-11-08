@@ -158,4 +158,16 @@ public static class TestHelpers
         var finance = new Ar.Loans.Api.Services.FinanceService(financeClient, config, authority, cache, NullLogger<Ar.Loans.Api.Services.FinanceService>());
         return (finance, financeHandler, authorityHandler);
     }
+
+    /// <summary>
+    /// TelegramService with a dummy-token bot client (same pattern as Program.cs
+    /// local dev): send methods early-return on an empty bot secret, so no
+    /// network calls happen while the processor's alert path is exercised.
+    /// </summary>
+    public static Ar.Loans.Api.Services.TelegramService CreateTelegramService(Ar.Loans.Api.Utilities.AppConfig config, AppDbContext db)
+    {
+        var bot = new Telegram.Bot.TelegramBotClient("0000000000:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
+        var logService = new Ar.Loans.Api.Services.LogService(db, NullLogger<Ar.Loans.Api.Services.LogService>());
+        return new Ar.Loans.Api.Services.TelegramService(bot, config, NullLogger<Ar.Loans.Api.Services.TelegramService>(), logService);
+    }
 }
