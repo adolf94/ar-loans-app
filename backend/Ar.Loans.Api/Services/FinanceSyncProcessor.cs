@@ -17,12 +17,17 @@ namespace Ar.Loans.Api.Services
     /// entries to the finance app (create) and reverses them (delete-first via
     /// transactions:delete:self, with reversal-transaction fallback).
     /// </summary>
-    public class FinanceSyncProcessor(AppDbContext db, FinanceService finance, AppConfig config, ILogger<FinanceSyncProcessor> logger)
+    public class FinanceSyncProcessor(AppDbContext db, FinanceService finance, AppConfig config, TelegramService telegram, ILogger<FinanceSyncProcessor> logger)
     {
         private readonly AppDbContext _db = db;
         private readonly FinanceService _finance = finance;
         private readonly AppConfig _config = config;
+        private readonly TelegramService _telegram = telegram;
         private readonly ILogger<FinanceSyncProcessor> _logger = logger;
+
+        /// <summary>Bounded retries: once Attempts reaches this, the item is
+        /// Cancelled (with a Telegram alert) instead of looping forever.</summary>
+        private const int MaxAttempts = 5;
 
         private static readonly JsonSerializerOptions PayloadJsonOptions = new()
         {
@@ -45,6 +50,34 @@ namespace Ar.Loans.Api.Services
             var item = await _db.FinanceSyncItems.FirstOrDefaultAsync(x => x.Id == itemId);
             if (item == null) return;
             if (item.Status == FinanceSyncStatuses.Completed || item.Status == FinanceSyncStatuses.Cancelled) return;
+
+            // Concurrency guard: Processing within the last few minutes means another
+            // worker (queue trigger, change feed, drain) holds the item. Older than
+            // that implies a dead host - hand it back to the retry engine.
+            if (item.Status == FinanceSyncStatuses.Processing
+                && DateTime.UtcNow - item.UpdatedAt < TimeSpan.FromMinutes(10))
+            {
+                _logger.LogInformation("Finance sync item {ItemId} is actively Processing; skipping concurrent attempt", item.Id);
+                return;
+            }
+
+            if (item.Status == FinanceSyncStatuses.Failed)
+            {
+                // Backoff: not due yet -> defer to a later wake (drain or feed).
+                // Legacy docs without NextAttemptAt (null) are treated as due.
+                if (item.NextAttemptAt is { } due && due > DateTime.UtcNow)
+                    return;
+
+                if (item.Attempts >= MaxAttempts)
+                {
+                    await FinishItem(item, FinanceSyncStatuses.Cancelled,
+                        Truncate($"Giving up after {item.Attempts} attempts: {item.LastError}"));
+                    _logger.LogError("Finance sync item {ItemId} cancelled after {Attempts} failed attempts",
+                        item.Id, item.Attempts);
+                    await AlertGiveUpAsync(item);
+                    return;
+                }
+            }
 
             var payload = DeserializePayload(item);
             if (payload == null)
@@ -72,9 +105,11 @@ namespace Ar.Loans.Api.Services
             {
                 item.Status = FinanceSyncStatuses.Failed;
                 item.LastError = Truncate(ex.Message);
+                item.NextAttemptAt = DateTime.UtcNow.AddMinutes(BackoffMinutes(item.Attempts));
                 item.UpdatedAt = DateTime.UtcNow;
                 await _db.SaveChangesAsync();
-                _logger.LogError(ex, "Finance sync item {ItemId} ({Kind}) failed", item.Id, item.Kind);
+                _logger.LogError(ex, "Finance sync item {ItemId} ({Kind}) failed (attempt {Attempts}, next retry at {NextAttemptAt})",
+                    item.Id, item.Kind, item.Attempts, item.NextAttemptAt);
                 throw; // Let the queue trigger retry with platform backoff
             }
         }
@@ -171,8 +206,9 @@ namespace Ar.Loans.Api.Services
         /// <summary>
         /// Sweep of stranded items not touched recently: Pending/Failed (dispatch
         /// lost or last attempt failed) and stale Processing (host died
-        /// mid-process; the redelivered change-feed batch is filtered out by its
-        /// Pending-only check). In change-feed mode this is the retry engine.
+        /// mid-process). In change-feed mode this is the retry engine: it honors
+        /// the item's NextAttemptAt backoff and the max-attempts cap via
+        /// ProcessItemAsync. Safe to schedule externally (cron).
         /// </summary>
         public async Task<int> DrainStaleAsync(int take = 20)
         {
@@ -261,9 +297,39 @@ namespace Ar.Loans.Api.Services
         private async Task FinishItem(FinanceSyncItem item, string status, string? note = null)
         {
             item.Status = status;
+            item.NextAttemptAt = null;
             item.UpdatedAt = DateTime.UtcNow;
             item.LastError = note;
             await _db.SaveChangesAsync();
+        }
+
+        /// <summary>Exponential backoff between retry attempts: 1, 2, 4, 8, 16... capped at 60 minutes.</summary>
+        private static int BackoffMinutes(int attempts)
+        {
+            var minutes = 1 << Math.Min(Math.Max(attempts - 1, 0), 6);
+            return Math.Min(minutes, 60);
+        }
+
+        /// <summary>Telegram alert when an item is permanently given up after MaxAttempts.</summary>
+        private async Task AlertGiveUpAsync(FinanceSyncItem item)
+        {
+            try
+            {
+                var chat = _config.Telegram.GuarantorGroupChat;
+                if (string.IsNullOrWhiteSpace(chat)) return;
+
+                var message = $"🚨 *Finance sync item given up*\n"
+                            + $"*ID*: {item.Id}\n"
+                            + $"*Kind*: {item.Kind}\n"
+                            + $"*Entry*: {item.EntryId}\n"
+                            + $"*Attempts*: {item.Attempts}\n"
+                            + $"*Error*: `{item.LastError}`";
+                await _telegram.SendMessageAsync(chat, message);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to send give-up alert for finance sync item {ItemId}", item.Id);
+            }
         }
 
         private static FinanceSyncPayload? DeserializePayload(FinanceSyncItem item)

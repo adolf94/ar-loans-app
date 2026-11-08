@@ -64,11 +64,12 @@ namespace Ar.Loans.Api.Functions
         }
 
         /// <summary>
-        /// Happy path only: processes what the feed recently delivered with
-        /// Status == Pending. The trigger's own status writes re-fire the feed
-        /// (Pending -> Processing -> Completed); the status filter makes those
-        /// cheap no-ops. Failed items are NEVER retried here - the drain timer
-        /// and the admin retry endpoint handle errors separately.
+        /// Happy path: processes what the feed delivers when its status becomes
+        /// Pending, or Failed (once NextAttemptAt backoff has elapsed - the write
+        /// is a no-op while not due; the drain timer/endpoint re-wakes when due).
+        /// The trigger's own status writes re-fire the feed - the status filter
+        /// makes those cheap no-ops. Max-attempt exhaustion → Cancelled + alert
+        /// in the processor. Admin-side retry: RetryFinanceSyncItems endpoint.
         /// </summary>
         [Function("FinanceSyncChangeFeed")]
         public async Task RunChangeFeed(
@@ -85,7 +86,19 @@ namespace Ar.Loans.Api.Functions
             foreach (var doc in changes)
             {
                 var status = doc.TryGetProperty("Status", out var statusProp) ? statusProp.GetString() : null;
-                if (!string.Equals(status, FinanceSyncStatuses.Pending, StringComparison.Ordinal))
+                if (status is null
+                    || (status != FinanceSyncStatuses.Pending && status != FinanceSyncStatuses.Failed))
+                    continue;
+
+                // Failed items honor NextAttemptAt backoff (written by the failure
+                // path); a failing attempt schedules itself into the future, so the
+                // redelivery is a no-op - the drain re-wakes it when due. Legacy
+                // documents without the field are treated as due immediately.
+                if (status == FinanceSyncStatuses.Failed
+                    && doc.TryGetProperty("NextAttemptAt", out var dueProp)
+                    && dueProp.ValueKind == JsonValueKind.String
+                    && DateTime.TryParse(dueProp.GetString(), out var due)
+                    && due > DateTime.UtcNow)
                     continue;
 
                 var id = doc.TryGetProperty("id", out var idProp)
@@ -105,8 +118,9 @@ namespace Ar.Loans.Api.Functions
                 }
                 catch (Exception ex)
                 {
-                    // Item already marked Failed + LastError in Cosmos. Never rethrow:
-                    // an escaping exception stalls the checkpoint and blocks the feed.
+                    // Item already marked Failed + NextAttemptAt backoff + LastError in
+                    // Cosmos. Never rethrow: an escaping exception stalls the
+                    // checkpoint and blocks the feed.
                     _logger.LogError(ex, "Finance sync item {ItemId} failed via change feed; leaving to drain", id);
                 }
             }

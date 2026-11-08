@@ -24,6 +24,8 @@ namespace Ar.Loans.Api.Models
         public string? FinanceTransactionId { get; set; }
         public string? PayloadJson { get; set; }
         public int Attempts { get; set; }
+        // Backoff: next wake-up time after a failure (null = due immediately, also for legacy docs).
+        public DateTime? NextAttemptAt { get; set; }
         public string? LastError { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
