@@ -18,8 +18,11 @@ namespace Ar.Loans.Api.Functions
     /// - "changefeed": the FinanceSyncItem Cosmos insert itself triggers
     ///   FinanceSyncChangeFeed on the FinanceSyncQueue container; publishing is a
     ///   no-op (ChangeFeedSyncPublisher).
-    /// In change-feed mode a timer-driven drain (FinanceSyncDrain) is the error
-    /// path for Failed/stale items - the trigger itself only processes Pending.
+    /// In change-feed mode the drain is the error path for Failed/stale items -
+    /// the trigger itself only processes Pending. It runs opportunistically
+    /// after each queue message / change-feed batch and via the external cron
+    /// endpoint (JobsController.RunFinanceSyncDrain, api://.../cron:execute
+    /// scope); the timer-driven FinanceSyncDrain function has been disabled.
     /// </summary>
     public class FinanceSyncFunction(FinanceSyncProcessor processor, AppConfig config, ILogger<FinanceSyncFunction> logger)
     {
@@ -66,10 +69,11 @@ namespace Ar.Loans.Api.Functions
         /// <summary>
         /// Happy path: processes what the feed delivers when its status becomes
         /// Pending, or Failed (once NextAttemptAt backoff has elapsed - the write
-        /// is a no-op while not due; the drain timer/endpoint re-wakes when due).
-        /// The trigger's own status writes re-fire the feed - the status filter
-        /// makes those cheap no-ops. Max-attempt exhaustion → Cancelled + alert
-        /// in the processor. Admin-side retry: RetryFinanceSyncItems endpoint.
+        /// is a no-op while not due; the opportunistic/cron drain re-wakes when
+        /// due). The trigger's own status writes re-fire the feed - the status
+        /// filter makes those cheap no-ops. Max-attempt exhaustion → Cancelled +
+        /// alert in the processor. Admin-side retry: RetryFinanceSyncItems
+        /// endpoint.
         /// </summary>
         [Function("FinanceSyncChangeFeed")]
         public async Task RunChangeFeed(
@@ -124,15 +128,30 @@ namespace Ar.Loans.Api.Functions
                     _logger.LogError(ex, "Finance sync item {ItemId} failed via change feed; leaving to drain", id);
                 }
             }
+
+            // Opportunistic drain, mirroring the queue trigger: after handling
+            // the delivered items, sweep stranded Pending/Failed and stale
+            // Processing ones the feed missed. Only items untouched for >5 min
+            // qualify, so freshly written items are never double-processed here.
+            // Bounded (take 20) to keep the feed's checkpoint latency low.
+            try
+            {
+                await _processor.DrainStaleAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Opportunistic finance sync drain after change feed failed");
+            }
         }
 
         /// <summary>
         /// Error path for change-feed mode: sweeps stranded Pending/Failed and
         /// stale Processing items. Gated so it doesn't double-run with the
-        /// opportunistic drain in the queue trigger.
+        /// opportunistic drain in the queue trigger. Invoked by the external
+        /// cron scheduler via JobsController.RunFinanceSyncDrain (the timer
+        /// trigger has been disabled).
         /// </summary>
-        [Function("FinanceSyncDrain")]
-        public async Task Drain([TimerTrigger("0 */5 * * * *")] TimerInfo timer)
+        public async Task DrainAsync()
         {
             if (!string.Equals(_config.Finance.SyncMode, "changefeed", StringComparison.OrdinalIgnoreCase)
                 || !_config.Finance.Enabled)

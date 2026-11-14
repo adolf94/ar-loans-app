@@ -7,7 +7,6 @@ using Ar.Loans.Api.Data;
 using Ar.Loans.Api.Models;
 using Ar.Loans.Api.Services;
 using Ar.Loans.Api.Utilities;
-using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 
 namespace Ar.Loans.Api.Functions
@@ -34,10 +33,15 @@ namespace Ar.Loans.Api.Functions
             _logger = loggerFactory.CreateLogger<InterestTimerFunction>();
         }
 
-        [Function("InterestTimerFunction")]
-        public async Task Run([TimerTrigger("0 0 16 * * *", RunOnStartup = true)] TimerInfo myTimer)
+        /// <summary>
+        /// Accrues pending interest/penalties and sends Telegram notifications.
+        /// The timer trigger has been disabled - invoked by the external cron
+        /// scheduler via JobsController.RunInterestAccrual (daily 16:00 UTC
+        /// schedule is now owned by that scheduler).
+        /// </summary>
+        public async Task RunAsync()
         {
-            _logger.LogInformation($"InterestTimerFunction executed at: {DateTime.Now}");
+            _logger.LogInformation($"Interest accrual job executed at: {DateTime.Now}");
 
             // UTC+8 Reference Date
             DateTime referenceDateUTC8 = DateTime.UtcNow.AddHours(8);

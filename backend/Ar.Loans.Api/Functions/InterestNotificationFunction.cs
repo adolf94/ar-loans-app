@@ -7,7 +7,6 @@ using Ar.Loans.Api.Data;
 using Ar.Loans.Api.Models;
 using Ar.Loans.Api.Services;
 using Ar.Loans.Api.Utilities;
-using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Processing;
@@ -39,10 +38,16 @@ namespace Ar.Loans.Api.Functions
             _logger = loggerFactory.CreateLogger<InterestNotificationFunction>();
         }
 
-        [Function("InterestNotificationFunction")]
-        public async Task Run([TimerTrigger("0 0 2 * * *", RunOnStartup = true)] TimerInfo myTimer)
+        /// <summary>
+        /// Sends payment reminders to clients and the upcoming-accruals
+        /// summary to the guarantor channel. The timer trigger has been
+        /// disabled - invoked by the external cron scheduler via
+        /// JobsController.RunInterestNotification (daily 02:00 UTC schedule is
+        /// now owned by that scheduler).
+        /// </summary>
+        public async Task RunAsync()
         {
-            _logger.LogInformation($"InterestNotificationFunction executed at: {DateTime.Now}");
+            _logger.LogInformation($"Interest notification job executed at: {DateTime.Now}");
 
             // UTC+8 Reference Date
             DateTime referenceDateUTC8 = DateTime.UtcNow.AddHours(8);
